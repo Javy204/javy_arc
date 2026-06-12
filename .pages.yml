@@ -1,0 +1,41 @@
+# Konfigurace pro Pages CMS (https://pagescms.org)
+# Definuje, co a jak se dá editovat ve web editoru.
+# Edituje přímo soubory v repu: photos/manifest.json a journal.json,
+# fotky nahrává do složky /photos.
+
+media:
+  input: photos
+  output: /photos
+  extensions: [jpg, jpeg, png, webp]
+
+content:
+  - name: sets
+    label: "Fotky / projekty"
+    path: photos/manifest.json
+    type: file
+    fields:
+      - name: sets
+        label: "Sety"
+        type: object
+        list: true
+        fields:
+          - { name: id,     label: "ID (bez mezer, např. reina)", type: string }
+          - { name: title,  label: "Název", type: string }
+          - { name: date,   label: "Datum (např. 2026.05)", type: string }
+          - { name: type,   label: "Typ (port / event / proj)", type: string }
+          - { name: credit, label: "Credit (např. @stepan.javy)", type: string }
+          - { name: images, label: "Fotky", type: image, list: true }
+
+  - name: journal
+    label: "Journal"
+    path: journal.json
+    type: file
+    fields:
+      - name: entries
+        label: "Zápisy"
+        type: object
+        list: true
+        fields:
+          - { name: date,  label: "Datum (např. 2026.05.28)", type: string }
+          - { name: title, label: "Titulek", type: string }
+          - { name: body,  label: "Text (prázdný řádek = nový odstavec)", type: text }

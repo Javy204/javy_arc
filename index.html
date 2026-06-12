@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>JAVY — STUDIO</title>
+  <link rel="stylesheet" href="film.css?v=26" />
+</head>
+<body class="film">
+  <!-- ============ LOADER: ultra minimal ============ -->
+  <div class="loader" id="loader">
+    <div class="loader-bar"><span class="loader-bar-fill" id="barFill"></span></div>
+    <div class="loader-foot">
+      <span class="mark">P</span>
+      <span class="loader-pct" id="loadPct">000</span>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <header class="hud">
+    <button class="back" id="back" hidden>←</button>
+    <span class="mark" aria-label="javy">P</span>
+    <span class="sys">JAVY</span>
+    <span class="dim crumb" id="crumb">STUDIO</span>
+    <span class="spacer"></span>
+    <span class="counter" id="counter"></span>
+  </header>
+
+  <nav class="dots" id="dots" aria-label="scény"></nav>
+
+  <!-- ============ JOURNEY ============ -->
+  <main class="journey" id="journey">
+
+    <section class="scene s-intro" data-name="javy">
+      <div class="scene-inner poster">
+        <div class="p-row par" data-rise="18" data-exit="50"><span class="mark big">P</span><span>STUDIO · ARCHIVE</span><span class="r">EST. 2026</span></div>
+        <div class="line par" data-rise="40" data-exit="130"><span class="fit">JAVY</span></div>
+        <div class="line par" data-rise="56" data-exit="160"><span class="fit">PORTFOLIO</span></div>
+        <div class="p-row par" data-rise="72" data-exit="180"><span>FOTOGRAFIE &amp; PROJEKTY</span><span class="r scrollhint">↓ SCROLL</span></div>
+      </div>
+    </section>
+
+    <section class="scene s-work" id="sWork" data-name="work">
+      <div class="work-reveal" id="workReveal" aria-hidden="true"></div>
+      <div class="work-tag"><span>01 — WORK</span><span class="r" id="workMeta"></span></div>
+      <div class="work-list" id="workIndex"></div>
+    </section>
+
+    <section class="scene s-arc" data-name="javy.arc">
+      <div class="scene-inner poster">
+        <div class="p-row par" data-rise="16" data-exit="40"><span>02 — PROJEKT</span></div>
+        <div class="line par" data-rise="34" data-exit="120"><span class="fit">JAVY.ARC</span></div>
+        <div class="info-block par" data-rise="60" data-exit="160">
+          <p>[ PLACEHOLDER ] SAMOSTATNÝ PROJEKT — VLASTNÍ SVĚT, VLASTNÍ PRAVIDLA.</p>
+          <a class="link" href="#" target="_blank" rel="noopener">OTEVŘÍT JAVY.ARC ↗</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene s-journal" data-name="journal">
+      <div class="scene-inner poster">
+        <div class="p-row par" data-rise="16" data-exit="40"><span>03 — JOURNAL</span></div>
+        <div class="line par" data-rise="34" data-exit="110"><span class="fit">JOURNAL</span></div>
+        <ol class="journal-list par" id="journalList" data-rise="60" data-exit="120"></ol>
+      </div>
+    </section>
+
+    <section class="scene s-about" data-name="about">
+      <div class="scene-inner poster">
+        <div class="p-row par" data-rise="16" data-exit="40"><span>04 — ABOUT</span></div>
+        <div class="line par" data-rise="34" data-exit="110"><span class="fit">JAVY</span></div>
+        <div class="info-block par" data-rise="60" data-exit="150">
+          <p>[ PLACEHOLDER BIO ] FOTOGRAF — MÓDA, PORTRÉT, ATMOSFÉRA.</p>
+          <dl class="specs">
+            <dt>BASED</dt><dd>[ MĚSTO ]</dd>
+            <dt>SHOOTS</dt><dd>MÓDA · PORTRÉT · EVENT</dd>
+            <dt>FILM</dt><dd>35MM · DIGITAL</dd>
+            <dt>SINCE</dt><dd>[ ROK ]</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene s-contact inv" data-name="contact">
+      <div class="scene-inner poster">
+        <div class="p-row par" data-rise="16" data-exit="40"><span>05 — CONTACT</span></div>
+        <div class="line par" data-rise="34" data-exit="110"><span class="fit">GET IN TOUCH</span></div>
+        <ul class="contact-list par" data-rise="60" data-exit="120">
+          <li><span>EMAIL</span><a href="mailto:stepan.jav036@gmail.com">stepan.jav036@gmail.com</a></li>
+          <li><span>INSTAGRAM</span><a href="https://instagram.com/stepan.javy" target="_blank" rel="noopener">@stepan.javy</a></li>
+          <li><span>INSTAGRAM / ARC</span><a href="https://instagram.com/javy.arc" target="_blank" rel="noopener">@javy.arc</a></li>
+          <li><span>TIKTOK</span><a href="https://tiktok.com/@stepan.javy" target="_blank" rel="noopener">@stepan.javy</a></li>
+        </ul>
+        <div class="foot par" data-rise="74" data-exit="90">JAVY © 2026 · STUDIO</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============ STAGE = horizontální pás snímků ============ -->
+  <div class="stage" id="stage" hidden>
+    <div class="strip-bgword" id="stripBg" aria-hidden="true"></div>
+    <div class="viewport" id="viewport">
+      <div class="reel" id="reel">
+        <div class="strip" id="strip"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- journal zápis -->
+  <section class="journal-entry" id="journalEntry" hidden>
+    <button class="back-inline" id="journalBack">← VŠECHNY ZÁPISY</button>
+    <div class="je-date" id="jeDate"></div>
+    <h2 class="je-title" id="jeTitle"></h2>
+    <div class="je-body" id="jeBody"></div>
+  </section>
+
+  <!-- lightbox -->
+  <section class="light" id="light" hidden>
+    <img id="lightImg" alt="" />
+    <div class="light-bar">
+      <span id="lightId">—</span>
+      <span class="spacer"></span>
+      <button id="lightClose">[ ESC ]</button>
+    </div>
+  </section>
+
+  <script src="film.js?v=27"></script>
+</body>
+</html>

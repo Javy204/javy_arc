@@ -1,0 +1,256 @@
+/* ============================================================
+   JAVY — STUDIO  (v5 — POSTER)
+   Fly-poster / pop-brutalist: squished Arial verzálky natažené
+   přes šířku (fit-to-width), černobílá, invertované bloky.
+   Scroll cesta (pinned + overlap) zůstává. WORK = natáhlý index
+   + reveal fotky za textem. -> filmový pás.
+   ============================================================ */
+
+:root {
+  --bg:   #f3f1ea;   /* print white */
+  --ink:  #0c0b09;   /* black */
+  --dim:  #8d877b;
+  --film: #0c0b09;
+  --hole: #f3f1ea;
+  --sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  --frameH: 66vh;
+  --barH: 24px;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ---- HUD ---- */
+.hud {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60;
+  display: flex; align-items: center; gap: 1.1ch;
+  padding: 14px 20px;
+  font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  mix-blend-mode: difference; color: #fff;   /* invertuje přes cokoliv */
+}
+.sys { font-weight: 900; letter-spacing: .14em; }
+.dim { opacity: .65; }
+.spacer { flex: 1 1 auto; }
+.counter { font-variant-numeric: tabular-nums; }
+.back {
+  background: none; border: 2px solid #fff; color: #fff;
+  font-family: var(--sans); font-weight: 900; font-size: 12px; line-height: 1; cursor: pointer;
+  padding: 5px 9px; margin-right: .4ch;
+}
+.back:hover { background: #fff; color: #000; }
+
+/* ℗ značka */
+.mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.85em; height: 1.25em; border: 2px solid currentColor; border-radius: 50%;
+  font-weight: 900; font-size: 12px; line-height: 1; flex: 0 0 auto;
+}
+.mark.big { font-size: 22px; border-width: 3px; }
+
+/* ---- dots ---- */
+.dots { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 60; display: flex; flex-direction: column; gap: 13px; mix-blend-mode: difference; }
+.dots[hidden] { display: none; }
+.dots button { width: 9px; height: 9px; padding: 0; cursor: pointer; border: 2px solid #fff; background: none; transition: all .2s; }
+.dots button.on { background: #fff; transform: scale(1.3); }
+.dots button::after { content: attr(data-label); position: absolute; right: 18px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: #fff; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.dots button:hover::after { opacity: 1; }
+
+/* ============================================================
+   JOURNEY
+   ============================================================ */
+.journey { position: fixed; inset: 0; z-index: 10; height: 100vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+.journey[hidden] { display: none; }
+.journey::-webkit-scrollbar { display: none; }
+
+.scene {
+  position: sticky; top: 0; height: 100vh; width: 100%;
+  overflow: hidden; display: flex; align-items: center;
+  background: var(--bg); color: var(--ink);
+  box-shadow: 0 -20px 50px rgba(0,0,0,.12);
+}
+.scene.inv { background: var(--ink); color: var(--bg); }
+
+.scene-inner { position: relative; z-index: 2; width: 100%; max-width: 1280px; margin: 0 auto; padding: 96px 40px; will-change: transform, opacity; }
+.scene-inner.poster { display: flex; flex-direction: column; justify-content: center; min-height: 100vh; }
+
+.par { will-change: transform; }
+
+/* řádky posteru (malé verzálky) */
+.p-row { display: flex; align-items: baseline; gap: 1.4ch; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; margin: 0; }
+.p-row .r { margin-left: auto; }
+.p-row .mark.big { align-self: center; margin-right: .4ch; }
+
+/* fit-to-width obří slovo */
+.line { overflow: hidden; margin: 0; }
+.fit {
+  display: block; white-space: nowrap;
+  font-weight: 900; font-size: 30vw; line-height: .82; letter-spacing: -.02em;
+  text-transform: uppercase; transform-origin: left center; will-change: transform;
+}
+.s-intro .line:first-of-type { margin-top: 10px; }
+
+.scrollhint { animation: bob 1.8s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(5px); opacity: .5; } }
+
+/* invertovaný info blok */
+.info-block { background: var(--ink); color: var(--bg); padding: 22px 24px; margin-top: 26px; max-width: 620px; text-transform: uppercase; letter-spacing: .04em; line-height: 1.7; font-size: 13px; }
+.scene.inv .info-block { background: var(--bg); color: var(--ink); }
+.info-block p { margin: 0; }
+.link { display: inline-block; margin-top: 16px; color: inherit; border-bottom: 3px solid currentColor; text-decoration: none; padding-bottom: 1px; }
+.link:hover { opacity: .6; }
+.specs { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; margin: 14px 0 0; font-size: 12px; }
+.specs dt { opacity: .6; } .specs dd { margin: 0; }
+
+/* ---- WORK: scrollovatelný natáhlý index + sticky reveal ---- */
+.s-work { display: block; position: relative; overflow: visible; background: var(--bg); }  /* height nastaví JS; overflow visible kvůli sticky */
+
+.work-reveal {
+  position: sticky; top: 0; height: 100vh; z-index: 1;
+  background-size: cover; background-position: center;
+  filter: grayscale(1) contrast(1.32) brightness(1.05);
+  opacity: 0; transition: opacity .4s ease;
+}
+.work-reveal.on { opacity: 1; }
+/* tematická stylizace: filmové zrno + jemný tiskový rastr (halftone) */
+.work-reveal::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    radial-gradient(#000 .6px, transparent 1.1px),
+    var(--grain);
+  background-size: 5px 5px, 220px 220px;
+  mix-blend-mode: multiply; opacity: .4;
+}
+
+/* malý štítek pinnutý nahoře */
+.work-tag {
+  position: sticky; top: 70px; z-index: 4; margin-top: -100vh;
+  display: flex; justify-content: space-between;
+  padding: 0 48px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+  color: #fff; mix-blend-mode: difference; pointer-events: none;
+}
+
+/* absolutní sloupec obřích slov přes sticky fotku */
+.work-list { position: absolute; top: 0; left: 0; right: 0; z-index: 3; padding: 0 48px; }
+/* slot ve vw, vždy vyšší než písmo -> slova se nikdy nepřekryjí */
+.wi-slot { height: 19vw; display: flex; align-items: center; }
+.wi-slot:first-child { margin-top: calc(50vh - 9.5vw); }
+.wi-slot:last-child { margin-bottom: calc(50vh - 9.5vw); }
+.wi {
+  display: block; white-space: nowrap;
+  font-weight: 900; font-size: 14vw; line-height: 1; letter-spacing: -.02em;
+  text-transform: uppercase; transform-origin: left center; cursor: pointer;
+  color: #fff; mix-blend-mode: difference;   /* invertuje přes bg i fotku */
+  opacity: .3; transition: opacity .3s;
+}
+.wi.active { opacity: 1; }
+
+/* journal list */
+.journal-list { list-style: none; margin: 24px 0 0; padding: 0; max-width: 820px; }
+.journal-list li { display: flex; gap: 1.6ch; align-items: baseline; padding: 13px 6px; border-top: 2px solid var(--ink); cursor: pointer; text-transform: uppercase; transition: padding-left .15s, background .1s, color .1s; }
+.journal-list li:last-child { border-bottom: 2px solid var(--ink); }
+.journal-list li:hover { background: var(--ink); color: var(--bg); padding-left: 14px; }
+.journal-list .jl-date { font-variant-numeric: tabular-nums; font-size: 12px; min-width: 10ch; opacity: .7; }
+.journal-list .jl-title { flex: 1 1 auto; font-size: 18px; }
+.journal-list .jl-arrow { }
+
+/* contact */
+.contact-list { list-style: none; margin: 26px 0 0; padding: 0; max-width: 640px; }
+.contact-list li { display: flex; gap: 1.6ch; align-items: baseline; padding: 13px 0; border-top: 2px solid currentColor; text-transform: uppercase; }
+.contact-list li span { opacity: .6; font-size: 12px; min-width: 12ch; }
+.contact-list a { color: inherit; text-decoration: none; border-bottom: 2px solid currentColor; font-size: 20px; }
+.contact-list a:hover { opacity: .6; }
+.foot { margin-top: 36px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
+
+/* ============================================================
+   STAGE / STRIP — horizontální editorial galerie + type-parallax
+   (odfilmováno: žádné perforace/leader; fotky barevné)
+   ============================================================ */
+.stage { position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow: hidden; }
+.stage[hidden] { display: none; }
+
+/* obří natáhlý název shootu = parallax pozadí (jede pomaleji) */
+.strip-bgword {
+  position: absolute; top: 50%; left: 0;
+  font-weight: 900; font-size: 64vh; line-height: .8; letter-spacing: -.03em;
+  text-transform: uppercase; white-space: nowrap;
+  color: var(--ink); opacity: .1; pointer-events: none; z-index: 0; will-change: transform;
+}
+
+.viewport { position: relative; z-index: 2; width: 100vw; height: 100vh; display: flex; align-items: center; overflow: hidden; }
+.reel { position: relative; display: inline-block; white-space: nowrap; will-change: transform; }
+.reel.unrolling { animation: reelIn .5s ease; }
+@keyframes reelIn { from { opacity: 0; } to { opacity: 1; } }
+
+.strip { display: inline-flex; align-items: center; padding: 0 6vw; }
+.frame {
+  position: relative; height: var(--frameH); margin: 0 18px; flex: 0 0 auto;
+  background: #1a1916; will-change: transform, opacity; transform-origin: center; cursor: pointer; overflow: hidden;
+}
+.frame img {
+  display: block; height: 100%; width: auto; object-fit: cover;
+  filter: saturate(.45) contrast(1.05) brightness(.98);
+  transition: filter .45s ease; user-select: none; -webkit-user-drag: none;
+}
+.frame.focus img, .frame:hover img { filter: saturate(1.08) contrast(1.03); }  /* vybarví se v ohnisku */
+.frame .num {
+  position: absolute; top: 10px; left: 12px; font-size: 13px; font-weight: 900; letter-spacing: .03em;
+  color: #fff; mix-blend-mode: difference; pointer-events: none;
+}
+.frame .dot { display: none; }
+
+/* journal entry overlay */
+.journal-entry { position: fixed; inset: 0; z-index: 80; background: var(--bg); padding: 96px 30px 80px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; text-transform: uppercase; }
+.journal-entry[hidden] { display: none; }
+.journal-entry > * { width: 100%; max-width: 760px; }
+.back-inline { align-self: center; background: none; border: none; color: var(--ink); font-family: var(--sans); font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.back-inline:hover { opacity: .5; }
+.je-date { margin-top: 18px; font-size: 12px; letter-spacing: .1em; opacity: .6; }
+.je-title { font-size: clamp(34px, 8vw, 80px); line-height: .9; font-weight: 900; text-transform: uppercase; margin: 8px 0 0; }
+.je-body { margin-top: 22px; line-height: 1.8; font-weight: 700; text-transform: none; }
+.je-body p { margin: 0 0 16px; }
+
+/* lightbox */
+.light { position: fixed; inset: 0; z-index: 100; background: rgba(10,9,8,.97); display: flex; flex-direction: column; animation: fade .2s ease; }
+.light[hidden] { display: none; }
+@keyframes fade { from{opacity:0} to{opacity:1} }
+.light img { flex: 1 1 auto; min-height: 0; width: 100%; object-fit: contain; padding: 54px 20px 12px; }
+.light-bar { display: flex; align-items: center; gap: 1ch; padding: 14px 20px; color: #fff; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.light-bar button { background: none; border: none; color: #fff; font-family: var(--sans); font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.light-bar button:hover { opacity: .6; }
+
+/* ============================================================
+   LOADER — ultra minimal (progress linka + ℗ + counter)
+   ============================================================ */
+.loader {
+  position: fixed; inset: 0; z-index: 300;
+  background: var(--bg); color: var(--ink);
+  transition: opacity .45s ease; cursor: pointer;
+}
+.loader.done { opacity: 0; pointer-events: none; }
+.loader-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: rgba(12,11,9,.12); }
+.loader-bar-fill { display: block; height: 100%; width: 0; background: var(--ink); transition: width .12s linear; }
+.loader-foot {
+  position: absolute; left: 30px; bottom: 26px;
+  display: flex; align-items: center; gap: 1.1ch;
+  font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+}
+.loader-foot .loader-pct { font-weight: 900; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+  :root { --frameH: 52vh; }
+  .fit { font-size: 22vw; }
+  .wi { font-size: 19vw; }
+  .dots { display: none; }
+  .fit-load { font-size: 40vw; }
+}

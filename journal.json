@@ -1,0 +1,20 @@
+{
+  "_comment": "Zápisy do journalu. Přidat = přidat objekt do 'entries' (nebo přes CMS). body = text, prázdný řádek = nový odstavec.",
+  "entries": [
+    {
+      "date": "2026.05.28",
+      "title": "MYFS / STUDIO",
+      "body": "[ placeholder ] Pár vět o tom shootu — světlo, nálada, co se dělo za kamerou.\n\nTady může být i fotka. Až budeš mít text, prostě ho sem napiš."
+    },
+    {
+      "date": "2026.04.19",
+      "title": "ATELIER V7",
+      "body": "[ placeholder ] Poznámky z přehlídky / backstage.\n\nDruhý odstavec."
+    },
+    {
+      "date": "2026.03.02",
+      "title": "ZA KAMEROU",
+      "body": "[ placeholder ] Krátká úvaha — proč tenhle přístup, co tě baví.\n\nDoplň."
+    }
+  ]
+}

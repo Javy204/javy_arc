@@ -1,0 +1,11 @@
+# OS / editor
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# masters / originály (nepatří na web — drž je mimo repo)
+_originals/
+**/_originals/
+
+# nástroje
+node_modules/

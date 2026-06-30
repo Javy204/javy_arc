@@ -281,7 +281,7 @@ function step() {
 
 /* ---- lightbox ---- */
 function openLight(fi) { lightIndex = fi; paintLight(); light.hidden = false; }
-function paintLight() { const it = FRAMES[lightIndex]; lightImg.src = it.full; lightId.textContent = `${it.set.title.toUpperCase()} · ${pad2(it.i + 1)}/${pad2(it.set.count)} · ${(it.set.credit || "").toUpperCase()}`; }
+function paintLight() { const it = FRAMES[lightIndex]; lightImg.src = it.full; const cr = (it.set.credit || "").toUpperCase(); lightId.textContent = `${it.set.title.toUpperCase()} · ${pad2(it.i + 1)}/${pad2(it.set.count)}${cr ? " · " + cr : ""}`; }
 function stepLight(d) { lightIndex = (lightIndex + d + FRAMES.length) % FRAMES.length; paintLight(); }
 function closeLight() { light.hidden = true; }
 lightClose.addEventListener("click", closeLight);

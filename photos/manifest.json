@@ -1,25 +1,37 @@
 {
-  "_comment": "AUTOGENEROVANO build.py ze slozek v /photos. NEEDITUJ rucne. Poradi = cislo na zacatku nazvu slozky; nazev = zbytek.",
+  "_comment": "AUTOGENEROVANO build.py ze slozek v /photos. NEEDITUJ rucne.",
   "sets": [
     {
       "id": "the-creaks",
       "title": "the creaks",
       "credit": "",
-      "images": [
-        "photos/01%20the%20creaks/rebrand_tojevpici-97.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-102.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-104.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-122.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-136.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-139.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-151.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-154.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-235.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-260.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-278.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-284.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-289.jpg",
-        "photos/01%20the%20creaks/rebrand_tojevpici-313.jpg"
+      "shoots": [
+        {
+          "id": "rebrand",
+          "title": "rebrand",
+          "images": [
+            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-97.jpg",
+            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-102.jpg",
+            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-104.jpg",
+            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-122.jpg",
+            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-136.jpg",
+            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-139.jpg",
+            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-151.jpg"
+          ]
+        },
+        {
+          "id": "live",
+          "title": "live",
+          "images": [
+            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-154.jpg",
+            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-235.jpg",
+            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-260.jpg",
+            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-278.jpg",
+            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-284.jpg",
+            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-289.jpg",
+            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-313.jpg"
+          ]
+        }
       ]
     },
     {

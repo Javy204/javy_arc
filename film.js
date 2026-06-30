@@ -15,6 +15,8 @@ const viewport = $("#viewport");
 const reel = $("#reel");
 const strip = $("#strip");
 const stripBg = $("#stripBg");
+const groupEl = $("#group");
+const groupCovers = $("#groupCovers");
 const workIndex = $("#workIndex");
 const workReveal = $("#workReveal");
 const sWork = $("#sWork");
@@ -44,7 +46,12 @@ let lightIndex = -1;
 async function loadData() {
   try {
     const data = await (await fetch("photos/manifest.json", { cache: "no-store" })).json();
-    SETS = (data.sets || []).map((s) => ({ ...s, images: s.images || [], count: (s.images || []).length }));
+    SETS = (data.sets || []).map((s) => {
+      if (s.shoots) {
+        return { ...s, isGroup: true, shoots: s.shoots.map((sh) => ({ ...sh, credit: s.credit || "", count: (sh.images || []).length })) };
+      }
+      return { ...s, images: s.images || [], count: (s.images || []).length };
+    });
   } catch (e) { console.warn("manifest se nenačetl", e); SETS = []; }
   try {
     const jd = await (await fetch("journal.json", { cache: "no-store" })).json();
@@ -161,12 +168,18 @@ function updateJourney() {
 }
 
 /* ---- WORK -> pás ---- */
+let currentGroup = null;
+let coverEls = [], gTargetX = 0, gCurrentX = 0, gCenters = [], gFocus = -1;
+let gHAccum = 0, gVAccum = 0, gZooming = false, zoomOutAccum = 0;
+
 function openShoot(idx) {
-  buildStrip(SETS[idx]);
-  enterStrip();
+  const set = SETS[idx];
+  if (set.isGroup) { openGroup(set); return; }
+  currentGroup = null;
+  buildStrip(set); enterStrip();
 }
 function enterStrip() {
-  journey.hidden = true; dotsNav.hidden = true;
+  journey.hidden = true; dotsNav.hidden = true; groupEl.hidden = true;
   stage.hidden = false; back.hidden = false;
   measure();
   const startX = clamp(vw / 2 - (centers[0] || 0));
@@ -175,12 +188,81 @@ function enterStrip() {
   setTimeout(() => { measure(); targetX = clamp(vw / 2 - (centers[0] || 0)); }, 140);
 }
 function backFromStrip() {
-  stage.hidden = true; journey.hidden = false; dotsNav.hidden = false; back.hidden = true;
-  updateJourney();
+  stage.hidden = true;
+  if (currentGroup) openGroup(currentGroup);
+  else { journey.hidden = false; dotsNav.hidden = false; back.hidden = true; updateJourney(); }
 }
+
+/* ---- GROUP: zoom přehled (covers) ↔ detail (pás) ---- */
+function openGroup(set) {
+  currentGroup = set;
+  renderCovers(set.shoots);
+  journey.hidden = true; dotsNav.hidden = true; stage.hidden = true;
+  groupEl.hidden = false; back.hidden = false;
+  layoutCovers();
+  gFocus = 0; gTargetX = gCurrentX = gCenterFor(0);
+}
+function renderCovers(shoots) {
+  groupCovers.innerHTML = ""; coverEls = [];
+  shoots.forEach((sh, i) => {
+    const c = document.createElement("div");
+    c.className = "cover";
+    c.innerHTML = `<div class="cover-img" style="background-image:url('${sh.images[0]}')"></div><span class="cover-name">${sh.title}</span>`;
+    c.addEventListener("click", () => coverZoom(i));
+    groupCovers.appendChild(c);
+    coverEls.push(c);
+  });
+}
+function layoutCovers() {
+  vw = window.innerWidth || document.documentElement.clientWidth;
+  gCenters = coverEls.map((c) => c.offsetLeft + c.offsetWidth / 2);
+}
+function gCenterFor(i) { return vw / 2 - (gCenters[i] || 0); }
+function gMove(d) { gFocus = Math.max(0, Math.min(coverEls.length - 1, gFocus + d)); gTargetX = gCenterFor(gFocus); }
+function coverZoom(i) {
+  if (i < 0 || !currentGroup || gZooming) return;
+  gZooming = true;
+  const c = coverEls[i]; if (c) c.classList.add("zooming");
+  const shoot = currentGroup.shoots[i];
+  setTimeout(() => { buildStrip(shoot); enterStrip(); gZooming = false; if (c) c.classList.remove("zooming"); }, 240);
+}
+function backFromGroup() {
+  groupEl.hidden = true; journey.hidden = false; dotsNav.hidden = false; back.hidden = true; currentGroup = null; updateJourney();
+}
+function stepGroup() {
+  if (gZooming || !coverEls.length) return;
+  vw = window.innerWidth || document.documentElement.clientWidth;
+  gCurrentX += (gTargetX - gCurrentX) * 0.18;
+  groupCovers.style.transform = `translate3d(${gCurrentX.toFixed(1)}px,0,0)`;
+  const screenC = vw / 2 - gCurrentX;
+  coverEls.forEach((c, k) => {
+    const norm = Math.min(Math.abs((gCenters[k] || 0) - screenC) / (vw * 0.5), 1);
+    c.style.transform = `scale(${(1 - norm * 0.28).toFixed(3)})`;
+    c.style.opacity = (1 - norm * 0.5).toFixed(3);
+  });
+  if (gFocus >= 0 && currentGroup) {
+    counter.textContent = `${pad2(gFocus + 1)} / ${pad2(coverEls.length)}`;
+    crumb.textContent = `${currentGroup.title.toUpperCase()} / ${currentGroup.shoots[gFocus].title.toUpperCase()}`;
+  }
+}
+groupEl.addEventListener("wheel", (e) => {
+  if (groupEl.hidden) return;
+  e.preventDefault();
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+    gHAccum += e.deltaX;
+    if (gHAccum > 55) { gHAccum = 0; gMove(1); }
+    else if (gHAccum < -55) { gHAccum = 0; gMove(-1); }
+  } else if (e.deltaY > 0) {
+    gVAccum += e.deltaY;
+    if (gVAccum > 100) { gVAccum = 0; coverZoom(gFocus); }
+  } else { gVAccum = 0; }
+}, { passive: false });
+
 back.addEventListener("click", () => {
-  if (!journalEntry.hidden) { journalEntry.hidden = true; if (stage.hidden) back.hidden = true; return; }
-  backFromStrip();
+  if (!light.hidden) { closeLight(); return; }
+  if (!journalEntry.hidden) { journalEntry.hidden = true; if (stage.hidden && groupEl.hidden) back.hidden = true; return; }
+  if (!stage.hidden) { backFromStrip(); return; }
+  if (!groupEl.hidden) { backFromGroup(); return; }
 });
 
 /* ---- build strip ---- */
@@ -228,6 +310,13 @@ viewport.addEventListener("wheel", (e) => {
   e.preventDefault();
   let d = e.deltaY, dx = e.deltaX;
   if (e.deltaMode === 1) { d *= 16; dx *= 16; } else if (e.deltaMode === 2) { d *= window.innerHeight; }
+  // ve skupině: scroll nahoru na začátku pásu = zoom zpět na přehled
+  if (currentGroup && targetX >= maxX - 1 && d < 0) {
+    zoomOutAccum += -d;
+    if (zoomOutAccum > 140) { zoomOutAccum = 0; backFromStrip(); }
+    return;
+  }
+  zoomOutAccum = 0;
   targetX = clamp(targetX - (d + dx) * 1.15);
   scheduleSnap();
 }, { passive: false });
@@ -252,6 +341,7 @@ document.addEventListener("keydown", (e) => {
 /* ---- strip render loop ---- */
 let curNearest = -1;
 function step() {
+  if (!groupEl.hidden) { stepGroup(); return; }
   if (stage.hidden || !ITEMS.length) return;
   vw = window.innerWidth || document.documentElement.clientWidth;
   currentX += (targetX - currentX) * 0.18;

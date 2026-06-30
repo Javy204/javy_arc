@@ -16,8 +16,9 @@ IDENT="$(command -v identify || echo "$MAGICK identify")"
 if [ -z "$MAGICK" ]; then
   echo "⚠️  ImageMagick není nainstalovaný — zmenšování přeskočím, udělám jen seznam."
 else
-  shopt -s nullglob nocaseglob
-  for f in photos/*/*.jpg photos/*/*.jpeg photos/*/*.png photos/*/*.webp; do
+  # projde i vnořené složky (skupiny), ošetří mezery v názvech
+  find photos -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print0 \
+  | while IFS= read -r -d '' f; do
     dim=$("$MAGICK" identify -format "%[fx:max(w,h)]" "$f" 2>/dev/null)
     case "$dim" in (''|*[!0-9]*) continue;; esac
     if [ "$dim" -gt "$MAX" ]; then
@@ -28,7 +29,6 @@ else
       echo "  zmenšeno: $f"
     fi
   done
-  shopt -u nullglob nocaseglob
 fi
 
 echo

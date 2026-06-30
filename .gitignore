@@ -9,3 +9,7 @@ _originals/
 
 # nástroje
 node_modules/
+
+# lokální zálohy originálů (nenahrávat na web)
+_masters/
+_site/

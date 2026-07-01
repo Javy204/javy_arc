@@ -174,6 +174,8 @@ function updateJourney() {
 /* ---- WORK -> pás ---- */
 let currentGroup = null;
 let coverEls = [], gFocus = -1, zoomOutAccum = 0;
+let drum = null, itemEls = [], gTargetAngle = 0, gCurrentAngle = 0;
+const STEP = 52, DRUMR = "42vh";
 
 function openShoot(idx) {
   const set = SETS[idx];
@@ -202,36 +204,66 @@ function openGroup(set) {
   journey.hidden = true; dotsNav.hidden = true; stage.hidden = true;
   groupEl.hidden = false; back.hidden = false;
   renderGroupIndex(set.shoots);
-  fitText();
-  gFocus = -1; setGroupActive(0);
+  gFocus = -1; gCurrentAngle = 0; gTargetAngle = 0;
+  gGo(0);
 }
 function renderGroupIndex(shoots) {
-  groupList.innerHTML = ""; coverEls = [];
+  groupList.innerHTML = ""; coverEls = []; itemEls = [];
+  drum = document.createElement("div");
+  drum.className = "drum";
   shoots.forEach((sh, i) => {
+    const item = document.createElement("div");
+    item.className = "drum-item";
     const w = document.createElement("div");
-    w.className = "wi";
+    w.className = "dw";
     w.textContent = sh.title;
-    w.addEventListener("mouseenter", () => setGroupActive(i));
-    w.addEventListener("click", () => coverZoom(i));
-    groupList.appendChild(w);
+    item.appendChild(w);
+    item.addEventListener("click", () => (i === gFocus ? coverZoom(i) : gGo(i)));
+    drum.appendChild(item);
+    itemEls.push(item);
     coverEls.push(w);
   });
+  groupList.appendChild(drum);
+  positionDrum();
 }
+// rozmístí slova po plášti válce (každé o STEP° výš)
+function positionDrum() {
+  itemEls.forEach((it, i) => {
+    it.style.transform = `translate(-50%, -50%) rotateX(${i * STEP}deg) translateZ(${DRUMR})`;
+  });
+}
+// otoč buben na daný shoot
+function gGo(i) {
+  i = Math.max(0, Math.min(coverEls.length - 1, i));
+  gTargetAngle = -i * STEP;
+  setGroupActive(i);
+}
+function gMove(d) { gGo(gFocus + d); }
 function setGroupActive(i) {
   if (!currentGroup || i < 0 || i === gFocus) return;
   gFocus = i;
   const sh = currentGroup.shoots[i];
-  // crossfade: novou fotku dej na spodní vrstvu a přepni
+  // crossfade fotky za textem
   gLayer = 1 - gLayer;
   const top = gLayers[gLayer], other = gLayers[1 - gLayer];
   top.style.backgroundImage = `url("${sh.images[Math.min(2, sh.images.length - 1)]}")`;
   top.classList.add("on");
   other.classList.remove("on");
-  coverEls.forEach((w, k) => w.classList.toggle("active", k === i));
+  itemEls.forEach((it, k) => it.classList.toggle("active", k === i));
   crumb.textContent = `${currentGroup.title.toUpperCase()} / ${sh.title.toUpperCase()}`;
   counter.textContent = `${pad2(i + 1)} / ${pad2(coverEls.length)}`;
 }
-function gMove(d) { setGroupActive(Math.max(0, Math.min(coverEls.length - 1, gFocus + d))); }
+// plynulé otáčení válce + mizení odvrácených slov
+function stepDrum() {
+  if (!itemEls.length || !drum) return;
+  gCurrentAngle += (gTargetAngle - gCurrentAngle) * 0.12;
+  drum.style.transform = `rotateX(${gCurrentAngle.toFixed(2)}deg)`;
+  itemEls.forEach((it, i) => {
+    const rel = (gCurrentAngle + i * STEP) * Math.PI / 180;
+    const c = Math.cos(rel);
+    it.style.opacity = (c > 0 ? c * c : 0).toFixed(3);
+  });
+}
 function coverZoom(i) {
   if (i < 0 || !currentGroup) return;
   buildStrip(currentGroup.shoots[i]);
@@ -339,7 +371,7 @@ document.addEventListener("keydown", (e) => {
 /* ---- strip render loop ---- */
 let curNearest = -1;
 function step() {
-  if (!groupEl.hidden) return;
+  if (!groupEl.hidden) { stepDrum(); return; }
   if (stage.hidden || !ITEMS.length) return;
   vw = window.innerWidth || document.documentElement.clientWidth;
   currentX += (targetX - currentX) * 0.18;
@@ -400,7 +432,7 @@ function initLoader() {
 /* ---- go ---- */
 initLoader();
 journey.addEventListener("scroll", updateJourney, { passive: true });
-window.addEventListener("resize", () => { fitText(); layoutWork(); if (!stage.hidden) measure(); else if (groupEl.hidden) updateJourney(); });
+window.addEventListener("resize", () => { fitText(); layoutWork(); if (!groupEl.hidden) positionDrum(); else if (!stage.hidden) measure(); else updateJourney(); });
 (async () => {
   await loadData();
   renderWorkIndex();

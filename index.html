@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=26" />
+  <link rel="stylesheet" href="film.css?v=30" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -109,8 +109,8 @@
 
   <!-- ============ GROUP = přehled shootů (zoom) ============ -->
   <div class="group" id="group" hidden>
-    <div class="group-covers" id="groupCovers"></div>
-    <div class="group-hint">↔ procházej · ↓ / klik = otevřít</div>
+    <div class="work-reveal" id="groupReveal" aria-hidden="true"></div>
+    <div class="group-inner" id="groupList"></div>
   </div>
 
   <!-- journal zápis -->
@@ -131,6 +131,6 @@
     </div>
   </section>
 
-  <script src="film.js?v=28"></script>
+  <script src="film.js?v=30"></script>
 </body>
 </html>

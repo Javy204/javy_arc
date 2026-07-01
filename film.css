@@ -230,33 +230,13 @@ html, body {
 .light-bar button:hover { opacity: .6; }
 
 /* ============================================================
-   GROUP — přehled shootů (zoom přehled ↔ detail)
+   GROUP — výběr shootů = velká slova + reveal (jako WORK)
    ============================================================ */
 .group { position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow: hidden; display: flex; align-items: center; }
 .group[hidden] { display: none; }
-.group-covers { position: relative; display: inline-flex; align-items: center; white-space: nowrap; will-change: transform; padding: 0 50vw; }
-.cover {
-  position: relative; flex: 0 0 auto; width: 44vh; height: 60vh; margin: 0 3vh;
-  cursor: pointer; overflow: hidden; background: #15140f;
-  will-change: transform, opacity; transform-origin: center;
-}
-.cover-img {
-  position: absolute; inset: 0; background-size: cover; background-position: center;
-  filter: grayscale(1) contrast(1.32) brightness(1.03);
-}
-.cover-img::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background-image: radial-gradient(#000 .6px, transparent 1.1px), var(--grain);
-  background-size: 5px 5px, 220px 220px; mix-blend-mode: multiply; opacity: .4;
-}
-.cover-name {
-  position: absolute; left: 0; right: 0; bottom: 7%; text-align: center;
-  font-weight: 900; font-size: 6.5vh; line-height: .9; letter-spacing: -.02em;
-  text-transform: uppercase; color: #fff; mix-blend-mode: difference; padding: 0 .3em;
-}
-.cover.zooming { animation: coverZoom .42s ease forwards; z-index: 5; }
-@keyframes coverZoom { to { transform: scale(2.6); opacity: 0; } }
-.group-hint { position: fixed; left: 0; right: 0; bottom: 26px; text-align: center; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); pointer-events: none; }
+.group .work-reveal { position: absolute; inset: 0; height: 100%; }   /* override sticky chování z WORK */
+.group-inner { position: relative; z-index: 3; width: 100%; padding: 0 48px; }
+.group-inner .wi { margin: 2.2vh 0; }
 
 /* ============================================================
    LOADER — ultra minimal (progress linka + ℗ + counter)

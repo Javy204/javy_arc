@@ -16,7 +16,8 @@ const reel = $("#reel");
 const strip = $("#strip");
 const stripBg = $("#stripBg");
 const groupEl = $("#group");
-const groupCovers = $("#groupCovers");
+const groupList = $("#groupList");
+const groupReveal = $("#groupReveal");
 const workIndex = $("#workIndex");
 const workReveal = $("#workReveal");
 const sWork = $("#sWork");
@@ -169,8 +170,7 @@ function updateJourney() {
 
 /* ---- WORK -> pás ---- */
 let currentGroup = null;
-let coverEls = [], gTargetX = 0, gCurrentX = 0, gCenters = [], gFocus = -1;
-let gHAccum = 0, gVAccum = 0, gZooming = false, zoomOutAccum = 0;
+let coverEls = [], gFocus = -1, zoomOutAccum = 0;
 
 function openShoot(idx) {
   const set = SETS[idx];
@@ -193,70 +193,46 @@ function backFromStrip() {
   else { journey.hidden = false; dotsNav.hidden = false; back.hidden = true; updateJourney(); }
 }
 
-/* ---- GROUP: zoom přehled (covers) ↔ detail (pás) ---- */
+/* ---- GROUP: výběr shootů = velká slova + reveal (jako WORK) ---- */
 function openGroup(set) {
   currentGroup = set;
-  renderCovers(set.shoots);
   journey.hidden = true; dotsNav.hidden = true; stage.hidden = true;
   groupEl.hidden = false; back.hidden = false;
-  layoutCovers();
-  gFocus = 0; gTargetX = gCurrentX = gCenterFor(0);
+  renderGroupIndex(set.shoots);
+  fitText();
+  setGroupActive(0);
 }
-function renderCovers(shoots) {
-  groupCovers.innerHTML = ""; coverEls = [];
+function renderGroupIndex(shoots) {
+  groupList.innerHTML = ""; coverEls = [];
   shoots.forEach((sh, i) => {
-    const c = document.createElement("div");
-    c.className = "cover";
-    c.innerHTML = `<div class="cover-img" style="background-image:url('${sh.images[0]}')"></div><span class="cover-name">${sh.title}</span>`;
-    c.addEventListener("click", () => coverZoom(i));
-    groupCovers.appendChild(c);
-    coverEls.push(c);
+    const w = document.createElement("div");
+    w.className = "wi";
+    w.textContent = sh.title;
+    w.addEventListener("mouseenter", () => setGroupActive(i));
+    w.addEventListener("click", () => coverZoom(i));
+    groupList.appendChild(w);
+    coverEls.push(w);
   });
 }
-function layoutCovers() {
-  vw = window.innerWidth || document.documentElement.clientWidth;
-  gCenters = coverEls.map((c) => c.offsetLeft + c.offsetWidth / 2);
+function setGroupActive(i) {
+  if (!currentGroup || i < 0) return;
+  gFocus = i;
+  const sh = currentGroup.shoots[i];
+  groupReveal.style.backgroundImage = `url("${sh.images[Math.min(2, sh.images.length - 1)]}")`;
+  groupReveal.classList.add("on");
+  coverEls.forEach((w, k) => w.classList.toggle("active", k === i));
+  crumb.textContent = `${currentGroup.title.toUpperCase()} / ${sh.title.toUpperCase()}`;
+  counter.textContent = `${pad2(i + 1)} / ${pad2(coverEls.length)}`;
 }
-function gCenterFor(i) { return vw / 2 - (gCenters[i] || 0); }
-function gMove(d) { gFocus = Math.max(0, Math.min(coverEls.length - 1, gFocus + d)); gTargetX = gCenterFor(gFocus); }
+function gMove(d) { setGroupActive(Math.max(0, Math.min(coverEls.length - 1, gFocus + d))); }
 function coverZoom(i) {
-  if (i < 0 || !currentGroup || gZooming) return;
-  gZooming = true;
-  const c = coverEls[i]; if (c) c.classList.add("zooming");
-  const shoot = currentGroup.shoots[i];
-  setTimeout(() => { buildStrip(shoot); enterStrip(); gZooming = false; if (c) c.classList.remove("zooming"); }, 240);
+  if (i < 0 || !currentGroup) return;
+  buildStrip(currentGroup.shoots[i]);
+  enterStrip();
 }
 function backFromGroup() {
   groupEl.hidden = true; journey.hidden = false; dotsNav.hidden = false; back.hidden = true; currentGroup = null; updateJourney();
 }
-function stepGroup() {
-  if (gZooming || !coverEls.length) return;
-  vw = window.innerWidth || document.documentElement.clientWidth;
-  gCurrentX += (gTargetX - gCurrentX) * 0.18;
-  groupCovers.style.transform = `translate3d(${gCurrentX.toFixed(1)}px,0,0)`;
-  const screenC = vw / 2 - gCurrentX;
-  coverEls.forEach((c, k) => {
-    const norm = Math.min(Math.abs((gCenters[k] || 0) - screenC) / (vw * 0.5), 1);
-    c.style.transform = `scale(${(1 - norm * 0.28).toFixed(3)})`;
-    c.style.opacity = (1 - norm * 0.5).toFixed(3);
-  });
-  if (gFocus >= 0 && currentGroup) {
-    counter.textContent = `${pad2(gFocus + 1)} / ${pad2(coverEls.length)}`;
-    crumb.textContent = `${currentGroup.title.toUpperCase()} / ${currentGroup.shoots[gFocus].title.toUpperCase()}`;
-  }
-}
-groupEl.addEventListener("wheel", (e) => {
-  if (groupEl.hidden) return;
-  e.preventDefault();
-  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-    gHAccum += e.deltaX;
-    if (gHAccum > 55) { gHAccum = 0; gMove(1); }
-    else if (gHAccum < -55) { gHAccum = 0; gMove(-1); }
-  } else if (e.deltaY > 0) {
-    gVAccum += e.deltaY;
-    if (gVAccum > 100) { gVAccum = 0; coverZoom(gFocus); }
-  } else { gVAccum = 0; }
-}, { passive: false });
 
 back.addEventListener("click", () => {
   if (!light.hidden) { closeLight(); return; }
@@ -329,7 +305,14 @@ viewport.addEventListener("pointercancel", endDrag);
 
 document.addEventListener("keydown", (e) => {
   if (!light.hidden) { if (e.key === "Escape") closeLight(); else if (e.key === "ArrowRight") stepLight(1); else if (e.key === "ArrowLeft") stepLight(-1); return; }
-  if (!journalEntry.hidden) { if (e.key === "Escape") { journalEntry.hidden = true; if (stage.hidden) back.hidden = true; } return; }
+  if (!journalEntry.hidden) { if (e.key === "Escape") { journalEntry.hidden = true; if (stage.hidden && groupEl.hidden) back.hidden = true; } return; }
+  if (!groupEl.hidden) {
+    if (e.key === "Escape") backFromGroup();
+    else if (e.key === "ArrowRight") gMove(1);
+    else if (e.key === "ArrowLeft") gMove(-1);
+    else if (e.key === "ArrowDown" || e.key === "Enter") coverZoom(gFocus);
+    return;
+  }
   if (!stage.hidden) {
     const sp = Math.min(window.innerWidth * 0.5, 520);
     if (e.key === "Escape") backFromStrip();
@@ -341,7 +324,7 @@ document.addEventListener("keydown", (e) => {
 /* ---- strip render loop ---- */
 let curNearest = -1;
 function step() {
-  if (!groupEl.hidden) { stepGroup(); return; }
+  if (!groupEl.hidden) return;
   if (stage.hidden || !ITEMS.length) return;
   vw = window.innerWidth || document.documentElement.clientWidth;
   currentX += (targetX - currentX) * 0.18;
@@ -402,7 +385,7 @@ function initLoader() {
 /* ---- go ---- */
 initLoader();
 journey.addEventListener("scroll", updateJourney, { passive: true });
-window.addEventListener("resize", () => { fitText(); layoutWork(); if (!stage.hidden) measure(); else updateJourney(); });
+window.addEventListener("resize", () => { fitText(); layoutWork(); if (!stage.hidden) measure(); else if (groupEl.hidden) updateJourney(); });
 (async () => {
   await loadData();
   renderWorkIndex();

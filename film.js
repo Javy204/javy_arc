@@ -174,7 +174,7 @@ function updateJourney() {
 /* ---- WORK -> pás ---- */
 let currentGroup = null;
 let coverEls = [], gFocus = -1, zoomOutAccum = 0;
-let drum = null, itemEls = [], gTargetAngle = 0, gCurrentAngle = 0;
+let drum = null, itemEls = [], gTargetAngle = 0, gCurrentAngle = 0, gSnapT = 0;
 const STEP = 52, DRUMR = "42vh";
 
 function openShoot(idx) {
@@ -226,16 +226,16 @@ function renderGroupIndex(shoots) {
   groupList.appendChild(drum);
   positionDrum();
 }
-// rozmístí slova po plášti válce (každé o STEP° výš)
+// rozmístí slova po plášti válce (další shoot je vždy níž, „přijede" zdola)
 function positionDrum() {
   itemEls.forEach((it, i) => {
-    it.style.transform = `translate(-50%, -50%) rotateX(${i * STEP}deg) translateZ(${DRUMR})`;
+    it.style.transform = `translate(-50%, -50%) rotateX(${-i * STEP}deg) translateZ(${DRUMR})`;
   });
 }
 // otoč buben na daný shoot
 function gGo(i) {
   i = Math.max(0, Math.min(coverEls.length - 1, i));
-  gTargetAngle = -i * STEP;
+  gTargetAngle = i * STEP;
   setGroupActive(i);
 }
 function gMove(d) { gGo(gFocus + d); }
@@ -253,16 +253,21 @@ function setGroupActive(i) {
   crumb.textContent = `${currentGroup.title.toUpperCase()} / ${sh.title.toUpperCase()}`;
   counter.textContent = `${pad2(i + 1)} / ${pad2(coverEls.length)}`;
 }
-// plynulé otáčení válce + mizení odvrácených slov
+// plynulé otáčení válce + hloubka (mizení, rozostření, zmenšení dozadu)
 function stepDrum() {
   if (!itemEls.length || !drum) return;
   gCurrentAngle += (gTargetAngle - gCurrentAngle) * 0.12;
   drum.style.transform = `rotateX(${gCurrentAngle.toFixed(2)}deg)`;
   itemEls.forEach((it, i) => {
-    const rel = (gCurrentAngle + i * STEP) * Math.PI / 180;
-    const c = Math.cos(rel);
-    it.style.opacity = (c > 0 ? c * c : 0).toFixed(3);
+    const c = Math.cos((gCurrentAngle - i * STEP) * Math.PI / 180);
+    const cl = Math.max(0, c);
+    it.style.opacity = (cl * cl).toFixed(3);
+    it.style.filter = `blur(${((1 - cl) * 2.4).toFixed(2)}px)`;
+    it.firstChild.style.transform = `scale(${(0.8 + 0.2 * cl).toFixed(3)})`;
   });
+  // fotku/crumb přepni podle nejbližšího shootu (i během plynulého scrollu)
+  const near = Math.max(0, Math.min(coverEls.length - 1, Math.round(gCurrentAngle / STEP)));
+  if (near !== gFocus) setGroupActive(near);
 }
 function coverZoom(i) {
   if (i < 0 || !currentGroup) return;
@@ -276,9 +281,15 @@ function backFromGroup() {
 groupEl.addEventListener("wheel", (e) => {
   if (groupEl.hidden) return;
   e.preventDefault();
-  gAccum += (Math.abs(e.deltaY) >= Math.abs(e.deltaX)) ? e.deltaY : e.deltaX;
-  if (gAccum > 55) { gAccum = 0; gMove(1); }
-  else if (gAccum < -55) { gAccum = 0; gMove(-1); }
+  const d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX)) ? e.deltaY : e.deltaX;
+  const maxA = (coverEls.length - 1) * STEP;
+  gTargetAngle = Math.max(0, Math.min(maxA, gTargetAngle + d * 0.32));
+  // po zastavení scrollu dojeď na nejbližší shoot
+  clearTimeout(gSnapT);
+  gSnapT = setTimeout(() => {
+    const i = Math.max(0, Math.min(coverEls.length - 1, Math.round(gTargetAngle / STEP)));
+    gTargetAngle = i * STEP;
+  }, 130);
 }, { passive: false });
 
 back.addEventListener("click", () => {

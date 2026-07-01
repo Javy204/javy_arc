@@ -234,7 +234,18 @@ html, body {
    ============================================================ */
 .group { position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow: hidden; display: flex; align-items: center; }
 .group[hidden] { display: none; }
-.group .work-reveal { position: absolute; inset: 0; height: 100%; }   /* override sticky chování z WORK */
+.group-bg { position: absolute; inset: 0; }
+.group-bg-layer {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  filter: grayscale(1) contrast(1.32) brightness(1.03);
+  opacity: 0; transition: opacity .5s ease;
+}
+.group-bg-layer.on { opacity: 1; }
+.group-bg::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(#000 .6px, transparent 1.1px), var(--grain);
+  background-size: 5px 5px, 220px 220px; mix-blend-mode: multiply; opacity: .4;
+}
 .group-inner { position: relative; z-index: 3; width: 100%; padding: 0 48px; }
 .group-inner .wi { margin: 2.2vh 0; }
 

@@ -18,6 +18,8 @@ const stripBg = $("#stripBg");
 const groupEl = $("#group");
 const groupList = $("#groupList");
 const groupReveal = $("#groupReveal");
+const gLayers = [$("#gRevA"), $("#gRevB")];
+let gLayer = 0, gAccum = 0;
 const workIndex = $("#workIndex");
 const workReveal = $("#workReveal");
 const sWork = $("#sWork");
@@ -91,7 +93,8 @@ function setWorkActive(i) {
   if (i === workActive) return;
   workActive = i;
   const set = SETS[i];
-  workReveal.style.backgroundImage = `url("${set.images[Math.min(2, set.images.length - 1)]}")`;
+  const imgs = set.images || (set.shoots && set.shoots[0] && set.shoots[0].images) || [];
+  workReveal.style.backgroundImage = `url("${imgs[Math.min(2, imgs.length - 1)] || imgs[0] || ""}")`;
   workReveal.classList.add("on");
   wiEls.forEach((w, k) => w.classList.toggle("active", k === i));
   if (stage.hidden) crumb.textContent = `WORK / ${set.title.toUpperCase()}`;
@@ -200,7 +203,7 @@ function openGroup(set) {
   groupEl.hidden = false; back.hidden = false;
   renderGroupIndex(set.shoots);
   fitText();
-  setGroupActive(0);
+  gFocus = -1; setGroupActive(0);
 }
 function renderGroupIndex(shoots) {
   groupList.innerHTML = ""; coverEls = [];
@@ -215,11 +218,15 @@ function renderGroupIndex(shoots) {
   });
 }
 function setGroupActive(i) {
-  if (!currentGroup || i < 0) return;
+  if (!currentGroup || i < 0 || i === gFocus) return;
   gFocus = i;
   const sh = currentGroup.shoots[i];
-  groupReveal.style.backgroundImage = `url("${sh.images[Math.min(2, sh.images.length - 1)]}")`;
-  groupReveal.classList.add("on");
+  // crossfade: novou fotku dej na spodní vrstvu a přepni
+  gLayer = 1 - gLayer;
+  const top = gLayers[gLayer], other = gLayers[1 - gLayer];
+  top.style.backgroundImage = `url("${sh.images[Math.min(2, sh.images.length - 1)]}")`;
+  top.classList.add("on");
+  other.classList.remove("on");
   coverEls.forEach((w, k) => w.classList.toggle("active", k === i));
   crumb.textContent = `${currentGroup.title.toUpperCase()} / ${sh.title.toUpperCase()}`;
   counter.textContent = `${pad2(i + 1)} / ${pad2(coverEls.length)}`;
@@ -233,6 +240,14 @@ function coverZoom(i) {
 function backFromGroup() {
   groupEl.hidden = true; journey.hidden = false; dotsNav.hidden = false; back.hidden = true; currentGroup = null; updateJourney();
 }
+// scroll (nahoru/dolů i do strany) přepíná mezi shooty s crossfade
+groupEl.addEventListener("wheel", (e) => {
+  if (groupEl.hidden) return;
+  e.preventDefault();
+  gAccum += (Math.abs(e.deltaY) >= Math.abs(e.deltaX)) ? e.deltaY : e.deltaX;
+  if (gAccum > 55) { gAccum = 0; gMove(1); }
+  else if (gAccum < -55) { gAccum = 0; gMove(-1); }
+}, { passive: false });
 
 back.addEventListener("click", () => {
   if (!light.hidden) { closeLight(); return; }

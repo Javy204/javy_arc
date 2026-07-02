@@ -62,6 +62,54 @@ async function loadData() {
   } catch (e) { console.warn("journal se nenačetl", e); JOURNAL = []; }
 }
 
+/* ---- přednačtení fotek ----
+   preview = obrázek, který se ukáže hned (reveal ve WORK / ve skupině).
+   Musí odpovídat indexu v setWorkActive / setGroupActive: min(2, len-1). */
+function previewURL(imgs) { return imgs && imgs.length ? imgs[Math.min(2, imgs.length - 1)] : null; }
+
+function collectPreviewURLs() {
+  const out = [];
+  SETS.forEach((s) => {
+    if (s.isGroup) s.shoots.forEach((sh) => { const u = previewURL(sh.images); if (u) out.push(u); });
+    else { const u = previewURL(s.images); if (u) out.push(u); }
+  });
+  return [...new Set(out)];
+}
+
+function collectAllURLs() {
+  const out = [];
+  SETS.forEach((s) => {
+    if (s.isGroup) s.shoots.forEach((sh) => (sh.images || []).forEach((u) => out.push(u)));
+    else (s.images || []).forEach((u) => out.push(u));
+  });
+  return [...new Set(out)];
+}
+
+// přednačte pole URL, hlásí průběh; resolvne po dojetí (nebo po timeoutu)
+function preloadImages(urls, onProgress, maxMs) {
+  return new Promise((resolve) => {
+    const total = urls.length;
+    if (!total) { onProgress && onProgress(1, 0); resolve(); return; }
+    let loaded = 0, finished = false;
+    const finish = () => { if (finished) return; finished = true; resolve(); };
+    const done = () => { loaded++; onProgress && onProgress(loaded, total); if (loaded >= total) finish(); };
+    urls.forEach((u) => { const img = new Image(); img.onload = done; img.onerror = done; img.src = u; });
+    if (maxMs) setTimeout(finish, maxMs);   // pojistka: nikdy nezasekni loader
+  });
+}
+
+// na pozadí (po loaderu) dohraje zbytek fotek po dávkách, ať se neucpe síť
+function warmInBackground(urls, batch) {
+  let i = 0; const n = batch || 6;
+  const next = () => {
+    if (i >= urls.length) return;
+    const slice = urls.slice(i, i + n); i += n;
+    let left = slice.length;
+    slice.forEach((u) => { const img = new Image(); img.onload = img.onerror = () => { if (--left === 0) setTimeout(next, 120); }; img.src = u; });
+  };
+  next();
+}
+
 /* ---- fit-to-width (squished/stretched přes šířku) ---- */
 function fitText() {
   document.querySelectorAll(".fit, .wi").forEach((el) => {
@@ -421,31 +469,38 @@ lightImg.addEventListener("click", () => stepLight(1));
 /* ---- loader: ultra minimal (progress linka) ---- */
 function initLoader() {
   const loader = $("#loader"), fill = $("#barFill"), pct = $("#loadPct");
-  if (!loader) return;
-  let prog = 0, done = false, tick = null;
-  function render() { fill.style.width = prog + "%"; if (pct) pct.textContent = String(Math.floor(prog)).padStart(3, "0"); }
-  function complete() {
-    if (done) return; done = true; if (tick) clearInterval(tick);
-    prog = 100; render();
-    setTimeout(() => { loader.classList.add("done"); setTimeout(() => loader.remove(), 480); }, 160);
+  if (!loader) return { set() {}, finish() {} };
+  let shown = 0, target = 0, done = false, hidden = false, tick = null;
+  function render() { fill.style.width = shown.toFixed(1) + "%"; if (pct) pct.textContent = String(Math.floor(shown)).padStart(3, "0"); }
+  function hide() {
+    if (hidden) return; hidden = true; if (tick) clearInterval(tick);
+    setTimeout(() => { loader.classList.add("done"); setTimeout(() => loader.remove(), 480); }, 140);
   }
   tick = setInterval(() => {
-    if (done) return;
-    prog = Math.min(100, prog + 1.3 + Math.random() * 2.2);
+    // zobrazený progres plynule dojíždí ke skutečnému (target)
+    shown += (Math.max(shown, target) - shown) * 0.14;
+    if (shown > 99.4 && done) shown = 100;
     render();
-    if (prog >= 100) complete();
-  }, 40);
-  loader.addEventListener("click", () => { if (!done) complete(); });
-  document.addEventListener("keydown", (e) => { if (!done && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); complete(); } });
+    if (done && shown >= 100) hide();
+  }, 30);
   render();
+  const api = {
+    set(p) { target = Math.max(target, Math.min(99, p)); },      // reálný průběh (0–99)
+    finish() { if (done) return; done = true; target = 100; },   // hotovo → dojed na 100
+  };
+  loader.addEventListener("click", () => api.finish());
+  document.addEventListener("keydown", (e) => { if (!done && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); api.finish(); } });
+  return api;
 }
 
 /* ---- go ---- */
-initLoader();
+const loader = initLoader();
 journey.addEventListener("scroll", updateJourney, { passive: true });
 window.addEventListener("resize", () => { fitText(); layoutWork(); if (!groupEl.hidden) positionDrum(); else if (!stage.hidden) measure(); else updateJourney(); });
 (async () => {
-  await loadData();
+  loader.set(4);
+  await loadData();                       // manifest + journal
+  loader.set(12);
   renderWorkIndex();
   renderJournal();
   buildDots();
@@ -453,4 +508,13 @@ window.addEventListener("resize", () => { fitText(); layoutWork(); if (!groupEl.
   updateJourney();
   setTimeout(fitText, 120);   // po dosednutí fontů
   setInterval(step, 16);
+
+  // využij čas loaderu: přednačti VŠECHNY preview fotky (progres = reálný postup)
+  const previews = collectPreviewURLs();
+  await preloadImages(previews, (n, total) => loader.set(12 + (total ? (n / total) * 88 : 88)), 9000);
+  loader.finish();
+
+  // po loaderu potichu dohraj celé pásy fotek → otevření shootu je pak okamžité
+  const rest = collectAllURLs().filter((u) => !previews.includes(u));
+  warmInBackground(rest);
 })();

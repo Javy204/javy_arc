@@ -66,12 +66,14 @@ async function loadData() {
    preview = obrázek, který se ukáže hned (reveal ve WORK / ve skupině).
    Musí odpovídat indexu v setWorkActive / setGroupActive: min(2, len-1). */
 function previewURL(imgs) { return imgs && imgs.length ? imgs[Math.min(2, imgs.length - 1)] : null; }
+// náhled: cover zvolený v build.py (manifest), jinak fallback na 3. fotku
+function coverOf(obj) { return (obj && obj.cover) || previewURL(obj && obj.images) || null; }
 
 function collectPreviewURLs() {
   const out = [];
   SETS.forEach((s) => {
-    if (s.isGroup) s.shoots.forEach((sh) => { const u = previewURL(sh.images); if (u) out.push(u); });
-    else { const u = previewURL(s.images); if (u) out.push(u); }
+    if (s.isGroup) { const g = coverOf(s); if (g) out.push(g); s.shoots.forEach((sh) => { const u = coverOf(sh); if (u) out.push(u); }); }
+    else { const u = coverOf(s); if (u) out.push(u); }
   });
   return [...new Set(out)];
 }
@@ -141,8 +143,8 @@ function setWorkActive(i) {
   if (i === workActive) return;
   workActive = i;
   const set = SETS[i];
-  const imgs = set.images || (set.shoots && set.shoots[0] && set.shoots[0].images) || [];
-  workReveal.style.backgroundImage = `url("${imgs[Math.min(2, imgs.length - 1)] || imgs[0] || ""}")`;
+  const cover = coverOf(set) || coverOf(set.shoots && set.shoots[0]) || "";
+  workReveal.style.backgroundImage = `url("${cover}")`;
   workReveal.classList.add("on");
   wiEls.forEach((w, k) => w.classList.toggle("active", k === i));
   if (stage.hidden) crumb.textContent = `WORK / ${set.title.toUpperCase()}`;
@@ -294,7 +296,7 @@ function setGroupActive(i) {
   // crossfade fotky za textem
   gLayer = 1 - gLayer;
   const top = gLayers[gLayer], other = gLayers[1 - gLayer];
-  top.style.backgroundImage = `url("${sh.images[Math.min(2, sh.images.length - 1)]}")`;
+  top.style.backgroundImage = `url("${coverOf(sh) || ""}")`;
   top.classList.add("on");
   other.classList.remove("on");
   itemEls.forEach((it, k) => it.classList.toggle("active", k === i));

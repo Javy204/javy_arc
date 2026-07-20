@@ -10,10 +10,49 @@
 # Manifest je AUTOGENEROVANÝ — needituj ho ručně.
 
 import os, re, json
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 PHOTOS = "photos"
 IMG_EXT = (".jpg", ".jpeg", ".png", ".webp")
+
+# ═══════════════════════════════════════════════════════════════
+#  NÁHLEDOVÉ (COVER) FOTKY  ─ tady si zvolíš, co se ukáže jako náhled
+# ═══════════════════════════════════════════════════════════════
+# Klíč   = název složky (přesně jak se jmenuje ve photos/)
+# Hodnota= ČÍSLO fotky v pořadí (1 = první, 2 = druhá …)  NEBO  část názvu souboru
+#
+# • Když složku nevyplníš, použije se automaticky 3. fotka.
+# • U SKUPINY (víc shootů) piš klíč "skupina/shoot".
+#   Volitelně "skupina" (jen název skupiny) = náhled celé skupiny ve WORK.
+#
+# Příklady (odmaž # a uprav):
+COVERS = {
+    # "05 elektra": 4,                    # 4. fotka jako náhled
+    # "06 reina": "reina-12",             # fotka, jejíž název obsahuje "reina-12"
+    # "01 the creaks": "rebrand_tojevpici-104",   # náhled celé skupiny ve WORK
+    # "01 the creaks/01 rebrand": 2,      # náhled shootu "rebrand" uvnitř skupiny
+    # "01 the creaks/02 live": "live-3",
+}
+# ═══════════════════════════════════════════════════════════════
+
+def resolve_cover(key, images):
+    """Vrátí URL náhledové fotky pro daný klíč (dle COVERS), jinak 3. fotku."""
+    if not images:
+        return None
+    sel = COVERS.get(key)
+    default = images[min(2, len(images) - 1)]
+    if sel is None:
+        return default
+    if isinstance(sel, bool):            # jistota (True/False není platná volba)
+        return default
+    if isinstance(sel, int):
+        return images[max(1, min(sel, len(images))) - 1]
+    needle = str(sel).lower()
+    for u in images:
+        if needle in unquote(u).lower():
+            return u
+    print(f"     ⚠️  cover pro '{key}': nenašel jsem fotku obsahující '{sel}' → beru 3. fotku")
+    return default
 
 def natkey(s):
     return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", s)]
@@ -38,13 +77,16 @@ def images_in(folder):
 def has_images_direct(folder):
     return any(f.lower().endswith(IMG_EXT) and not f.startswith(".") for f in os.listdir(folder))
 
-def subshoots(folder):
+def subshoots(folder, parent):
     subs = []
     for name in sorted(os.listdir(folder)):
         sub = os.path.join(folder, name)
         if os.path.isdir(sub) and not name.startswith(".") and images_in(sub):
             order, title = parse_name(name)
-            subs.append((order, {"id": slug(title), "title": title, "images": images_in(sub)}))
+            imgs = images_in(sub)
+            shoot = {"id": slug(title), "title": title, "images": imgs,
+                     "cover": resolve_cover(f"{parent}/{name}", imgs)}
+            subs.append((order, shoot))
     subs.sort(key=lambda x: (x[0], x[1]["title"]))
     return [s for _, s in subs]
 
@@ -59,12 +101,16 @@ for name in sorted(os.listdir(PHOTOS)):
 
     if has_images_direct(folder):
         entry["images"] = images_in(folder)          # jeden shoot
+        entry["cover"] = resolve_cover(name, entry["images"])
     else:
-        shoots = subshoots(folder)
+        shoots = subshoots(folder, name)
         if not shoots:
             skipped.append(name)                       # prázdná složka → přeskoč a nahlas
             continue
         entry["shoots"] = shoots                       # skupina víc shootů
+        # náhled celé skupiny ve WORK: buď z COVERS["skupina"], jinak cover 1. shootu
+        all_imgs = [u for sh in shoots for u in sh["images"]]
+        entry["cover"] = resolve_cover(name, all_imgs) if name in COVERS else shoots[0]["cover"]
 
     sets.append(entry)
 

@@ -33,7 +33,8 @@
         "photos/01%20Loudz1/loudz1_cloud_BW-144.jpg",
         "photos/01%20Loudz1/loudz1_cloud_BW-145.jpg",
         "photos/01%20Loudz1/loudz1_cloud_BW-148.jpg"
-      ]
+      ],
+      "cover": "photos/01%20Loudz1/loudz1_cloud-18.jpg"
     },
     {
       "id": "sara-rikas",
@@ -50,7 +51,8 @@
         "photos/02%20Sara%20Rikas/sara_rikas_30.6.25-117.jpg",
         "photos/02%20Sara%20Rikas/sara_rikas_30.6.25-118.jpg",
         "photos/02%20Sara%20Rikas/sara_rikas_30.6.25-122.jpg"
-      ]
+      ],
+      "cover": "photos/02%20Sara%20Rikas/sara_rikas_30.6.25-42.jpg"
     },
     {
       "id": "chippsy",
@@ -81,7 +83,8 @@
         "photos/04%20chippsy/chipsy-22.jpg",
         "photos/04%20chippsy/chipsy-23.jpg",
         "photos/04%20chippsy/chipsy-24.jpg"
-      ]
+      ],
+      "cover": "photos/04%20chippsy/chipsy-3.jpg"
     },
     {
       "id": "elekt1ra",
@@ -117,7 +120,8 @@
         "photos/05%20elekt1ra/elektra-bw-27.jpg",
         "photos/05%20elekt1ra/elektra-bw-28.jpg",
         "photos/05%20elekt1ra/elektra-bw-29.jpg"
-      ]
+      ],
+      "cover": "photos/05%20elekt1ra/elektra-bw-3.jpg"
     },
     {
       "id": "the-creaks",
@@ -138,7 +142,8 @@
         "photos/05%20the%20creaks/rebrand_tojevpici-284.jpg",
         "photos/05%20the%20creaks/rebrand_tojevpici-289.jpg",
         "photos/05%20the%20creaks/rebrand_tojevpici-313.jpg"
-      ]
+      ],
+      "cover": "photos/05%20the%20creaks/rebrand_tojevpici-104.jpg"
     },
     {
       "id": "atelier-v7",
@@ -182,7 +187,8 @@
         "photos/06%20atelier%20v7/-35.jpg",
         "photos/06%20atelier%20v7/-36.jpg",
         "photos/06%20atelier%20v7/-37.jpg"
-      ]
+      ],
+      "cover": "photos/06%20atelier%20v7/03.jpg"
     },
     {
       "id": "bitter-priest-x-nosleepgang",
@@ -381,7 +387,8 @@
         "photos/07%20Bitter%20Priest%20x%20Nosleepgang/nosleep_bitter_priest-192.jpg",
         "photos/07%20Bitter%20Priest%20x%20Nosleepgang/nosleep_bitter_priest-193.jpg",
         "photos/07%20Bitter%20Priest%20x%20Nosleepgang/nosleep_bitter_priest-194.jpg"
-      ]
+      ],
+      "cover": "photos/07%20Bitter%20Priest%20x%20Nosleepgang/nosleep_bitter_priest-3.jpg"
     },
     {
       "id": "silverskin-x-hektick",
@@ -584,7 +591,8 @@
         "photos/08%20Silverskin%20x%20Hektick/Hektick_x_Silverskin_Ankali-194.jpg",
         "photos/08%20Silverskin%20x%20Hektick/Hektick_x_Silverskin_Ankali-195.jpg",
         "photos/08%20Silverskin%20x%20Hektick/Hektick_x_Silverskin_Ankali-196.jpg"
-      ]
+      ],
+      "cover": "photos/08%20Silverskin%20x%20Hektick/Hektick_x_Silverskin_Ankali-3.jpg"
     },
     {
       "id": "altenburg-x-hektick",
@@ -648,7 +656,8 @@
         "photos/09%20Altenburg%20x%20Hektick/hektick_lajfr_%20a_mat-55.jpg",
         "photos/09%20Altenburg%20x%20Hektick/hektick_lajfr_%20a_mat-56.jpg",
         "photos/09%20Altenburg%20x%20Hektick/hektick_lajfr_%20a_mat-57.jpg"
-      ]
+      ],
+      "cover": "photos/09%20Altenburg%20x%20Hektick/hektick_lajfr_%20a_mat-2.jpg"
     },
     {
       "id": "reina",
@@ -711,7 +720,8 @@
         "photos/10%20reina/54.jpg",
         "photos/10%20reina/55.jpg",
         "photos/10%20reina/56.jpg"
-      ]
+      ],
+      "cover": "photos/10%20reina/03.jpg"
     }
   ]
 }

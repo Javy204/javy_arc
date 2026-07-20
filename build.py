@@ -33,6 +33,16 @@ COVERS = {
     # "01 the creaks/01 rebrand": 2,      # náhled shootu "rebrand" uvnitř skupiny
     # "01 the creaks/02 live": "live-3",
 }
+
+# Volby z klikacího UI (photos/covers.json) mají přednost před ručním COVERS výše.
+def _load_json_covers():
+    try:
+        with open(os.path.join(PHOTOS, "covers.json"), encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+COVERS = {**COVERS, **_load_json_covers()}
 # ═══════════════════════════════════════════════════════════════
 
 def resolve_cover(key, images):

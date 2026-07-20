@@ -13,3 +13,6 @@ node_modules/
 # lokální zálohy originálů (nenahrávat na web)
 _masters/
 _site/
+
+# koš (smazané fotky/složky — mimo web)
+_trash/

@@ -5,33 +5,52 @@
       "id": "the-creaks",
       "title": "the creaks",
       "credit": "",
-      "shoots": [
-        {
-          "id": "rebrand",
-          "title": "rebrand",
-          "images": [
-            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-97.jpg",
-            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-102.jpg",
-            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-104.jpg",
-            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-122.jpg",
-            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-136.jpg",
-            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-139.jpg",
-            "photos/01%20the%20creaks/01%20rebrand/rebrand_tojevpici-151.jpg"
-          ]
-        },
-        {
-          "id": "live",
-          "title": "live",
-          "images": [
-            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-154.jpg",
-            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-235.jpg",
-            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-260.jpg",
-            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-278.jpg",
-            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-284.jpg",
-            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-289.jpg",
-            "photos/01%20the%20creaks/02%20live/rebrand_tojevpici-313.jpg"
-          ]
-        }
+      "images": [
+        "photos/01%20the%20creaks/rebrand_tojevpici-97.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-102.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-104.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-122.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-136.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-139.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-151.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-154.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-235.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-260.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-278.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-284.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-289.jpg",
+        "photos/01%20the%20creaks/rebrand_tojevpici-313.jpg"
+      ]
+    },
+    {
+      "id": "chippsy",
+      "title": "chippsy",
+      "credit": "",
+      "images": [
+        "photos/02%20chippsy/chipsy-1.jpg",
+        "photos/02%20chippsy/chipsy-2.jpg",
+        "photos/02%20chippsy/chipsy-3.jpg",
+        "photos/02%20chippsy/chipsy-4.jpg",
+        "photos/02%20chippsy/chipsy-5.jpg",
+        "photos/02%20chippsy/chipsy-6.jpg",
+        "photos/02%20chippsy/chipsy-7.jpg",
+        "photos/02%20chippsy/chipsy-8.jpg",
+        "photos/02%20chippsy/chipsy-9.jpg",
+        "photos/02%20chippsy/chipsy-10.jpg",
+        "photos/02%20chippsy/chipsy-11.jpg",
+        "photos/02%20chippsy/chipsy-12.jpg",
+        "photos/02%20chippsy/chipsy-13.jpg",
+        "photos/02%20chippsy/chipsy-14.jpg",
+        "photos/02%20chippsy/chipsy-15.jpg",
+        "photos/02%20chippsy/chipsy-16.jpg",
+        "photos/02%20chippsy/chipsy-17.jpg",
+        "photos/02%20chippsy/chipsy-18.jpg",
+        "photos/02%20chippsy/chipsy-19.jpg",
+        "photos/02%20chippsy/chipsy-20.jpg",
+        "photos/02%20chippsy/chipsy-21.jpg",
+        "photos/02%20chippsy/chipsy-22.jpg",
+        "photos/02%20chippsy/chipsy-23.jpg",
+        "photos/02%20chippsy/chipsy-24.jpg"
       ]
     },
     {

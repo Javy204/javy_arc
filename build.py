@@ -49,6 +49,7 @@ def subshoots(folder):
     return [s for _, s in subs]
 
 sets = []
+skipped = []      # prázdné složky (bez fotek) — nahlásíme je na konci
 for name in sorted(os.listdir(PHOTOS)):
     folder = os.path.join(PHOTOS, name)
     if not os.path.isdir(folder) or name.startswith(".") or name.startswith("_"):
@@ -61,6 +62,7 @@ for name in sorted(os.listdir(PHOTOS)):
     else:
         shoots = subshoots(folder)
         if not shoots:
+            skipped.append(name)                       # prázdná složka → přeskoč a nahlas
             continue
         entry["shoots"] = shoots                       # skupina víc shootů
 
@@ -83,3 +85,9 @@ for s in sets:
         print(f"  [skupina] {s['title']}  →  " + ", ".join(f"{sh['title']}({len(sh['images'])})" for sh in s["shoots"]))
     else:
         print(f"  {s['title']}  ({len(s['images'])} fotek)")
+
+if skipped:
+    print()
+    print("⚠️  PŘESKOČENO (prázdné složky — nejsou v nich žádné fotky):")
+    for name in skipped:
+        print(f"     • {name}   →  nahraj do ní fotky (nebo podsložky se shooty) a spusť znovu")

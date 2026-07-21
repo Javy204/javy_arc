@@ -141,6 +141,9 @@ function layoutWork() {
 }
 const arCache = {};
 let revealAR = 0;   // poměr stran (š/v) aktivní fotky; 0 = zatím neznámé → panuj svisle
+// plynulý doběh náhledové fotky (setrvačnost místo lineárního 1:1 sledování scrollu)
+let revealTargetP = 0.5, revealCurP = 0.5, revealAxisY = true, revealSnap = true;
+const REVEAL_EASE = 0.055;   // menší = větší odpor/pomalejší doběh
 function setRevealImage(url) {
   if (!url) { revealAR = 0; return; }
   if (arCache[url]) { revealAR = arCache[url]; return; }
@@ -157,10 +160,11 @@ function setWorkActive(i) {
   workReveal.style.backgroundImage = `url("${cover}")`;
   setRevealImage(cover);
   workReveal.classList.add("on");
+  revealSnap = true;   // po přepnutí alba pozici nastav rovnou (žádné přejetí přes celou fotku)
   wiEls.forEach((w, k) => w.classList.toggle("active", k === i));
   if (stage.hidden) crumb.textContent = `WORK / ${set.title.toUpperCase()}`;
 }
-// při scrollu projeď celou náhledovou fotku (posuň background-position po přesahující ose)
+// spočítej CÍLOVOU pozici projetí; samotný pohyb dojíždí plynule v step() (setrvačnost)
 function panReveal(wr, vh) {
   let pitch = wr.height * 2;
   if (wiEls.length > 1) {
@@ -170,13 +174,19 @@ function panReveal(wr, vh) {
   }
   const offset = (wr.top + wr.height / 2) - vh / 2;   // + pod středem, − nad středem
   let p = 0.5 - offset / pitch;                        // vstup zdola → 0 (vršek), střed → .5, odchod nahoru → 1 (spodek)
-  p = Math.max(0, Math.min(1, p));
+  revealTargetP = Math.max(0, Math.min(1, p));
   const cr = workReveal.getBoundingClientRect();
   const contAR = cr.height ? cr.width / cr.height : 1;
-  const pos = (p * 100).toFixed(1) + "%";
-  // fotka „užší" než rám → přebývá výška → panuj svisle; jinak vodorovně
-  if (!revealAR || revealAR < contAR) workReveal.style.backgroundPosition = `50% ${pos}`;
-  else workReveal.style.backgroundPosition = `${pos} 50%`;
+  revealAxisY = !revealAR || revealAR < contAR;         // fotka užší než rám → přebývá výška → svisle
+}
+// plynulý doběh pozice náhledu (volá se každý tick z step())
+function stepReveal() {
+  if (journey.hidden || !stage.hidden || !groupEl.hidden) return;
+  if (!workReveal.classList.contains("on")) return;
+  if (revealSnap) { revealCurP = revealTargetP; revealSnap = false; }
+  else revealCurP += (revealTargetP - revealCurP) * REVEAL_EASE;
+  const pos = (revealCurP * 100).toFixed(2) + "%";
+  workReveal.style.backgroundPosition = revealAxisY ? `50% ${pos}` : `${pos} 50%`;
 }
 function updateWorkFocus(vh) {
   const r = sWork.getBoundingClientRect();
@@ -461,6 +471,7 @@ document.addEventListener("keydown", (e) => {
 /* ---- strip render loop ---- */
 let curNearest = -1;
 function step() {
+  stepReveal();
   if (!groupEl.hidden) { stepDrum(); return; }
   if (stage.hidden || !ITEMS.length) return;
   vw = window.innerWidth || document.documentElement.clientWidth;

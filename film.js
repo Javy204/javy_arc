@@ -22,6 +22,8 @@ const gLayers = [$("#gRevA"), $("#gRevB")];
 let gLayer = 0, gAccum = 0;
 const workIndex = $("#workIndex");
 const workReveal = $("#workReveal");
+const wrLayers = [$("#wrA"), $("#wrB")];
+let wrIdx = 0;
 const sWork = $("#sWork");
 const workMeta = $("#workMeta");
 const journalList = $("#journalList");
@@ -143,7 +145,7 @@ const arCache = {};
 let revealAR = 0;   // poměr stran (š/v) aktivní fotky; 0 = zatím neznámé → panuj svisle
 // plynulý doběh náhledové fotky (setrvačnost místo lineárního 1:1 sledování scrollu)
 let revealTargetP = 0.5, revealCurP = 0.5, revealAxisY = true, revealSnap = true;
-const REVEAL_EASE = 0.055;   // menší = větší odpor/pomalejší doběh
+const REVEAL_EASE = 0.035;   // menší = větší odpor/pomalejší doběh
 function setRevealImage(url) {
   if (!url) { revealAR = 0; return; }
   if (arCache[url]) { revealAR = arCache[url]; return; }
@@ -157,10 +159,14 @@ function setWorkActive(i) {
   workActive = i;
   const set = SETS[i];
   const cover = coverOf(set) || coverOf(set.shoots && set.shoots[0]) || "";
-  workReveal.style.backgroundImage = `url("${cover}")`;
   setRevealImage(cover);
+  // crossfade: novou fotku dej na druhou vrstvu a prolni (žádný tvrdý blik)
+  wrIdx = 1 - wrIdx;
+  const topL = wrLayers[wrIdx], otherL = wrLayers[1 - wrIdx];
+  topL.style.backgroundImage = `url("${cover}")`;
+  topL.classList.add("on"); otherL.classList.remove("on");
   workReveal.classList.add("on");
-  revealSnap = true;   // po přepnutí alba pozici nastav rovnou (žádné přejetí přes celou fotku)
+  revealSnap = true;   // pozici nové vrstvy nastav rovnou (fade ji odhalí až pak)
   wiEls.forEach((w, k) => w.classList.toggle("active", k === i));
   if (stage.hidden) crumb.textContent = `WORK / ${set.title.toUpperCase()}`;
 }
@@ -174,7 +180,8 @@ function panReveal(wr, vh) {
   }
   const offset = (wr.top + wr.height / 2) - vh / 2;   // + pod středem, − nad středem
   let p = 0.5 - offset / pitch;                        // vstup zdola → 0 (vršek), střed → .5, odchod nahoru → 1 (spodek)
-  revealTargetP = Math.max(0, Math.min(1, p));
+  p = Math.max(0, Math.min(1, p));
+  revealTargetP = 0.08 + 0.84 * p;                     // mírně zúžený rozsah = klidnější, nenaráží na kraj
   const cr = workReveal.getBoundingClientRect();
   const contAR = cr.height ? cr.width / cr.height : 1;
   revealAxisY = !revealAR || revealAR < contAR;         // fotka užší než rám → přebývá výška → svisle
@@ -186,7 +193,7 @@ function stepReveal() {
   if (revealSnap) { revealCurP = revealTargetP; revealSnap = false; }
   else revealCurP += (revealTargetP - revealCurP) * REVEAL_EASE;
   const pos = (revealCurP * 100).toFixed(2) + "%";
-  workReveal.style.backgroundPosition = revealAxisY ? `50% ${pos}` : `${pos} 50%`;
+  wrLayers[wrIdx].style.backgroundPosition = revealAxisY ? `50% ${pos}` : `${pos} 50%`;
 }
 function updateWorkFocus(vh) {
   const r = sWork.getBoundingClientRect();

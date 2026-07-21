@@ -117,11 +117,18 @@ html, body {
 
 .work-reveal {
   position: sticky; top: 0; height: 100vh; z-index: 1;
-  background-size: cover; background-position: center;
-  filter: grayscale(1) contrast(1.32) brightness(1.05);
-  opacity: 0; transition: opacity .4s ease;
+  opacity: 0; transition: opacity .4s ease; overflow: hidden;
 }
 .work-reveal.on { opacity: 1; }
+/* dvě vrstvy pro plynulý crossfade mezi fotkami (žádný tvrdý blik) */
+.wr-layer {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  filter: grayscale(1) contrast(1.32) brightness(1.05);
+  opacity: 0; transition: opacity .7s ease;
+  will-change: opacity;
+}
+.wr-layer.on { opacity: 1; }
 /* tematická stylizace: filmové zrno + jemný tiskový rastr (halftone) */
 .work-reveal::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;

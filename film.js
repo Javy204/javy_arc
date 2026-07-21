@@ -139,26 +139,55 @@ function layoutWork() {
   // výška sekce = obsah listu (sticky fotka + prostor na proscrollování slov)
   sWork.style.height = workIndex.scrollHeight + "px";
 }
+const arCache = {};
+let revealAR = 0;   // poměr stran (š/v) aktivní fotky; 0 = zatím neznámé → panuj svisle
+function setRevealImage(url) {
+  if (!url) { revealAR = 0; return; }
+  if (arCache[url]) { revealAR = arCache[url]; return; }
+  revealAR = 0;
+  const im = new Image();
+  im.onload = () => { if (im.naturalHeight) { arCache[url] = im.naturalWidth / im.naturalHeight; revealAR = arCache[url]; } };
+  im.src = url;
+}
 function setWorkActive(i) {
   if (i === workActive) return;
   workActive = i;
   const set = SETS[i];
   const cover = coverOf(set) || coverOf(set.shoots && set.shoots[0]) || "";
   workReveal.style.backgroundImage = `url("${cover}")`;
+  setRevealImage(cover);
   workReveal.classList.add("on");
   wiEls.forEach((w, k) => w.classList.toggle("active", k === i));
   if (stage.hidden) crumb.textContent = `WORK / ${set.title.toUpperCase()}`;
 }
+// při scrollu projeď celou náhledovou fotku (posuň background-position po přesahující ose)
+function panReveal(wr, vh) {
+  let pitch = wr.height * 2;
+  if (wiEls.length > 1) {
+    const a = wiEls[0].getBoundingClientRect(), b = wiEls[1].getBoundingClientRect();
+    const pp = Math.abs(b.top - a.top);
+    if (pp > 4) pitch = pp;
+  }
+  const offset = (wr.top + wr.height / 2) - vh / 2;   // + pod středem, − nad středem
+  let p = 0.5 - offset / pitch;                        // vstup zdola → 0 (vršek), střed → .5, odchod nahoru → 1 (spodek)
+  p = Math.max(0, Math.min(1, p));
+  const cr = workReveal.getBoundingClientRect();
+  const contAR = cr.height ? cr.width / cr.height : 1;
+  const pos = (p * 100).toFixed(1) + "%";
+  // fotka „užší" než rám → přebývá výška → panuj svisle; jinak vodorovně
+  if (!revealAR || revealAR < contAR) workReveal.style.backgroundPosition = `50% ${pos}`;
+  else workReveal.style.backgroundPosition = `${pos} 50%`;
+}
 function updateWorkFocus(vh) {
   const r = sWork.getBoundingClientRect();
   if (r.bottom < vh * 0.15 || r.top > vh * 0.85) return;   // WORK mimo obraz
-  let best = -1, bd = Infinity;
+  let best = -1, bd = Infinity, bestRect = null;
   wiEls.forEach((w, k) => {
     const wr = w.getBoundingClientRect();
     const d = Math.abs((wr.top + wr.height / 2) - vh / 2);
-    if (d < bd) { bd = d; best = k; }
+    if (d < bd) { bd = d; best = k; bestRect = wr; }
   });
-  if (best >= 0) setWorkActive(best);
+  if (best >= 0) { setWorkActive(best); panReveal(bestRect, vh); }
 }
 
 /* ---- journal ---- */

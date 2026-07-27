@@ -121,7 +121,7 @@ function warmInBackground(urls, batch) {
 
 /* ---- fit-to-width (squished/stretched přes šířku) ---- */
 function fitText() {
-  document.querySelectorAll(".fit, .wi, .wh-name").forEach((el) => {
+  document.querySelectorAll(".fit, .wi, .wh-name-i").forEach((el) => {
     const parent = el.parentElement;
     const pw = parent.clientWidth;
     const tw = el.scrollWidth;     // layout šířka (transform ji neovlivní)
@@ -170,7 +170,7 @@ function renderWorkH() {
     const shots = set.count || imgs.length;
     it.innerHTML =
       `<div class="wh-frame"><img class="wh-ph" alt="" src="${coverOf(set) || imgs[0] || ""}"></div>` +
-      `<span class="wh-name">${set.title}</span>` +
+      `<div class="wh-name"><span class="wh-name-i">${set.title}</span></div>` +
       `<div class="wh-meta"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""}</span></div>`;
     it.addEventListener("click", () => openShoot(i));
     whTrack.appendChild(it); whEls.push(it);
@@ -230,8 +230,9 @@ function applyPanelDepth() {
     const b = el.getBoundingClientRect();
     const d = clampN((b.left + b.width / 2 - cx) / cx, -1.4, 1.4);  // -1 vlevo … +1 vpravo
     const t = Math.min(Math.abs(d), 1);
-    const frame = el.firstElementChild;               // .wh-frame — jen zmenšení ke krajům (fotka zůstává celá)
-    if (frame) frame.style.transform = `scale(${(1 - t * 0.08).toFixed(3)})`;
+    const e = t * t * (3 - 2 * t);                    // smoothstep – měkký náběh
+    const frame = el.firstElementChild;               // .wh-frame: střed velký (1.14), kraje malé (0.82)
+    if (frame) frame.style.transform = `scale(${(1.14 - e * 0.32).toFixed(3)})`;
   });
 }
 function stepWorkH() {

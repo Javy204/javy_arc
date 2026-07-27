@@ -181,6 +181,7 @@ function layoutWork() {
   const vw = window.innerWidth || 1280;
   whDist = Math.max(0, whTrack.scrollWidth - vw);
   sWork.style.height = (window.innerHeight + whDist) + "px";
+  if (whEls.length) applyPanelDepth();
 }
 // mapuje pozici sekce ve svislém scrollu na posun pásu do strany (1:1, bez driftu)
 function updateWorkH(vh) {
@@ -201,16 +202,32 @@ function updateWhActive() {
   if (best >= 0 && best !== whActive) {
     whActive = best;
     whEls.forEach((el, k) => el.classList.toggle("active", k === best));
-    if (stage.hidden && groupEl.hidden) crumb.textContent = `WORK / ${SETS[best].title.toUpperCase()}`;
+    // crumb přepiš jen když je WORK reálně na obraze (připnutý nahoře), ne na intru
+    const pinned = sWork.getBoundingClientRect().top <= 1;
+    if (pinned && stage.hidden && groupEl.hidden) crumb.textContent = `WORK / ${SETS[best].title.toUpperCase()}`;
   }
+}
+// hloubka: panel u středu velký, ke krajům menší; fotka uvnitř rámu parallaxuje
+function applyPanelDepth() {
+  const cx = (window.innerWidth || 1280) / 2;
+  whEls.forEach((el) => {
+    const b = el.getBoundingClientRect();
+    const d = clampN((b.left + b.width / 2 - cx) / cx, -1.4, 1.4);  // -1 vlevo … +1 vpravo
+    const t = Math.min(Math.abs(d), 1);
+    const frame = el.firstElementChild;               // .wh-frame
+    if (frame) frame.style.transform = `scale(${(1 - t * 0.12).toFixed(3)})`;
+    const ph = frame && frame.firstElementChild;      // .wh-ph
+    if (ph) ph.style.transform = `translateX(${(-d * 7).toFixed(2)}%) scale(1.14)`;
+  });
 }
 function stepWorkH() {
   if (!whEls.length) return;
-  if (whCurX === whTargetX) { if (whActive < 0) updateWhActive(); return; }
+  if (whCurX === whTargetX) { if (whActive < 0) { updateWhActive(); applyPanelDepth(); } return; }
   whCurX += (whTargetX - whCurX) * 0.16;
   if (Math.abs(whTargetX - whCurX) < 0.2) whCurX = whTargetX;
   whTrack.style.transform = `translate3d(${whCurX.toFixed(1)}px,0,0)`;
   updateWhActive();
+  applyPanelDepth();
 }
 const arCache = {};
 let revealAR = 0;   // poměr stran (š/v) aktivní fotky; 0 = zatím neznámé → panuj svisle

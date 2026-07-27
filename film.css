@@ -168,6 +168,9 @@ html, body {
    ============================================================ */
 /* stará svislá varianta (fotka na pozadí + sloupec slov) je nahrazená vodorovnou */
 .work-reveal, .work-panel, .work-list { display: none; }
+/* work-reveal držel první 100vh; bez něj by margin-top:-100vh z .work-tag
+   propadl skrz (margin collapse) a vytáhl WORK přes intro. Nulujeme. */
+.s-work .work-tag { margin-top: 0; }
 
 /* --- WORK VODOROVNĚ: alba jako panely, svislý scroll je posouvá do strany --- */
 .work-h {
@@ -176,14 +179,15 @@ html, body {
 }
 .wh-track { display: flex; align-items: flex-start; gap: 4vw; padding: 0 8vw; will-change: transform; }
 .wh-item { flex: 0 0 auto; width: 44vw; cursor: pointer; }
-.wh-frame { overflow: hidden; }
+.wh-frame { overflow: hidden; will-change: transform; }
 .wh-ph {
   width: 100%; height: 58vh; object-fit: cover; display: block;
   filter: grayscale(1) contrast(1.3); opacity: .5;
-  transition: opacity .5s ease, filter .5s ease, transform .6s cubic-bezier(.2,.8,.25,1);
-  transform: scale(1.04);
+  transition: opacity .5s ease, filter .5s ease;
+  transform: translateX(0) scale(1.14);   /* scale kvůli prostoru na parallax */
+  will-change: transform;
 }
-.wh-item.active .wh-ph { opacity: 1; filter: grayscale(0) contrast(1.06) saturate(1.04); transform: scale(1); }
+.wh-item.active .wh-ph { opacity: 1; filter: grayscale(0) contrast(1.06) saturate(1.04); }
 .wh-name {
   display: block; white-space: nowrap; margin-top: 1.6vh;
   font-weight: 900; font-size: 9vw; line-height: .95; letter-spacing: -.03em;

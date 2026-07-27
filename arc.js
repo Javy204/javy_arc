@@ -23,10 +23,8 @@
   // ⬆⬆⬆
 
   // Kam brána míří po správném hesle.
-  //  • TEĎ: živá adresa archivu (funguje hned, i na telefonu po přihlášení do OpenAI/ChatGPT účtu).
-  //  • AŽ nastavíš DNS pro subdoménu, změň na:  "https://projects.javyarc.com"
-  //  • null  = použij adresu zašifrovanou v hesle (ARC_CFG).
-  const ARC_URL = "https://javyarc-projects.stepanjavy.chatgpt.site";
+  // Archiv běží na vlastní infrastruktuře: GitHub repo → Cloudflare Workers + D1.
+  const ARC_URL = "https://projects.javyarc.com";
 
   const SECRET_WORD = "arc";   // tajné slovo z klávesnice (malá písmena)
 

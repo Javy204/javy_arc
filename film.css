@@ -213,6 +213,55 @@ html, body {
   opacity: .45;
 }
 
+/* ============================================================
+   WORK — SCROLL FILM (varianty A/B, přepínač V)
+   ============================================================ */
+.work-film { display: none; position: relative; z-index: 3; }
+body.wf-film .work-film { display: block; }
+body.wf-film .work-h { display: none; }
+body.wf-film .work-tag { display: none; }
+
+.act { position: relative; }
+.act + .act { margin-top: 8vh; }
+
+/* reveal při vstupu do obrazu */
+.reveal { opacity: 0; transform: translateY(60px); transition: opacity 1s ease, transform 1.15s cubic-bezier(.19,.85,.22,1); }
+.reveal.in { opacity: 1; transform: none; }
+
+.wf-ph { overflow: hidden; cursor: pointer; }
+.wf-ph img { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.2); transition: filter .9s ease; }
+.wf-ph.in img, .wf-ph:hover img { filter: grayscale(0) contrast(1.05) saturate(1.04); }
+
+.wf-name { margin: 0; pointer-events: none; will-change: transform; }
+.wf-name-i { display: inline-block; white-space: nowrap; font-weight: 900; text-transform: uppercase; letter-spacing: -.03em; line-height: .88; transform-origin: left top; }
+.wf-meta { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; opacity: .5; cursor: pointer; }
+
+/* ---------- VARIANTA A: full-bleed hero + jméno přes (mix-blend) ---------- */
+.wf-A .wf-hero { position: relative; width: 100vw; margin-left: calc(50% - 50vw); height: 100vh; overflow: hidden; cursor: pointer; }
+.wf-A .wf-hero > img { position: absolute; left: 0; top: -7%; width: 100%; height: 114%; object-fit: cover; filter: grayscale(0) contrast(1.04) saturate(1.03); will-change: transform; }
+.wf-A .wf-hero .wf-name { position: absolute; left: 6vw; right: 6vw; bottom: 7vh; z-index: 2; }
+.wf-A .wf-hero .wf-name-i { color: #fff; mix-blend-mode: difference; font-size: 12.5vw; }
+.wf-A .wf-run { padding: 11vh 6vw 0; }
+.wf-A .wf-solo { width: min(60vw, 820px); height: 84vh; margin: 0 auto 7vh; }
+.wf-A .wf-row { display: flex; gap: 3vw; margin-bottom: 7vh; }
+.wf-A .wf-row .wf-ph { flex: 1; height: 66vh; }
+.wf-A .wf-tail { width: min(46vw, 620px); height: 74vh; margin: 0 0 4vh auto; }
+.wf-A .wf-meta { padding: 0 6vw 4vh; display: flex; justify-content: space-between; }
+
+/* ---------- VARIANTA B: magazín – jméno nahoře, orámované, vzdušné ---------- */
+.wf-B .act { padding: 9vh 8vw; }
+.wf-B .wf-hero { position: relative; overflow: visible; cursor: pointer; }
+.wf-B .wf-hero > img { display: block; width: 100%; height: 72vh; object-fit: cover; filter: grayscale(1) contrast(1.15); transition: filter .9s ease; }
+.wf-B .wf-hero.in > img { filter: grayscale(0) contrast(1.05) saturate(1.03); }
+.wf-B .wf-hero .wf-name { position: relative; margin-top: 2vh; }
+.wf-B .wf-hero .wf-name-i { color: var(--ink); font-size: 8vw; }
+.wf-B .wf-run { display: flex; flex-wrap: wrap; gap: 5vh 4vw; padding-top: 7vh; align-items: flex-start; }
+.wf-B .wf-solo { width: 58%; height: 78vh; }
+.wf-B .wf-row { display: contents; }
+.wf-B .wf-row .wf-ph { width: 46%; height: 60vh; }
+.wf-B .wf-tail { width: 40%; height: 66vh; margin-left: auto; }
+.wf-B .wf-meta { width: 100%; padding-top: 3vh; display: flex; justify-content: space-between; }
+
 /* --- VARIANTA A: řádek náhledů pod zaostřeným slovem --- */
 /* místo je rezervované vždy → žádné poskakování layoutu */
 .wv-a .wi-slot { height: 27vw; flex-direction: column; align-items: stretch; justify-content: center; }

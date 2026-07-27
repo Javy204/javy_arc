@@ -25,7 +25,9 @@ const workReveal = $("#workReveal");
 const wrLayers = [$("#wrA"), $("#wrB")];
 let wrIdx = 0;
 const wpRow = $("#wpRow");
-let vHint = null;
+const workH = $("#workH");
+const whTrack = $("#whTrack");
+let whEls = [], whDist = 0, whTargetX = 0, whCurX = 0, whActive = -1;
 const sWork = $("#sWork");
 const workMeta = $("#workMeta");
 const journalList = $("#journalList");
@@ -119,7 +121,7 @@ function warmInBackground(urls, batch) {
 
 /* ---- fit-to-width (squished/stretched přes šířku) ---- */
 function fitText() {
-  document.querySelectorAll(".fit, .wi").forEach((el) => {
+  document.querySelectorAll(".fit, .wi, .wh-name").forEach((el) => {
     const parent = el.parentElement;
     const pw = parent.clientWidth;
     const tw = el.scrollWidth;     // layout šířka (transform ji neovlivní)
@@ -155,12 +157,60 @@ function renderWorkIndex() {
     slot.appendChild(th);
     workIndex.appendChild(slot); wiEls.push(w); wiSlots.push(slot);
   });
-  workMeta.textContent = `${SETS.length} SETS · ${SETS.reduce((n, s) => n + s.count, 0)} SHOTS`;
+  workMeta.textContent = `${SETS.length} SETS · ${SETS.reduce((n, s) => n + (s.count || imagesOf(s).length), 0)} SHOTS`;
+  renderWorkH();
   layoutWork();
 }
+/* ---- WORK vodorovně: alba jako panely, svislý scroll je posouvá do strany ---- */
+function renderWorkH() {
+  whTrack.innerHTML = ""; whEls = [];
+  SETS.forEach((set, i) => {
+    const imgs = imagesOf(set);
+    const it = document.createElement("div"); it.className = "wh-item";
+    const shots = set.count || imgs.length;
+    it.innerHTML =
+      `<div class="wh-frame"><img class="wh-ph" alt="" src="${coverOf(set) || imgs[0] || ""}"></div>` +
+      `<span class="wh-name">${set.title}</span>` +
+      `<div class="wh-meta"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""}</span></div>`;
+    it.addEventListener("click", () => openShoot(i));
+    whTrack.appendChild(it); whEls.push(it);
+  });
+}
 function layoutWork() {
-  // výška sekce = obsah listu (sticky fotka + prostor na proscrollování slov)
-  sWork.style.height = workIndex.scrollHeight + "px";
+  // svislá dráha = kolik je potřeba nascrollovat, aby pás projel celý do strany
+  const vw = window.innerWidth || 1280;
+  whDist = Math.max(0, whTrack.scrollWidth - vw);
+  sWork.style.height = (window.innerHeight + whDist) + "px";
+}
+// mapuje pozici sekce ve svislém scrollu na posun pásu do strany (1:1, bez driftu)
+function updateWorkH(vh) {
+  if (!whEls.length) return;
+  const r = sWork.getBoundingClientRect();
+  const p = whDist > 0 ? clampN(-r.top / whDist, 0, 1) : 0;
+  whTargetX = -p * whDist;
+}
+// aktivní = panel nejblíž středu obrazovky (počítá se i během dojíždění)
+function updateWhActive() {
+  const cx = (window.innerWidth || 1280) / 2;
+  let best = -1, bd = Infinity;
+  whEls.forEach((el, k) => {
+    const b = el.getBoundingClientRect();
+    const d = Math.abs(b.left + b.width / 2 - cx);
+    if (d < bd) { bd = d; best = k; }
+  });
+  if (best >= 0 && best !== whActive) {
+    whActive = best;
+    whEls.forEach((el, k) => el.classList.toggle("active", k === best));
+    if (stage.hidden && groupEl.hidden) crumb.textContent = `WORK / ${SETS[best].title.toUpperCase()}`;
+  }
+}
+function stepWorkH() {
+  if (!whEls.length) return;
+  if (whCurX === whTargetX) { if (whActive < 0) updateWhActive(); return; }
+  whCurX += (whTargetX - whCurX) * 0.16;
+  if (Math.abs(whTargetX - whCurX) < 0.2) whCurX = whTargetX;
+  whTrack.style.transform = `translate3d(${whCurX.toFixed(1)}px,0,0)`;
+  updateWhActive();
 }
 const arCache = {};
 let revealAR = 0;   // poměr stran (š/v) aktivní fotky; 0 = zatím neznámé → panuj svisle
@@ -252,7 +302,7 @@ function updateWorkFocus(vh) {
     const d = Math.abs((wr.top + wr.height / 2) - vh / 2);
     if (d < bd) { bd = d; best = k; bestRect = wr; }
   });
-  if (best >= 0) { setWorkActive(best); panReveal(bestRect, vh); }
+  if (best >= 0) setWorkActive(best);
 }
 
 /* ---- journal ---- */
@@ -312,7 +362,7 @@ function updateJourney() {
   [...dotsNav.children].forEach((d, i) => d.classList.toggle("on", i === centerIdx));
   if (stage.hidden && SCENES[centerIdx] && SCENES[centerIdx].id !== "sWork")
     crumb.textContent = (SCENE_NAMES[centerIdx] || "35mm").toUpperCase();
-  updateWorkFocus(vh);
+  updateWorkH(vh);
 }
 
 /* ---- WORK -> pás ---- */
@@ -506,7 +556,6 @@ viewport.addEventListener("pointerup", endDrag);
 viewport.addEventListener("pointercancel", endDrag);
 
 document.addEventListener("keydown", (e) => {
-  if ((e.key === "v" || e.key === "V") && light.hidden && stage.hidden && groupEl.hidden && journalEntry.hidden) { cycleWorkVariant(); return; }
   if (!light.hidden) { if (e.key === "Escape") closeLight(); else if (e.key === "ArrowRight") stepLight(1); else if (e.key === "ArrowLeft") stepLight(-1); return; }
   if (!journalEntry.hidden) { if (e.key === "Escape") { journalEntry.hidden = true; if (stage.hidden && groupEl.hidden) back.hidden = true; } return; }
   if (!groupEl.hidden) {
@@ -527,7 +576,7 @@ document.addEventListener("keydown", (e) => {
 /* ---- strip render loop ---- */
 let curNearest = -1;
 function step() {
-  stepReveal();
+  stepWorkH();
   if (!groupEl.hidden) { stepDrum(); return; }
   if (stage.hidden || !ITEMS.length) return;
   vw = window.innerWidth || document.documentElement.clientWidth;
@@ -602,11 +651,6 @@ window.addEventListener("resize", () => { fitText(); layoutWork(); if (!groupEl.
   renderWorkIndex();
   renderJournal();
   buildDots();
-  // dočasný přepínač variant WORK (na porovnání) — klávesa V
-  vHint = document.createElement("div");
-  vHint.style.cssText = "position:fixed;left:14px;bottom:12px;z-index:60;font:700 10px/1 Arial,sans-serif;letter-spacing:.14em;color:#888;mix-blend-mode:difference;pointer-events:none";
-  document.body.appendChild(vHint);
-  applyWorkVariant();
   fitText();
   updateJourney();
   setTimeout(fitText, 120);   // po dosednutí fontů

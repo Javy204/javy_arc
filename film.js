@@ -174,11 +174,27 @@ function renderWorkH() {
       `<div class="wh-meta"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""}</span></div>`;
     it.addEventListener("click", () => openShoot(i));
     whTrack.appendChild(it); whEls.push(it);
+    // šířka panelu = poměr stran fotky × výška → fotka celá, nic oříznutého
+    const img = it.querySelector(".wh-ph");
+    const applyW = () => { sizeWhItem(it, img); layoutWork(); fitText(); };
+    img.addEventListener("load", applyW);
+    if (img.complete && img.naturalWidth) applyW();
   });
+}
+function sizeWhItem(it, img) {
+  const H = 0.58 * (window.innerHeight || 860);
+  const a = (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 0.72;
+  it.style.width = Math.round(H * a) + "px";
 }
 function layoutWork() {
   // svislá dráha = kolik je potřeba nascrollovat, aby pás projel celý do strany
   const vw = window.innerWidth || 1280;
+  whEls.forEach((it) => sizeWhItem(it, it.querySelector(".wh-ph")));   // přepočet šířek (i po resize)
+  // okraje tak, aby první i poslední panel mohly dojet přesně na střed
+  if (whEls.length) {
+    whTrack.style.paddingLeft = Math.max(0, vw / 2 - whEls[0].offsetWidth / 2) + "px";
+    whTrack.style.paddingRight = Math.max(0, vw / 2 - whEls[whEls.length - 1].offsetWidth / 2) + "px";
+  }
   whDist = Math.max(0, whTrack.scrollWidth - vw);
   sWork.style.height = (window.innerHeight + whDist) + "px";
   if (whEls.length) applyPanelDepth();
@@ -214,10 +230,8 @@ function applyPanelDepth() {
     const b = el.getBoundingClientRect();
     const d = clampN((b.left + b.width / 2 - cx) / cx, -1.4, 1.4);  // -1 vlevo … +1 vpravo
     const t = Math.min(Math.abs(d), 1);
-    const frame = el.firstElementChild;               // .wh-frame
-    if (frame) frame.style.transform = `scale(${(1 - t * 0.12).toFixed(3)})`;
-    const ph = frame && frame.firstElementChild;      // .wh-ph
-    if (ph) ph.style.transform = `translateX(${(-d * 7).toFixed(2)}%) scale(1.14)`;
+    const frame = el.firstElementChild;               // .wh-frame — jen zmenšení ke krajům (fotka zůstává celá)
+    if (frame) frame.style.transform = `scale(${(1 - t * 0.08).toFixed(3)})`;
   });
 }
 function stepWorkH() {

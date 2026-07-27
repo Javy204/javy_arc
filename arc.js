@@ -22,6 +22,12 @@
   const ARC_CFG = { salt: "ELGu4GyP6wBCQb3VTTNdig==", iv: "hPfs864RBdBCMf0R", ct: "tUqJJkra3wdWvWpny231VETmevfJXivds0VB38ww5w+a3xtBsSU7ZFe3we8=" };
   // ⬆⬆⬆
 
+  // Kam brána míří po správném hesle.
+  //  • TEĎ: živá adresa archivu (funguje hned, i na telefonu po přihlášení do OpenAI/ChatGPT účtu).
+  //  • AŽ nastavíš DNS pro subdoménu, změň na:  "https://projects.javyarc.com"
+  //  • null  = použij adresu zašifrovanou v hesle (ARC_CFG).
+  const ARC_URL = "https://javyarc-projects.stepanjavy.chatgpt.site";
+
   const SECRET_WORD = "arc";   // tajné slovo z klávesnice (malá písmena)
 
   /* ---- styl (injektovaný, ať nemusím sahat do film.css) ---- */
@@ -102,7 +108,8 @@
       const url = new TextDecoder().decode(pt);
       if (!/^https?:\/\//.test(url)) { deny("Nesprávné heslo."); return; }
       closeModal();
-      window.open(url, "_blank", "noopener");
+      // otevři v téže záložce = spolehlivé i na mobilu (window.open po await bývá blokované)
+      window.location.href = ARC_URL || url;
     } catch (e) {
       deny("Nesprávné heslo.");
     }

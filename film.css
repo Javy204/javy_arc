@@ -162,6 +162,48 @@ html, body {
 }
 .wi.active { opacity: 1; }
 
+/* ============================================================
+   WORK — varianty „ukázat víc fotek" (přepínač klávesou V)
+   V obou: žádný posun fotky na pozadí (ten působil neintuitivně).
+   ============================================================ */
+.wv-a .work-reveal, .wv-b .work-reveal { display: none; }
+/* bez fotky na pozadí nemá „difference" s čím invertovat → slova by zbělala.
+   Ve variantách proto plná inkoustová barva. */
+.wv-a .wi, .wv-b .wi { mix-blend-mode: normal; color: var(--ink); opacity: .18; }
+.wv-a .wi.active, .wv-b .wi.active { opacity: 1; }
+
+/* --- VARIANTA A: řádek náhledů pod zaostřeným slovem --- */
+/* místo je rezervované vždy → žádné poskakování layoutu */
+.wv-a .wi-slot { height: 27vw; flex-direction: column; align-items: stretch; justify-content: center; }
+.wv-a .wi-slot:first-child { margin-top: calc(50vh - 13.5vw); }
+.wv-a .wi-slot:last-child { margin-bottom: calc(50vh - 13.5vw); }
+.wi-thumbs { display: none; gap: .7vw; height: 9.5vw; margin-top: 1.4vw; pointer-events: none; }
+.wv-a .wi-thumbs { display: flex; }
+.wi-thumbs img {
+  height: 100%; width: 7.2vw; object-fit: cover; display: block;
+  filter: grayscale(1) contrast(1.25);
+  opacity: 0; transform: translateY(14px);
+  transition: opacity .45s ease, transform .45s cubic-bezier(.2,.8,.25,1);
+}
+.wi-slot.on .wi-thumbs img { opacity: 1; transform: none; }
+.wi-slot.on .wi-thumbs img:nth-child(2) { transition-delay: .05s; }
+.wi-slot.on .wi-thumbs img:nth-child(3) { transition-delay: .10s; }
+.wi-slot.on .wi-thumbs img:nth-child(4) { transition-delay: .15s; }
+.wi-slot.on .wi-thumbs img:nth-child(5) { transition-delay: .20s; }
+
+/* --- VARIANTA B: stálý pás snímků uprostřed, slova jedou přes něj --- */
+.work-panel {
+  display: none; position: sticky; top: 0; height: 100vh; margin-top: -100vh;
+  z-index: 2; align-items: center; justify-content: center; pointer-events: none;
+}
+.wv-b .work-panel { display: flex; }
+.wp-row { display: flex; gap: 1vw; opacity: 0; transition: opacity .45s ease; }
+.wp-row.on { opacity: 1; }
+.wp-row img {
+  height: 46vh; width: 15vw; object-fit: cover; display: block;
+  filter: grayscale(1) contrast(1.28);
+}
+
 /* journal list */
 .journal-list { list-style: none; margin: 24px 0 0; padding: 0; max-width: 820px; }
 .journal-list li { display: flex; gap: 1.6ch; align-items: baseline; padding: 13px 6px; border-top: 2px solid var(--ink); cursor: pointer; text-transform: uppercase; transition: padding-left .15s, background .1s, color .1s; }

@@ -24,6 +24,8 @@ const workIndex = $("#workIndex");
 const workReveal = $("#workReveal");
 const wrLayers = [$("#wrA"), $("#wrB")];
 let wrIdx = 0;
+const wpRow = $("#wpRow");
+let vHint = null;
 const sWork = $("#sWork");
 const workMeta = $("#workMeta");
 const journalList = $("#journalList");
@@ -40,7 +42,8 @@ const clampN = (x, a, b) => Math.max(a, Math.min(b, x));
 let JOURNAL = [];   // načte se z journal.json
 
 let SETS = [];
-let wiEls = [], workActive = -1;
+let wiEls = [], wiSlots = [], workActive = -1;
+let workVariant = localStorage.getItem("javy-workvariant") || "a";   // "a" | "b" | "off"
 let SCENES = [], SCENE_NAMES = [];
 let ITEMS = [], FRAMES = [], centers = [];
 let targetX = 0, currentX = 0, minX = 0, maxX = 0;
@@ -125,14 +128,32 @@ function fitText() {
 }
 
 /* ---- WORK: scrollovatelný index + sticky reveal ---- */
+// fotky setu (u skupiny ber první shoot) + rovnoměrný výběr n snímků napříč shootem
+function imagesOf(set) { return set.images || (set.shoots && set.shoots[0] && set.shoots[0].images) || []; }
+function sampleImages(imgs, n) {
+  if (imgs.length <= n) return imgs.slice();
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(imgs[Math.round((i * (imgs.length - 1)) / (n - 1))]);
+  return out;
+}
+
 function renderWorkIndex() {
-  workIndex.innerHTML = ""; wiEls = [];
+  workIndex.innerHTML = ""; wiEls = []; wiSlots = [];
   SETS.forEach((set, i) => {
     const slot = document.createElement("div"); slot.className = "wi-slot";
     const w = document.createElement("div"); w.className = "wi"; w.textContent = set.title; w.dataset.i = i;
     w.addEventListener("mouseenter", () => setWorkActive(i));
     w.addEventListener("click", () => openShoot(i));
-    slot.appendChild(w); workIndex.appendChild(slot); wiEls.push(w);
+    slot.appendChild(w);
+    // varianta A: řádek náhledů (místo rezervované vždy, plní se až při zaostření)
+    const th = document.createElement("div"); th.className = "wi-thumbs";
+    sampleImages(imagesOf(set), 5).forEach((src) => {
+      const im = document.createElement("img");
+      im.loading = "lazy"; im.alt = ""; im.src = src;
+      th.appendChild(im);
+    });
+    slot.appendChild(th);
+    workIndex.appendChild(slot); wiEls.push(w); wiSlots.push(slot);
   });
   workMeta.textContent = `${SETS.length} SETS · ${SETS.reduce((n, s) => n + s.count, 0)} SHOTS`;
   layoutWork();
@@ -158,6 +179,10 @@ function setWorkActive(i) {
   if (i === workActive) return;
   workActive = i;
   const set = SETS[i];
+  // varianta A: zvýrazni slot se zaostřeným slovem (náhledy naskočí se stagger)
+  wiSlots.forEach((s, k) => s.classList.toggle("on", k === i));
+  // varianta B: přesyp stálý pás uprostřed
+  if (workVariant === "b") fillWorkPanel(set);
   const cover = coverOf(set) || coverOf(set.shoots && set.shoots[0]) || "";
   setRevealImage(cover);
   // crossfade: novou fotku dej na druhou vrstvu a prolni (žádný tvrdý blik)
@@ -186,8 +211,31 @@ function panReveal(wr, vh) {
   const contAR = cr.height ? cr.width / cr.height : 1;
   revealAxisY = !revealAR || revealAR < contAR;         // fotka užší než rám → přebývá výška → svisle
 }
+/* ---- varianty WORK (přepínač V) ---- */
+function fillWorkPanel(set) {
+  if (!wpRow) return;
+  const imgs = sampleImages(imagesOf(set), 5);
+  wpRow.classList.remove("on");
+  wpRow.innerHTML = "";
+  imgs.forEach((src) => { const im = document.createElement("img"); im.alt = ""; im.src = src; wpRow.appendChild(im); });
+  requestAnimationFrame ? setTimeout(() => wpRow.classList.add("on"), 20) : wpRow.classList.add("on");
+}
+function applyWorkVariant() {
+  document.body.classList.toggle("wv-a", workVariant === "a");
+  document.body.classList.toggle("wv-b", workVariant === "b");
+  if (workVariant === "b" && SETS[workActive]) fillWorkPanel(SETS[workActive]);
+  if (vHint) vHint.textContent = `V — VARIANTA ${workVariant.toUpperCase()}`;
+  fitText(); layoutWork(); updateJourney();
+}
+function cycleWorkVariant() {
+  workVariant = workVariant === "a" ? "b" : workVariant === "b" ? "off" : "a";
+  localStorage.setItem("javy-workvariant", workVariant);
+  applyWorkVariant();
+}
+
 // plynulý doběh pozice náhledu (volá se každý tick z step())
 function stepReveal() {
+  if (workVariant !== "off") return;   // ve variantách se pozadím nehýbe
   if (journey.hidden || !stage.hidden || !groupEl.hidden) return;
   if (!workReveal.classList.contains("on")) return;
   if (revealSnap) { revealCurP = revealTargetP; revealSnap = false; }
@@ -458,6 +506,7 @@ viewport.addEventListener("pointerup", endDrag);
 viewport.addEventListener("pointercancel", endDrag);
 
 document.addEventListener("keydown", (e) => {
+  if ((e.key === "v" || e.key === "V") && light.hidden && stage.hidden && groupEl.hidden && journalEntry.hidden) { cycleWorkVariant(); return; }
   if (!light.hidden) { if (e.key === "Escape") closeLight(); else if (e.key === "ArrowRight") stepLight(1); else if (e.key === "ArrowLeft") stepLight(-1); return; }
   if (!journalEntry.hidden) { if (e.key === "Escape") { journalEntry.hidden = true; if (stage.hidden && groupEl.hidden) back.hidden = true; } return; }
   if (!groupEl.hidden) {
@@ -553,6 +602,11 @@ window.addEventListener("resize", () => { fitText(); layoutWork(); if (!groupEl.
   renderWorkIndex();
   renderJournal();
   buildDots();
+  // dočasný přepínač variant WORK (na porovnání) — klávesa V
+  vHint = document.createElement("div");
+  vHint.style.cssText = "position:fixed;left:14px;bottom:12px;z-index:60;font:700 10px/1 Arial,sans-serif;letter-spacing:.14em;color:#888;mix-blend-mode:difference;pointer-events:none";
+  document.body.appendChild(vHint);
+  applyWorkVariant();
   fitText();
   updateJourney();
   setTimeout(fitText, 120);   // po dosednutí fontů

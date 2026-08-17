@@ -562,12 +562,19 @@ html:not(.js) .loader { display: none; }
    ========================================================= */
 .hero {
   position: relative;
-  min-height: 100svh;
+  background: var(--paper);
+}
+/* Extra scroll length exists only when there is footage to scrub through.
+   Without it the hero stays exactly one viewport tall. */
+.hero.has-scrub { min-height: 320svh; }
+
+.hero__stage {
+  position: relative;
+  height: 100svh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--paper);
 }
 
 .hero__media {

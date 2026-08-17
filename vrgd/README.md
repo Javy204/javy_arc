@@ -3,10 +3,17 @@
 Statický web, žádný build step. Otevře se přímo v prohlížeči přes lokální server.
 
 ```bash
-python3 -m http.server 3336 --directory /Users/stepanjavorsky/vrgd-web
+python3 /Users/stepanjavorsky/vrgd-web/serve.py 3336
 ```
 
 Pak `http://localhost:3336`. (V Claude Code je nakonfigurovaný jako preview server `vrgd`.)
+
+> **Nepoužívej `python3 -m http.server`.** Ignoruje hlavičku `Range` a na
+> každý dotaz vrátí celý soubor. `<video>` se pak hlásí jako
+> `seekable = [0, 0]` a **scroll-scrub hera mlčky nefunguje** — `currentTime`
+> se nepohne, i když je video celé nabufferované. `serve.py` je obyčejný
+> statický server, který Range umí. GitHub Pages ho umí taky, takže tohle
+> je čistě lokální problém.
 
 ## Co kde je
 
@@ -98,7 +105,30 @@ Každé písmeno lockupu má vlastní rodinu — ve stylu jsou jako `.glyph--v/r
 - **g** → Annie Use Your Telescope (`--f-hand`)
 - **D** → Instrument Sans 700 (`--f-sans`)
 
-## Video v heru
+## Video v heru — scroll-scrub
+
+Když `assets/hero.mp4` existuje, hero se **připne** (`.hero.has-scrub`,
+`min-height: 320svh`) a scroll pozice se mapuje přímo na `video.currentTime` —
+takže se záběr posune přesně o to, co odscrolluješ. Když soubor chybí, hero
+zůstane vysoké jeden viewport a jede na něm halftone canvas. Nic se nemusí
+přepínat.
+
+Video se **nepřehrává samo** a nemá `loop` — je pauzované a jediné, co s ním
+hýbe, je scroll. Kód je v `initHeroScrub()`:
+
+- `currentTime` se **nenastavuje natvrdo** na každý scroll event, ale dohání
+  cíl lerpem (`0.18`). Bez toho dekodér mlátí sebou a obraz trhá.
+- Safari nedekóduje pro seek, dokud se přehrávání jednou nedotkneš — proto
+  to jednou tiše `play()` a hned `pause()`.
+- Scrub se zapne teprve po `HEAD` dotazu, že soubor existuje, a po
+  `loadedmetadata`.
+
+**Doporučený export (DaVinci):** H.264, **1920 px na šířce**, **bez zvuku**,
+a hlavně **keyframe interval 1** (all-intra) — každý frame vlastní keyframe.
+Cíl do ~5 MB. Bez hustých keyframů musí prohlížeč u každého seeku dekódovat
+od předchozího keyframu, což scrub na slabších strojích trhá.
+
+## Starší poznámka k videu
 
 Hero čeká na `assets/hero.mp4`. Dokud tam není, běží na pozadí generovaný
 halftone dither plát (canvas, `initDither()` v `main.js`) — dokud video chybí,

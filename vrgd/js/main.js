@@ -134,20 +134,11 @@
     if (REDUCED) { frame(); stop(); return; }
     frame();
 
-    // Hand over to real footage — but only if it has been dropped in.
+    // initHeroScrub owns loading and playback; the canvas just steps aside once
+    // the footage can draw.
     const video = $('[data-hero-video]');
-    const src = video?.getAttribute('data-src');
-    if (video && src) {
-      video.addEventListener('canplay', () => {
-        video.setAttribute('data-ready', 'true');
-        video.play().catch(() => {});
-        gsap.delayedCall(1.3, stop);
-      }, { once: true });
-
-      // Probe first so a missing file is a silent 404, not a media error.
-      fetch(src, { method: 'HEAD' })
-        .then((res) => { if (res.ok) { video.src = src; video.load(); } })
-        .catch(() => {});
+    if (video) {
+      video.addEventListener('loadeddata', () => gsap.delayedCall(1.3, stop), { once: true });
     }
 
     ScrollTrigger.create({
@@ -235,6 +226,66 @@
   }
 
   /* =======================================================
+     4b. Scroll-driven playback
+     The hero pins and scroll position maps straight onto the
+     video's currentTime, so the shot advances by exactly the
+     amount you scrolled. A lerp keeps seeking from stuttering.
+     ======================================================= */
+  function initHeroScrub() {
+    const hero = $('.hero');
+    const stage = $('[data-hero-stage]');
+    const video = $('[data-hero-video]');
+    if (!hero || !stage || !video || REDUCED) return;
+
+    const src = video.getAttribute('data-src');
+    if (!src) return;
+
+    // Only arm the scrub once we know the file is actually there and decodable.
+    fetch(src, { method: 'HEAD' })
+      .then((res) => { if (res.ok) arm(); })
+      .catch(() => {});
+
+    function arm() {
+      video.removeAttribute('loop');
+      video.src = src;
+      video.load();
+
+      video.addEventListener('loadedmetadata', () => {
+        const duration = video.duration;
+        if (!duration || !isFinite(duration)) return;
+
+        // Safari will not decode for seeking until playback has been touched.
+        video.play().then(() => video.pause()).catch(() => {});
+
+        video.setAttribute('data-ready', 'true');
+        hero.classList.add('has-scrub');
+        ScrollTrigger.refresh();
+
+        let target = 0;
+
+        ScrollTrigger.create({
+          trigger: hero,
+          start: 'top top',
+          end: 'bottom bottom',
+          pin: stage,
+          pinSpacing: false,
+          scrub: true,
+          onUpdate: (self) => { target = self.progress * duration; }
+        });
+
+        // Chase the target instead of snapping to it — a raw currentTime write
+        // on every scroll event makes the decoder thrash.
+        gsap.ticker.add(() => {
+          if (video.readyState < 2) return;
+          const now = video.currentTime;
+          const next = now + (target - now) * 0.18;
+          if (Math.abs(next - now) > 0.002) video.currentTime = next;
+        });
+      }, { once: true });
+    }
+  }
+
+  /* =======================================================
      5. Hero — parallax and the red plate drifting off register
      ======================================================= */
   function initHero() {
@@ -242,17 +293,19 @@
     if (!logo) return;
 
     if (!REDUCED) {
+      // Both of these ride the tail of the hero, so they read the same whether
+      // the hero is one viewport or pinned across several.
       gsap.to('[data-hero-parallax]', {
         yPercent: 12,
         ease: 'none',
-        scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true }
+        scrollTrigger: { trigger: '.hero', start: 'bottom bottom', end: 'bottom top', scrub: true }
       });
       // No scale here — the loader owns that channel and a scrub would fight it.
       gsap.to(logo, {
         yPercent: -18,
         autoAlpha: 0.2,
         ease: 'none',
-        scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true }
+        scrollTrigger: { trigger: '.hero', start: 'bottom bottom+=25%', end: 'bottom top', scrub: true }
       });
     }
 
@@ -602,6 +655,7 @@
      ======================================================= */
   function boot() {
     initDither();
+    initHeroScrub();
     initHero();
     initSlider();
     initNav();

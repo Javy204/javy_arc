@@ -24,7 +24,7 @@ document.documentElement.classList.add('js');
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body data-loading="true">
 
@@ -86,6 +86,7 @@ document.documentElement.classList.add('js');
     <ul>
       <li><a href="#about"    data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">ABOUT</span></a></li>
       <li><a href="#work"     data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">WORK</span></a></li>
+      <li><a href="#events"   data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">EVENTS</span></a></li>
       <li><a href="#assets"   data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">ASSETS</span></a></li>
       <li><a href="#contacts" data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">CONTACTS</span></a></li>
       <li><a href="gallery.html" data-scramble-hover="link"><i></i><span data-scramble-hover="target">GALLERY</span></a></li>
@@ -128,6 +129,7 @@ document.documentElement.classList.add('js');
     <li><a href="#hero"     data-nav-link>INDEX</a></li>
     <li><a href="#about"    data-nav-link data-jump-link>ABOUT</a></li>
     <li><a href="#work"     data-nav-link data-jump-link>WORK</a></li>
+    <li><a href="#events"   data-nav-link data-jump-link>EVENTS</a></li>
     <li><a href="#assets"   data-nav-link data-jump-link>ASSETS</a></li>
     <li><a href="#contacts" data-nav-link data-jump-link>CONTACTS</a></li>
     <li><a href="gallery.html">GALLERY</a></li>
@@ -142,9 +144,10 @@ document.documentElement.classList.add('js');
   <ul>
     <li><a href="#about"   data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="01"><span data-scramble-hover="target">ABOUT</span></a></li>
     <li><a href="#work"    data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="02"><span data-scramble-hover="target">WORK</span></a></li>
-    <li><a href="#assets"  data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="03"><span data-scramble-hover="target">ASSETS</span></a></li>
-    <li><a href="#contacts" data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="04"><span data-scramble-hover="target">CONTACTS</span></a></li>
-    <li><a href="gallery.html" data-scramble-hover="link" data-cursor-hover data-cursor-text="05"><span data-scramble-hover="target">GALLERY</span></a></li>
+    <li><a href="#events"  data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="03"><span data-scramble-hover="target">EVENTS</span></a></li>
+    <li><a href="#assets"  data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="04"><span data-scramble-hover="target">ASSETS</span></a></li>
+    <li><a href="#contacts" data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="05"><span data-scramble-hover="target">CONTACTS</span></a></li>
+    <li><a href="gallery.html" data-scramble-hover="link" data-cursor-hover data-cursor-text="06"><span data-scramble-hover="target">GALLERY</span></a></li>
   </ul>
 </nav>
 
@@ -159,7 +162,7 @@ document.documentElement.classList.add('js');
       <div class="hero__media-inner" data-hero-parallax>
         <canvas class="hero__canvas" data-dither></canvas>
         <!-- src is attached by main.js only if assets/hero.mp4 actually exists -->
-        <video class="hero__video" data-hero-video data-src="assets/hero.mp4" muted loop playsinline preload="auto"></video>
+        <video class="hero__video" data-hero-video data-src="assets/hero.mp4" muted loop playsinline preload="auto" autoplay></video>
         <div class="hero__scrim"></div>
       </div>
     </div>
@@ -262,10 +265,62 @@ document.documentElement.classList.add('js');
     </div>
   </section>
 
+  <!-- ============ EVENTS ============ -->
+  <section class="section section--events" id="events" data-section="EVENTS">
+    <div class="section__head">
+      <span class="mono is-dim">[03]</span>
+      <span class="mono">EVENTS</span>
+      <span class="mono is-dim" data-events-count>[00]</span>
+    </div>
+
+    <div class="events" data-events>
+      <!-- left: names -->
+      <ol class="events__names" data-events-names></ol>
+
+      <!-- centre: artwork stack -->
+      <div class="events__stage" data-events-stage>
+        <article class="events__card" data-events-card data-plate="1">
+          <div class="events__art" data-placeholder="2"></div>
+          <h3>No Art Prague</h3>
+          <span class="mono is-dim">HOLESOVICE · 22:00 — 06:00</span>
+        </article>
+        <article class="events__card" data-events-card data-plate="2">
+          <div class="events__art" data-placeholder="4"></div>
+          <h3>Riverside Session</h3>
+          <span class="mono is-dim">NAPLAVKA · 18:00 — 02:00</span>
+        </article>
+        <article class="events__card" data-events-card data-plate="3">
+          <div class="events__art" data-placeholder="6"></div>
+          <h3>Warehouse 07</h3>
+          <span class="mono is-dim">LIBEN · 23:00 — 08:00</span>
+        </article>
+        <article class="events__card" data-events-card data-plate="4">
+          <div class="events__art" data-placeholder="3"></div>
+          <h3>Rooftop Cut</h3>
+          <span class="mono is-dim">ZIZKOV · 20:00 — 01:00</span>
+        </article>
+        <article class="events__card" data-events-card data-plate="5">
+          <div class="events__art" data-placeholder="5"></div>
+          <h3>Closing Night</h3>
+          <span class="mono is-dim">SMICHOV · 22:00 — 07:00</span>
+        </article>
+      </div>
+
+      <!-- right: dates -->
+      <ol class="events__dates" data-events-dates>
+        <li>SEPTEMBER 12, 2026</li>
+        <li>SEPTEMBER 27, 2026</li>
+        <li>OCTOBER 10, 2026</li>
+        <li>OCTOBER 25, 2026</li>
+        <li>NOVEMBER 08, 2026</li>
+      </ol>
+    </div>
+  </section>
+
   <!-- ============ ASSETS ============ -->
   <section class="section section--assets" id="assets" data-section="ASSETS">
     <div class="section__head">
-      <span class="mono is-dim">[03]</span>
+      <span class="mono is-dim">[04]</span>
       <span class="mono">ASSETS</span>
     </div>
 
@@ -315,7 +370,7 @@ document.documentElement.classList.add('js');
   <!-- ============ CONTACTS ============ -->
   <footer class="section section--contacts is-invert" id="contacts" data-section="CONTACTS">
     <div class="section__head">
-      <span class="mono is-dim">[04]</span>
+      <span class="mono is-dim">[05]</span>
       <span class="mono">CONTACTS</span>
     </div>
 
@@ -361,9 +416,10 @@ document.documentElement.classList.add('js');
       <li><a href="#hero"     data-menu-link data-scramble-hover="link"><span class="mono is-dim">00</span><span data-scramble-hover="target">INDEX</span></a></li>
       <li><a href="#about"    data-menu-link data-scramble-hover="link"><span class="mono is-dim">01</span><span data-scramble-hover="target">ABOUT</span></a></li>
       <li><a href="#work"     data-menu-link data-scramble-hover="link"><span class="mono is-dim">02</span><span data-scramble-hover="target">WORK</span></a></li>
-      <li><a href="#assets"   data-menu-link data-scramble-hover="link"><span class="mono is-dim">03</span><span data-scramble-hover="target">ASSETS</span></a></li>
-      <li><a href="#contacts" data-menu-link data-scramble-hover="link"><span class="mono is-dim">04</span><span data-scramble-hover="target">CONTACTS</span></a></li>
-      <li><a href="gallery.html" data-scramble-hover="link"><span class="mono is-dim">05</span><span data-scramble-hover="target">GALLERY</span></a></li>
+      <li><a href="#events"   data-menu-link data-scramble-hover="link"><span class="mono is-dim">03</span><span data-scramble-hover="target">EVENTS</span></a></li>
+      <li><a href="#assets"   data-menu-link data-scramble-hover="link"><span class="mono is-dim">04</span><span data-scramble-hover="target">ASSETS</span></a></li>
+      <li><a href="#contacts" data-menu-link data-scramble-hover="link"><span class="mono is-dim">05</span><span data-scramble-hover="target">CONTACTS</span></a></li>
+      <li><a href="gallery.html" data-scramble-hover="link"><span class="mono is-dim">06</span><span data-scramble-hover="target">GALLERY</span></a></li>
     </ul>
     <div class="menu__foot mono is-dim">
       <span>PRAGUE — CZ</span><span data-local-time>--:--:--</span>
@@ -381,6 +437,6 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/InertiaPlugin.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=3"></script>
-<script src="js/main.js?v=12"></script>
+<script src="js/main.js?v=14"></script>
 </body>
 </html>

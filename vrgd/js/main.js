@@ -20,9 +20,29 @@
 
   const scrollTo = (target) => lenis.scrollTo(target, { offset: 0, duration: 1.4 });
 
-  /* Hero exit motion. initHero builds it for the plain, un-pinned hero;
-     initHeroScrub replaces it once footage is armed. */
-  let heroExit = [];
+  /* The fixed chrome carries no backdrop, so it recolours itself whenever a
+     dark surface is actually behind it. Any element can register as one. */
+  function registerDarkSurface(el) {
+    const navbar = $('[data-navbar]');
+    const navH = navbar ? (parseFloat(getComputedStyle(navbar).minHeight) || 72) : 72;
+
+    if (navbar) {
+      ScrollTrigger.create({
+        trigger: el,
+        start: `top top+=${navH}`,
+        end: 'bottom top',
+        onToggle: (self) => navbar.classList.toggle('on-invert', self.isActive)
+      });
+    }
+    [$('.sidenav'), $('[data-spine]')].filter(Boolean).forEach((node) => {
+      ScrollTrigger.create({
+        trigger: el,
+        start: 'top center',
+        end: 'bottom center',
+        onToggle: (self) => node.classList.toggle('on-invert', self.isActive)
+      });
+    });
+  }
 
   /* =======================================================
      2. Reveals
@@ -138,7 +158,7 @@
     if (REDUCED) { frame(); stop(); return; }
     frame();
 
-    // initHeroScrub owns loading and playback; the canvas just steps aside once
+    // initHeroVideo owns loading and playback; the canvas just steps aside once
     // the footage can draw.
     const video = $('[data-hero-video]');
     if (video) {
@@ -230,96 +250,32 @@
   }
 
   /* =======================================================
-     4b. Scroll-driven playback
-     The hero pins and scroll position maps straight onto the
-     video's currentTime, so the shot advances by exactly the
-     amount you scrolled. A lerp keeps seeking from stuttering.
+     4b. Hero footage — a plain muted loop.
+     Attached only once we know the file is there, so a missing
+     hero.mp4 leaves the halftone canvas in place.
      ======================================================= */
-  function initHeroScrub() {
+  function initHeroVideo() {
     const hero = $('.hero');
-    const stage = $('[data-hero-stage]');
     const video = $('[data-hero-video]');
-    if (!hero || !stage || !video || REDUCED) return;
+    const src = video?.getAttribute('data-src');
+    if (!hero || !video || !src) return;
 
-    const src = video.getAttribute('data-src');
-    if (!src) return;
-
-    // Only arm the scrub once we know the file is actually there and decodable.
     fetch(src, { method: 'HEAD' })
       .then((res) => { if (res.ok) arm(); })
       .catch(() => {});
 
     function arm() {
-      video.removeAttribute('loop');
       video.src = src;
       video.load();
 
-      video.addEventListener('loadedmetadata', () => {
-        const duration = video.duration;
-        if (!duration || !isFinite(duration)) return;
-
-        // Safari will not decode for seeking until playback has been touched.
-        video.play().then(() => video.pause()).catch(() => {});
-
+      video.addEventListener('loadeddata', () => {
+        video.play().catch(() => {});
         video.setAttribute('data-ready', 'true');
-        hero.classList.add('has-scrub');
 
-        // The footage is done by this share of the pin; the rest of the scroll
-        // is the hero leaving, so the shot never ends on a static screen.
-        const VIDEO_END = 0.82;
-        const curve = gsap.parseEase('power1.inOut');   // the playback speed curve
-
-        // initHero built linear exit tweens for the un-pinned case. Drive the
-        // exit from this progress instead so both share one source of truth.
-        heroExit.forEach((tw) => { tw.scrollTrigger?.kill(); tw.kill(); });
-        heroExit = [];
-        const parallax = $('[data-hero-parallax]');
-        const logo = $('[data-hero-logo]');
-        gsap.set([parallax, logo], { yPercent: 0 });
-        gsap.set(logo, { autoAlpha: 1 });
-
-        let target = 0;
-
-        ScrollTrigger.create({
-          trigger: hero,
-          start: 'top top',
-          end: 'bottom bottom',
-          pin: stage,
-          pinSpacing: false,
-          onUpdate: (self) => {
-            const p = self.progress;
-            target = curve(gsap.utils.clamp(0, 1, p / VIDEO_END)) * duration;
-
-            const exit = gsap.utils.clamp(0, 1, (p - VIDEO_END) / (1 - VIDEO_END));
-            if (parallax) gsap.set(parallax, { yPercent: 12 * exit });
-            if (logo) gsap.set(logo, { yPercent: -18 * exit, autoAlpha: 1 - 0.8 * exit });
-          }
-        });
-
-        ScrollTrigger.refresh();
-
-        /* Follow the target by PLAYING, not seeking. Seeking costs a decode
-           every frame and is what made this stutter; native playback is
-           sequential and smooth. Rate is proportional to how far behind we
-           are, so it eases in and out on its own and settles without
-           overshooting. Only scrolling back up needs a real seek. */
-        const RATE_MIN = 0.12, RATE_MAX = 3.2, GAIN = 2.4, DEAD = 0.03;
-
-        gsap.ticker.add(() => {
-          if (video.readyState < 2) return;
-          const now = video.currentTime;
-          const gap = target - now;
-
-          if (gap > DEAD) {
-            video.playbackRate = gsap.utils.clamp(RATE_MIN, RATE_MAX, gap * GAIN);
-            if (video.paused) video.play().catch(() => {});
-          } else if (gap < -DEAD) {
-            if (!video.paused) video.pause();
-            if (!video.seeking) video.currentTime = now + gap * 0.2;
-          } else if (!video.paused) {
-            video.pause();
-          }
-        });
+        // Footage turns the hero into a dark surface: the scrim darkens, the
+        // logotype and lede go light, and the fixed chrome flips with it.
+        hero.classList.add('has-video');
+        registerDarkSurface(hero);
       }, { once: true });
     }
   }
@@ -332,20 +288,18 @@
     if (!logo) return;
 
     if (!REDUCED) {
-      // Exit motion for the plain hero. If footage arms the scrub, these get
-      // killed and the same movement is driven off the pin's progress instead.
-      heroExit.push(gsap.to('[data-hero-parallax]', {
+      gsap.to('[data-hero-parallax]', {
         yPercent: 12,
         ease: 'none',
         scrollTrigger: { trigger: '.hero', start: 'bottom bottom', end: 'bottom top', scrub: true }
-      }));
+      });
       // No scale here — the loader owns that channel and a scrub would fight it.
-      heroExit.push(gsap.to(logo, {
+      gsap.to(logo, {
         yPercent: -18,
         autoAlpha: 0.2,
         ease: 'none',
         scrollTrigger: { trigger: '.hero', start: 'bottom bottom+=25%', end: 'bottom top', scrub: true }
-      }));
+      });
     }
 
     const r = $('.split--r', logo);
@@ -414,6 +368,83 @@
   }
 
   /* =======================================================
+     6b. Events — vertical carousel with two synced meta columns.
+     Built on Observer rather than pulling in another slider.
+     ======================================================= */
+  function initEvents() {
+    const root = $('[data-events]');
+    const stage = $('[data-events-stage]');
+    if (!root || !stage) return;
+
+    const cards = $$('[data-events-card]', stage);
+    const namesList = $('[data-events-names]');
+    const dates = $$('[data-events-dates] li');
+    if (!cards.length) return;
+
+    // Names column is generated from the cards so the two can never drift.
+    cards.forEach((card, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="events__bullet"></span>[${String(i + 1).padStart(2, '0')}] ${card.querySelector('h3').textContent}`;
+      li.addEventListener('click', () => go(i));
+      namesList?.appendChild(li);
+    });
+    const names = $$('li', namesList);
+
+    const count = $('[data-events-count]');
+    if (count) count.textContent = `[${String(cards.length).padStart(2, '0')}]`;
+
+    const SPACING = 78;   // px between stacked cards
+    let index = 0;
+
+    function layout(animate) {
+      cards.forEach((card, i) => {
+        const off = i - index;
+        const away = Math.abs(off);
+        gsap.to(card, {
+          yPercent: -50,
+          y: off * SPACING,
+          scale: Math.max(0.72, 1 - away * 0.11),
+          autoAlpha: away === 0 ? 1 : Math.max(0, 0.42 - (away - 1) * 0.18),
+          zIndex: cards.length - away,
+          duration: animate ? 0.75 : 0,
+          ease: 'expo.out',
+          overwrite: 'auto'
+        });
+      });
+      names.forEach((li, i) => li.setAttribute('data-active', String(i === index)));
+      dates.forEach((li, i) => li.setAttribute('data-active', String(i === index)));
+    }
+
+    function go(next) {
+      const clamped = gsap.utils.clamp(0, cards.length - 1, next);
+      if (clamped === index) return;
+      index = clamped;
+      layout(true);
+    }
+
+    layout(false);
+
+    if (REDUCED) return;
+
+    // Wheel and drag move one step at a time; the section keeps its own scroll
+    // once an edge is reached, so the page never feels trapped.
+    Observer.create({
+      target: stage,
+      type: 'wheel,touch',
+      tolerance: 40,
+      preventDefault: false,
+      onUp: () => go(index - 1),
+      onDown: () => go(index + 1)
+    });
+
+    gsap.from(cards, {
+      y: 40, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.06,
+      scrollTrigger: { trigger: root, start: 'top 80%', once: true },
+      onComplete: () => layout(false)
+    });
+  }
+
+  /* =======================================================
      7. Section nav — smooth anchors + active state everywhere
      ======================================================= */
   function initNav() {
@@ -453,28 +484,7 @@
     const jumpbar = $('[data-jumpbar]');
     const hero = $('.hero');
 
-    // No backdrop. Instead the chrome flips its own colours whenever an
-    // inverted section is actually behind it.
-    const sidenav = $('.sidenav');
-    const spine = $('[data-spine]');
-    $$('.is-invert').forEach((dark) => {
-      if (navbar) {
-        ScrollTrigger.create({
-          trigger: dark,
-          start: `top top+=${parseFloat(getComputedStyle(navbar).minHeight) || 72}`,
-          end: 'bottom top',
-          onToggle: (self) => navbar.classList.toggle('on-invert', self.isActive)
-        });
-      }
-      [sidenav, spine].filter(Boolean).forEach((el) => {
-        ScrollTrigger.create({
-          trigger: dark,
-          start: 'top center',
-          end: 'bottom center',
-          onToggle: (self) => el.classList.toggle('on-invert', self.isActive)
-        });
-      });
-    });
+    $$('.is-invert').forEach(registerDarkSurface);
 
     // Side nav borrows the jumpbar's move: the NOW readout slides in past the
     // hero (and the list nudges over with it), then retracts back at the top.
@@ -694,9 +704,10 @@
      ======================================================= */
   function boot() {
     initDither();
-    initHeroScrub();
+    initHeroVideo();
     initHero();
     initSlider();
+    initEvents();
     initNav();
     initChrome();
     initNavSwitch();

@@ -9,11 +9,9 @@ python3 /Users/stepanjavorsky/vrgd-web/serve.py 3336
 Pak `http://localhost:3336`. (V Claude Code je nakonfigurovaný jako preview server `vrgd`.)
 
 > **Nepoužívej `python3 -m http.server`.** Ignoruje hlavičku `Range` a na
-> každý dotaz vrátí celý soubor. `<video>` se pak hlásí jako
-> `seekable = [0, 0]` a **scroll-scrub hera mlčky nefunguje** — `currentTime`
-> se nepohne, i když je video celé nabufferované. `serve.py` je obyčejný
-> statický server, který Range umí. GitHub Pages ho umí taky, takže tohle
-> je čistě lokální problém.
+> každý dotaz vrátí celý soubor, takže se `<video>` chová divně (hlásí se
+> jako `seekable = [0, 0]`). `serve.py` je obyčejný statický server, který
+> Range umí. GitHub Pages ho umí taky, takže jde čistě o lokální problém.
 
 ## Co kde je
 
@@ -83,8 +81,8 @@ stačí ji přidat na jakýkoli blok. Fullscreen menu je taky invertované.
 > jinak vyhraje pořadím v souboru.
 
 Navbar a side nav **nemají žádný podklad ani blur**. Místo toho si přebarví
-samy sebe: `initChrome()` v `main.js` navěsí na každý `.is-invert` blok
-ScrollTrigger, a když je ten blok reálně za nimi, dostanou třídu `.on-dark`,
+samy sebe: `registerDarkSurface()` v `main.js` navěsí na každou tmavou plochu
+ScrollTrigger, a když je ten blok reálně za nimi, dostanou třídu `.on-invert`,
 která překlopí jejich `--nav-fg` z inkoustu na papír.
 
 Proti dřívějšímu `mix-blend-mode: difference` to má dvě výhody: nepotřebuje
@@ -105,94 +103,50 @@ Každé písmeno lockupu má vlastní rodinu — ve stylu jsou jako `.glyph--v/r
 - **g** → Annie Use Your Telescope (`--f-hand`)
 - **D** → Instrument Sans 700 (`--f-sans`)
 
-## Video v heru — scroll-scrub
+## Video v heru
 
-Když `assets/hero.mp4` existuje, hero se **připne** (`.hero.has-scrub`,
-`min-height: 320svh`) a scroll pozice se mapuje přímo na `video.currentTime` —
-takže se záběr posune přesně o to, co odscrolluješ. Když soubor chybí, hero
-zůstane vysoké jeden viewport a jede na něm halftone canvas. Nic se nemusí
-přepínat.
+Hero video je **prostý muted loop** — žádný scroll-scrub. Napojí se teprve
+po `HEAD` dotazu, že `assets/hero.mp4` existuje; když chybí, zůstane běžet
+halftone canvas a nic se nemusí přepínat.
 
-Video se **nepřehrává samo** a nemá `loop` — jediné, co s ním hýbe, je scroll.
-Kód je v `initHeroScrub()`.
+> Scroll-scrub (scroll řídil `currentTime`) tu byl a **je odstraněný** —
+> působil moc citlivě. Kdyby se někdy vracel, je v historii commitů
+> „hero video se prehrava, ne scrubuje".
 
-**Klíčové rozhodnutí: video se nescrubuje seekováním, ale skutečně se
-přehrává.** Seek znamená dekódování na každý frame a právě to trhalo.
-Rychlost přehrávání je proporcionální tomu, jak moc je video pozadu za cílem:
+**Video dělá z hera tmavou plochu.** Jakmile se rozjede, dostane hero třídu
+`.has-video`, která:
 
-```js
-video.playbackRate = clamp(RATE_MIN, RATE_MAX, gap * GAIN);
-```
+- ztmaví scrim po okrajích místo bílého závoje uprostřed (ten přes záběr
+  dělal divný bledý flek, hlavně na světlém tématu),
+- přepne logotyp, lede a rohové značky na světlé — **v obou tématech**,
+  protože záběr je svůj vlastní kontext, ne součást palety,
+- zaregistruje hero přes `registerDarkSurface()`, takže se navbar, side nav
+  i spina samy přebarví, stejně jako nad `.is-invert` bloky.
 
-Díky tomu se to samo rozjíždí a dojíždí, nepřestřeluje, a obraz je plynulý,
-protože dekodér jede sekvenčně. **Seek se použije jen při scrollu nahoru**,
-kde přehrávání pozpátku neexistuje.
-
-Ladicí konstanty: `RATE_MIN`, `RATE_MAX`, `GAIN`, `DEAD` (deadzone, kdy se
-pauzuje).
-
-**Rychlostní křivka** je `power1.inOut` nad podílem scrollu — pomalý rozjezd,
-zrychlení v prostřední části, zpomalení na konci. Změna křivky = jeden řádek
-(`curve`).
-
-**Video dojede na `VIDEO_END` (0.82) pinu**, ne na konci. Zbylých 18 % scrollu
-je odjezd hera, takže záběr nikdy nedoběhne na statické obrazovce. Odjezd
-(parallax + fade loga) je řízený **ze stejného `onUpdate`**, aby existoval
-jeden zdroj pravdy; `initHero` si pro případ bez videa staví vlastní tweeny do
-`heroExit` a `arm()` je zabije.
-
-Citlivost se řídí `min-height` u `.hero.has-scrub` — **delší dráha = méně
-citlivé**. Plynulost na tom teď nezávisí, o tu se stará přehrávání.
-
-Safari nedekóduje pro seek, dokud se přehrávání jednou nedotkneš, proto jedno
-tiché `play()` + `pause()` na začátku. Scrub se zapne teprve po `HEAD` dotazu,
-že soubor existuje, a po `loadedmetadata`.
-
-### Čím rozhoduje plynulost
-
-Změřené na tomhle stroji (40 seeků, rozpočet jednoho frame při 60 fps je 16,7 ms):
-
-| Verze | Průměr seeku | Nad rozpočtem |
-|---|---|---|
-| 4K (originál) | 54 ms | většina |
-| 1080p | 13,2 ms | 10 / 40 |
-| **720p (nasazeno)** | **9,9 ms** | **1 / 40** |
-
-Takže **rozlišení rozhoduje víc než cokoli jiného** — 4K dekódování při seeku
-je 3× nad rozpočtem a viditelně trhá. Aktuální `hero.mp4` je proto 720p
-(8,9 MB). Video sedí za tmavým scrimem a pod logem, takže je to nepoznat.
-
-Druhý faktor je **kolik pixelů scrollu padne na jeden frame**. Teď ~4,7 px
-(dřív 20 px při krátkém videu, což byla ta krokovost). Řídí to
-`min-height` u `.hero.has-scrub` — **kratší dráha = plynulejší**, ne naopak.
-
-Převod na 720p jde vestavěným macOS nástrojem, ffmpeg není potřeba:
+**Převod videa na web** (vestavěný macOS nástroj, ffmpeg netřeba):
 
 ```bash
 avconvert --source vstup.mp4 --preset Preset1280x720 --output hero.mp4 --replace
 ```
 
-Presety: `Preset960x540`, `Preset1280x720`, `Preset1920x1080`. Kdybys chtěl
-ještě lehčí, 540p vyjde kolem 5 MB.
+Rozlišení rozhoduje o zátěži víc než délka — 4K je zbytečné, video sedí za
+scrimem a pod logem. Presety: `Preset960x540`, `Preset1280x720`,
+`Preset1920x1080`.
 
-**Co by pomohlo nad tohle:** export s **keyframe interval 1** (all-intra) —
-teď je keyframe každé ~2 s, takže prohlížeč musí u seeku dozadu dekódovat až
-50 framů. `avconvert` to neumí nastavit, chtělo by to ffmpeg nebo export
-z Resolve.
+## Events — vertikální karusel
 
-## Starší poznámka k videu
+Sekce `#events`: tři sloupce — jména vlevo, artworky uprostřed, data vpravo.
+Aktivní se drží ve všech třech zároveň.
 
-Hero čeká na `assets/hero.mp4`. Dokud tam není, běží na pozadí generovaný
-halftone dither plát (canvas, `initDither()` v `main.js`) — dokud video chybí,
-vrací se 404 do konzole, což je v pořádku.
+Postavené na **`Observer`**, ne na Swiperu, aby nepřibyla další závislost.
+Kolečko a tah posunou o jeden krok, klik na jméno skočí přímo.
 
-Jakmile soubor přibude, video se samo prolne přes plát a canvas se vypne:
+**Sloupec jmen se generuje z karet** (`initEvents()`), takže se čísla a názvy
+nemůžou rozejít s obsahem. Přidání eventu = jedna `<article data-events-card>`
+do `[data-events-stage]` plus jedno `<li>` s datem; zbytek dopočítá JS.
 
-```bash
-cp /cesta/k/videu.mp4 /Users/stepanjavorsky/vrgd-web/assets/hero.mp4
-```
-
-Doporučeně H.264, tichý, ideálně pod ~10 MB a zaloopovatelný.
+Rozestup karet řídí `SPACING`, hloubku stohu `scale` a `autoAlpha` v
+`layout()`.
 
 ## Animace (odkoukané z noartmusic.com)
 
@@ -226,7 +180,7 @@ a používá se na třech místech, aby držela web pohromadě:
 3. **Kurzor** a **tlačítko beta přepínače** (kde se při otevření otočí o 90°).
 
 Spina se přebarvuje nad tmavými bloky stejným mechanismem jako navigace
-(třída `.on-dark`).
+(třída `.on-invert`).
 
 > Marquee pásy s textem tu byly a **jsou odstraněné** — nahradil je tenhle
 > motiv. Kdyby se někdy vracely, jsou v historii commitu „trvale viditelna

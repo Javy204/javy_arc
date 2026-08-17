@@ -84,6 +84,32 @@ Doporučeně H.264, tichý, ideálně pod ~10 MB a zaloopovatelný.
 Vše respektuje `prefers-reduced-motion` a bez JS se stránka zobrazí staticky
 (skryté pre-roll stavy jsou schované pod `.js`).
 
+## Navigace — tři varianty, jedna aktivní
+
+Na indexu jsou postavené **tři navigace** a vždycky se zobrazuje **jen jedna**.
+Režim drží atribut `data-nav` na `<html>`:
+
+| Režim | Co to je |
+|---|---|
+| `sidenav` | Svislý seznam vpravo uprostřed (výchozí). |
+| `topnav` | Trvale viditelná mřížka odkazů v hlavičce, à la noartmusic. |
+| `jumpbar` | Tmavý pill, který vyjede zdola za herem. |
+
+Přepíná se **beta přepínačem vlevo nahoře** (SIDE / TOP / JUMP), nebo klávesou
+**N**. Volba se pamatuje v `localStorage` pod `vrgd-nav`.
+
+Režim se nastavuje **inline scriptem v `<head>`, tedy před prvním vykreslením** —
+jinak by na moment probliknuly všechny tři naráz.
+
+Odsazení sekcí vpravo (`--gutter`) existuje jen kvůli side navu, takže se
+zapíná jen v režimu `sidenav`; v ostatních má obsah plnou šířku.
+
+Pod 768 px se všechny tři skrývají a nastupuje hamburger s fullscreen menu.
+
+> **Až se rozhodneš**, který režim zůstane: smaž blok `.navswitch` v
+> `index.html`, sekci `.navswitch` ve `style.css`, funkci `initNavSwitch()`
+> v `main.js`, a nech v CSS jen pravidla schovávající ty dvě nepoužité.
+
 ## Galerie — jak přidat fotky
 
 Obsah je v **`assets/gallery.json`**. Jedna položka = jedna dlaždice:

@@ -6,10 +6,18 @@
 <title>VRgD</title>
 <meta name="description" content="VRgD — visual research & direction.">
 <link rel="icon" href="assets/VRgD.svg" type="image/svg+xml">
-<script>document.documentElement.classList.add('js');</script>
+<script>
+/* Set the nav mode before first paint so no two navigations ever flash together. */
+document.documentElement.classList.add('js');
+(function () {
+  var modes = ['sidenav', 'topnav', 'jumpbar'], m;
+  try { m = localStorage.getItem('vrgd-nav'); } catch (e) { m = null; }
+  document.documentElement.setAttribute('data-nav', modes.indexOf(m) > -1 ? m : 'sidenav');
+})();
+</script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body data-loading="true">
 
@@ -45,6 +53,15 @@
 
 <!-- ============ NAVBAR ============ -->
 <div class="scrollbar" aria-hidden="true"><i data-scroll-progress></i></div>
+
+<!-- BETA: nav mode switcher. Remove this block (and .navswitch in style.css)
+     once the winning navigation is decided. Keyboard: N cycles. -->
+<div class="navswitch" data-navswitch>
+  <span class="navswitch__tag mono">BETA · NAV</span>
+  <button class="mono" data-navswitch-btn="sidenav">SIDE</button>
+  <button class="mono" data-navswitch-btn="topnav">TOP</button>
+  <button class="mono" data-navswitch-btn="jumpbar">JUMP</button>
+</div>
 
 <header class="navbar" data-navbar>
   <a class="navbar__mark" href="#hero" data-cursor-hover data-cursor-text="TOP" aria-label="VRgD — home">
@@ -338,6 +355,6 @@
 <script src="js/vendor/InertiaPlugin.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=1"></script>
-<script src="js/main.js?v=4"></script>
+<script src="js/main.js?v=5"></script>
 </body>
 </html>

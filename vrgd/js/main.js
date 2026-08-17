@@ -381,6 +381,37 @@
   }
 
   /* =======================================================
+     8b. BETA nav switcher — remove once a winner is picked
+     ======================================================= */
+  function initNavSwitch() {
+    const MODES = ['sidenav', 'topnav', 'jumpbar'];
+    const root = document.documentElement;
+    const buttons = $$('[data-navswitch-btn]');
+
+    // The head script already set the mode; this only mirrors it into the UI.
+    let mode = MODES.includes(root.getAttribute('data-nav')) ? root.getAttribute('data-nav') : 'sidenav';
+
+    const apply = (m) => {
+      if (!MODES.includes(m)) return;
+      mode = m;
+      root.setAttribute('data-nav', m);
+      try { localStorage.setItem('vrgd-nav', m); } catch { /* private mode */ }
+      buttons.forEach((b) => b.setAttribute('data-active', String(b.getAttribute('data-navswitch-btn') === m)));
+      // The sidenav gutter changes the layout, so triggers need remeasuring.
+      ScrollTrigger.refresh();
+    };
+
+    apply(mode);
+    buttons.forEach((b) => b.addEventListener('click', () => apply(b.getAttribute('data-navswitch-btn'))));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key?.toLowerCase() !== 'n' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
+      apply(MODES[(MODES.indexOf(mode) + 1) % MODES.length]);
+    });
+  }
+
+  /* =======================================================
      9. Marquee — infinite ticker whose speed follows the scroll
      ======================================================= */
   function initMarquee() {
@@ -485,6 +516,7 @@
     initSlider();
     initNav();
     initChrome();
+    initNavSwitch();
     initMarquee();
     initMicroMotion();
     initReveals();

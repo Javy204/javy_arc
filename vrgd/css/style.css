@@ -202,6 +202,43 @@ html:not(.js) .loader { display: none; }
 /* =========================================================
    Navbar — difference blending auto-inverts over dark blocks
    ========================================================= */
+/* =========================================================
+   Nav mode — exactly one navigation renders at a time.
+   The mode lives on <html data-nav>, set before first paint.
+   ========================================================= */
+[data-nav="topnav"]  .sidenav,
+[data-nav="jumpbar"] .sidenav { display: none; }
+[data-nav="sidenav"] .topnav,
+[data-nav="jumpbar"] .topnav  { display: none; }
+[data-nav="sidenav"] .jumpbar,
+[data-nav="topnav"]  .jumpbar { display: none; }
+
+/* BETA switcher — delete along with the block in index.html. */
+.navswitch {
+  position: fixed;
+  top: calc(var(--nav-h) + .4rem);
+  left: var(--pad);
+  z-index: 640;
+  display: flex;
+  align-items: center;
+  gap: .1rem;
+  padding: .3rem .35rem;
+  background: var(--ink);
+  color: var(--paper);
+}
+.navswitch__tag { padding: 0 .45rem 0 .25rem; color: #77777a; letter-spacing: .14em; }
+.navswitch button {
+  padding: .28rem .5rem;
+  font-family: var(--f-mono);
+  font-size: .62rem;
+  letter-spacing: .1em;
+  color: rgba(244, 244, 242, .5);
+  cursor: pointer;
+  transition: color .2s ease, background-color .2s ease;
+}
+.navswitch button:hover { color: var(--paper); background: rgba(244, 244, 242, .1); }
+.navswitch button[data-active="true"] { color: var(--paper); background: rgba(244, 244, 242, .18); }
+
 /* Thin scroll indicator along the very top edge. */
 .scrollbar {
   position: fixed;
@@ -946,19 +983,20 @@ body[data-page="gallery"] { overflow: hidden; height: 100svh; }
   .contacts__grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* Gutter tracks the side nav, so it starts at the same breakpoint (768px). */
+/* Gutter exists only to clear the side nav, so it follows that mode. */
 @media (min-width: 768px) {
-  .section { padding-right: var(--gutter); }
-  .contacts__mark,
-  .contacts__legal { margin-right: calc(var(--pad) - var(--gutter)); }
+  [data-nav="sidenav"] .section { padding-right: var(--gutter); }
+  [data-nav="sidenav"] .contacts__mark,
+  [data-nav="sidenav"] .contacts__legal { margin-right: calc(var(--pad) - var(--gutter)); }
 }
 
-/* Side nav survives down to tablet — it is the navigation Stepan wants kept. */
+/* Below tablet every mode falls back to the hamburger. */
 @media (max-width: 767px) {
   .sidenav { display: none; }
   .topnav { display: none; }
+  .navswitch { display: none; }
   .menu-button { display: flex; }
-  .jumpbar { left: var(--pad); right: var(--pad); transform: translateY(150%); }
+  [data-nav="jumpbar"] .jumpbar { left: var(--pad); right: var(--pad); transform: translateY(150%); }
   .jumpbar__list { overflow-x: auto; }
 }
 

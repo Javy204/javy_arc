@@ -1,0 +1,19 @@
+{
+  "_comment": "Obsah galerie. Přidej položku = jeden objekt. Když 'src' chybí nebo soubor neexistuje, vykreslí se halftone placeholder — mřížka funguje i prázdná. Doporučené fotky: 1600px na delší straně, jpg/webp, do assets/gallery/.",
+  "items": [
+    { "title": "Night Shift",        "meta": "FILM / 2025",     "src": null, "body": "Handheld takes from a single night. Shot muted, cut to the sound of the room." },
+    { "title": "Snake Height",       "meta": "IDENTITY / 2025", "src": null, "body": "Logotype pulled apart until the counters break, then printed badly on purpose." },
+    { "title": "Halftone Atlas",     "meta": "PRINT / 2024",    "src": null, "body": "A hundred plates at increasing dot density. The whole point is the moment it stops reading." },
+    { "title": "S*burban",           "meta": "FILM / 2024",     "src": null, "body": "Fashion film shot on the edge of the city, mostly at dusk." },
+    { "title": "Legacy Project",     "meta": "CAMPAIGN / 2024", "src": null, "body": "Campaign built entirely from archive material and a scanner." },
+    { "title": "Raw Archive",        "meta": "WEB / 2023",      "src": null, "body": "An index that refuses to explain itself. Scroll is the only interface." },
+    { "title": "Contact Sheet 01",   "meta": "PHOTO / 2023",    "src": null, "body": "Everything from one roll, nothing removed." },
+    { "title": "Register",           "meta": "TYPE / 2023",     "src": null, "body": "Four families forced into one lockup. It should not work." },
+    { "title": "Flevopark",          "meta": "FILM / 2023",     "src": null, "body": "Long lens, no permission, one afternoon." },
+    { "title": "Mirror Study",       "meta": "OBJECT / 2022",   "src": null, "body": "Silkscreen on mirror. Reads differently depending on who is standing there." },
+    { "title": "Compression Test",   "meta": "MOTION / 2022",   "src": null, "body": "The same clip exported twelve times until the artefacts became the subject." },
+    { "title": "Invitation",         "meta": "PRINT / 2022",    "src": null, "body": "Risograph, two passes, deliberately out of register." },
+    { "title": "Anonymous Series",   "meta": "PHOTO / 2022",    "src": null, "body": "Portraits where the face is never the point." },
+    { "title": "Ground Floor",       "meta": "FILM / 2021",     "src": null, "body": "Static camera, ninety minutes, one doorway." }
+  ]
+}

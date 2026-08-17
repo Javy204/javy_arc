@@ -1,17 +1,13 @@
 /* =========================================================
-   VRgD — motion layer
-   GSAP 3.15 + Lenis. Vanilla, no build step.
+   VRgD — index page motion
+   Cursor, scramble, menu and clock live in shared.js.
    ========================================================= */
 (() => {
   'use strict';
 
   gsap.registerPlugin(ScrollTrigger, SplitText, Flip, CustomEase, Observer, Draggable, InertiaPlugin);
 
-  const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&@';
-  const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const CAN_HOVER = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  const $  = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const { REDUCED, CAN_HOVER, $, $$ } = window.VRGD;
 
   /* =======================================================
      1. Smooth scroll — Lenis driven by the GSAP ticker
@@ -20,96 +16,12 @@
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
+  window.VRGD.lenis = lenis;   // lets shared.js pause it for the menu
 
   const scrollTo = (target) => lenis.scrollTo(target, { offset: 0, duration: 1.4 });
 
   /* =======================================================
-     2. Scramble text — shared routine
-     Mirrors the reference site: ~60% of glyphs churn, a few
-     of them flash in the accent colour, then resolve.
-     ======================================================= */
-  function scramble(el, finalText, duration = 0.65, color = 'var(--red)') {
-    if (el._tw) el._tw.kill();
-    if (!finalText) { el.textContent = ''; return; }
-
-    const churn = [];
-    for (let i = 0; i < finalText.length; i++) {
-      if (finalText[i] !== ' ' && Math.random() < 0.6) churn.push(i);
-    }
-    const STEP = 0.06;
-    let last = 0;
-    const proxy = { value: 0 };
-
-    el._tw = gsap.to(proxy, {
-      value: 1,
-      duration,
-      ease: 'power1.out',
-      onUpdate() {
-        const now = el._tw.time();
-        if (proxy.value < 0.75) {
-          if (now - last < STEP) return;
-          last = now;
-          const chars = finalText.split('');
-          churn.forEach((i) => {
-            const g = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
-            chars[i] = Math.random() < 0.15 ? `<span style="color:${color}">${g}</span>` : g;
-          });
-          el.innerHTML = chars.join('');
-        } else {
-          el.textContent = finalText;
-        }
-      },
-      onComplete() { el.textContent = finalText; }
-    });
-  }
-
-  /* =======================================================
-     3. Custom cursor — position + contextual scrambled label
-     ======================================================= */
-  function initCursor() {
-    const cursor = $('[data-cursor]');
-    const label = $('[data-cursor-text-target]');
-    if (!cursor || !CAN_HOVER) return;
-
-    const setX = gsap.quickTo(cursor, 'x', { duration: 0.4, ease: 'power3.out' });
-    const setY = gsap.quickTo(cursor, 'y', { duration: 0.4, ease: 'power3.out' });
-
-    let x = 0, y = 0, moved = false, lastTarget = null;
-
-    const sync = () => {
-      const hit = document.elementFromPoint(x, y)?.closest('[data-cursor-hover]');
-      const atEdge = cursor.getBoundingClientRect().right >= window.innerWidth - 90;
-      cursor.setAttribute('data-cursor', hit ? (atEdge ? 'active-edge' : 'active') : '');
-      if (label && hit !== lastTarget) {
-        scramble(label, hit?.getAttribute('data-cursor-text') || '', 0.5);
-        lastTarget = hit;
-      }
-    };
-
-    window.addEventListener('mousemove', (e) => {
-      x = e.clientX; y = e.clientY; moved = true;
-      setX(x); setY(y);
-      requestAnimationFrame(sync);
-    });
-    window.addEventListener('scroll', () => { if (moved) requestAnimationFrame(sync); }, { passive: true });
-  }
-
-  /* =======================================================
-     4. Scramble on hover — nav / links
-     ======================================================= */
-  function initScrambleHover() {
-    $$('[data-scramble-hover="link"]').forEach((link) => {
-      const targets = $$('[data-scramble-hover="target"]', link);
-      if (!targets.length) return;
-      const entries = targets.map((el) => ({ el, text: el.textContent }));
-      link.addEventListener('mouseenter', () => {
-        entries.forEach(({ el, text }) => scramble(el, text, 0.65));
-      });
-    });
-  }
-
-  /* =======================================================
-     5. Reveals
+     2. Reveals
      Prose  → SplitText words, Flip from ragged to justified.
      Titles → word stagger rising into place.
      ======================================================= */
@@ -158,9 +70,7 @@
   }
 
   /* =======================================================
-     6. Dithered backdrop — stands in until hero.mp4 exists
-     Low-res value noise pushed through a 4x4 Bayer matrix,
-     upscaled with image-rendering: pixelated.
+     3. Dithered backdrop — stands in until hero.mp4 exists
      ======================================================= */
   function initDither() {
     const canvas = $('[data-dither]');
@@ -189,7 +99,7 @@
              Math.sin((x + y) * 0.022 + t) +
              Math.sin(Math.hypot(x - W / 2, y - H / 2) * 0.05 - t * 1.2)) / 4;
 
-          // Soft lit blob at centre, dissolving to black at the edges.
+          // Soft lit blob at centre, dissolving to clean paper at the edges.
           const dx = (x / W - 0.5) * 2;
           const glow = Math.max(0, 1 - Math.hypot(dx, dy) * 0.92);
           const v = (0.5 + n * 0.5) * glow * glow * 0.85;
@@ -226,7 +136,6 @@
         .catch(() => {});
     }
 
-    // Pause when the hero leaves the viewport.
     ScrollTrigger.create({
       trigger: '.hero',
       start: 'top bottom', end: 'bottom top',
@@ -236,15 +145,11 @@
   }
 
   /* =======================================================
-     7. Loader — counter, bar, then the plate opens to full bleed
+     4. Loader — counter, bar, then the plate opens to full bleed
      ======================================================= */
   function initLoader() {
     const media = $('[data-hero-media]');
-    const items = $$('[data-loader-item]');
-    const text = $('[data-loader-text]');
-    const bar = $('[data-loader-bar]');
     const loader = $('[data-loader]');
-    const reveal = ['.navbar', '.sidenav', '[data-hero-bottom]', '[data-hero-markers]'];
 
     const settle = () => {
       document.body.setAttribute('data-loading', 'false');
@@ -252,7 +157,13 @@
       ScrollTrigger.refresh();
     };
 
+    if (!media) { settle(); return; }
+
+    const items = $$('[data-loader-item]');
+    const text = $('[data-loader-text]');
+    const bar = $('[data-loader-bar]');
     const logo = $('[data-hero-logo]');
+    const reveal = ['.navbar', '.sidenav', '[data-hero-bottom]', '[data-hero-markers]'];
 
     // Second visit in this tab: skip straight to the resting state.
     if (sessionStorage.getItem('vrgdIntro') || REDUCED) {
@@ -309,10 +220,12 @@
   }
 
   /* =======================================================
-     8. Hero — parallax, logo drift, chromatic split
+     5. Hero — parallax and the red plate drifting off register
      ======================================================= */
   function initHero() {
     const logo = $('[data-hero-logo]');
+    if (!logo) return;
+
     if (!REDUCED) {
       gsap.to('[data-hero-parallax]', {
         yPercent: 12,
@@ -328,8 +241,7 @@
       });
     }
 
-    // A single red plate drifting off register — the one bit of colour.
-    const r = logo && $('.split--r', logo);
+    const r = $('.split--r', logo);
     if (!r || !CAN_HOVER || REDUCED) return;
     const setRX = gsap.quickTo(r, 'x', { duration: 0.9, ease: 'power3.out' });
     const setRY = gsap.quickTo(r, 'y', { duration: 0.9, ease: 'power3.out' });
@@ -342,7 +254,7 @@
   }
 
   /* =======================================================
-     9. Work slider — drag with inertia + progress bar
+     6. Work slider — drag with inertia + progress bar
      ======================================================= */
   function initSlider() {
     const track = $('[data-slider-track]');
@@ -386,7 +298,6 @@
       paint();
     });
 
-    // Cards drift in as the section arrives.
     if (!REDUCED) {
       gsap.from($$('.card', track), {
         y: 60, autoAlpha: 0, duration: 1, ease: 'expo.out', stagger: 0.08,
@@ -396,51 +307,7 @@
   }
 
   /* =======================================================
-     10. Fullscreen menu
-     ======================================================= */
-  function initMenu() {
-    const wrapper = $('[data-menu-wrapper]');
-    const menu = $('[data-menu]');
-    if (!wrapper || !menu) return;
-
-    let animating = false, open = false;
-
-    const openMenu = () => {
-      if (animating || open) return;
-      animating = true; open = true;
-      wrapper.classList.add('is-open');
-      lenis.stop();
-      gsap.timeline({ onComplete: () => { animating = false; } })
-        .to(wrapper, { opacity: 1, duration: 0.1, ease: 'power4.out' })
-        .to(menu, { scale: 1, duration: 0.35, ease: 'expo.out' }, '>-0.05')
-        .from('.menu__list a', { y: 40, autoAlpha: 0, duration: 0.6, ease: 'expo.out', stagger: 0.05 }, '<0.1');
-    };
-
-    const closeMenu = () => {
-      if (animating || !open) return;
-      animating = true; open = false;
-      gsap.timeline({
-        onComplete: () => { wrapper.classList.remove('is-open'); animating = false; lenis.start(); }
-      })
-        .to(menu, { scale: 0, duration: 0.25, ease: 'expo.in' })
-        .to(wrapper, { opacity: 0, duration: 0.1, ease: 'power1.in' }, '>-0.05');
-    };
-
-    $$('[data-menu-button="open"]').forEach((b) => b.addEventListener('click', openMenu));
-    $$('[data-menu-button="close"]').forEach((b) => b.addEventListener('click', closeMenu));
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
-
-    $$('[data-menu-link]').forEach((a) => {
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        closeMenu();
-        gsap.delayedCall(0.45, () => scrollTo(a.getAttribute('href')));
-      });
-    });
-  }
-
-  /* =======================================================
-     11. Section nav — smooth anchors + active state
+     7. Section nav — smooth anchors + active state
      ======================================================= */
   function initNav() {
     $$('[data-nav-link]').forEach((a) => {
@@ -461,43 +328,18 @@
   }
 
   /* =======================================================
-     12. Small print — local time, year
-     ======================================================= */
-  function initClock() {
-    const nodes = $$('[data-local-time]');
-    const year = $('[data-year]');
-    if (year) year.textContent = String(new Date().getFullYear());
-    if (!nodes.length) return;
-    const tick = () => {
-      const now = new Date().toLocaleTimeString('en-GB', {
-        timeZone: 'Europe/Prague', hour12: false
-      });
-      nodes.forEach((n) => { n.textContent = now; });
-    };
-    tick();
-    setInterval(tick, 1000);
-  }
-
-  /* =======================================================
      Boot
      ======================================================= */
   function boot() {
-    initCursor();
-    initScrambleHover();
     initDither();
     initHero();
     initSlider();
-    initMenu();
     initNav();
-    initClock();
     initReveals();
     initLoader();
     ScrollTrigger.refresh();
   }
 
-  if (document.fonts?.ready) {
-    document.fonts.ready.then(boot);
-  } else {
-    window.addEventListener('load', boot);
-  }
+  if (document.fonts?.ready) document.fonts.ready.then(boot);
+  else window.addEventListener('load', boot);
 })();

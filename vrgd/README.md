@@ -14,7 +14,11 @@ Pak `http://localhost:3336`. (V Claude Code je nakonfigurovaný jako preview ser
 |---|---|
 | `index.html` | Celá stránka. Logo je inline SVG `<symbol id="vrgd">`, používá se přes `<use>`. |
 | `css/style.css` | Kompletní styl. Barvy a fonty jsou nahoře jako CSS proměnné. |
-| `js/main.js` | Animační vrstva — 12 očíslovaných bloků, každý jedna funkce. |
+| `gallery.html` | Galerie — nekonečná draggable mřížka. |
+| `js/shared.js` | Společné pro všechny stránky: kurzor, scramble, menu, hodiny. |
+| `js/main.js` | Jen index — loader, hero, slider, revealy, nav. |
+| `js/gallery.js` | Jen galerie — mřížka a pop-upy. |
+| `assets/gallery.json` | **Obsah galerie.** Tady se přidávají fotky. |
 | `js/vendor/` | GSAP 3.15 (+ ScrollTrigger, SplitText, Flip, Draggable, Inertia, CustomEase, Observer) a Lenis. Lokálně, nic se netahá z CDN. |
 | `assets/fonts/` | Mea Culpa, Inter, Annie Use Your Telescope, Instrument Sans jako woff2. |
 | `assets/VRgD.svg` | Původní logo. |
@@ -79,6 +83,43 @@ Doporučeně H.264, tichý, ideálně pod ~10 MB a zaloopovatelný.
 
 Vše respektuje `prefers-reduced-motion` a bez JS se stránka zobrazí staticky
 (skryté pre-roll stavy jsou schované pod `.js`).
+
+## Galerie — jak přidat fotky
+
+Obsah je v **`assets/gallery.json`**. Jedna položka = jedna dlaždice:
+
+```json
+{ "title": "Night Shift", "meta": "FILM / 2025",
+  "src": "assets/gallery/night-shift.jpg",
+  "body": "Popisek do pop-upu." }
+```
+
+Fotky dej do `assets/gallery/`, ~1600 px na delší straně. Když `src` chybí
+nebo soubor neexistuje, vykreslí se místo fotky **halftone placeholder** —
+mřížka funguje i úplně prázdná, takže se dá plnit postupně.
+
+**Jak to funguje:** ze seznamu se vyrobí jedna buňka, změří se, spočítá se
+kolik jich pokryje viewport (`+1` na okraj), a z toho se udělají **4 kopie
+poskládané do dlaždice 2 × 2**. Posun jde na kontejneru přes `gsap.quickTo`
+s `gsap.utils.wrap` v `modifiers` — proto to roluje nekonečně bez skoků.
+Vstup obsluhuje `Observer` (kolečko, touch, drag).
+
+**Mřížka se nikdy nezastaví** — ambientní drift přes `gsap.ticker`
+(`deltaRatio()` normalizuje na 60 fps). Po hodu zdědí rychlost a plynule se
+vrátí k základní. Pauzuje při tažení a při otevřeném pop-upu.
+
+Ladicí konstanty jsou pohromadě na začátku `gallery.js`:
+`WHEEL_SPEED`, `DRAG_SPEED`, `DRIFT_X/Y`, `MAX_DRIFT`, `DRIFT_DECAY`.
+
+**Pop-upy** jsou draggable okna — vyrobí se jednou, leží na `<body>` (proto je
+klonování mřížky nezduplikuje) a otevírají se podle `data-index`. `CLOSE`
+nebo `Escape` zavírá.
+
+> `CLICK_SLOP = 5` px rozhoduje klik vs. tažení. Bez toho by ti každé
+> přetažení mřížky otevřelo pop-up.
+
+Stav mřížky je v atributu `data-ig-status="loading|idle|dragging|paused"` —
+dá se na něj navěsit CSS.
 
 ## Cache
 

@@ -648,6 +648,160 @@ html:not(.js) .loader { display: none; }
 .word { display: inline-block; }
 
 /* =========================================================
+   Gallery — infinite draggable grid
+   ========================================================= */
+body[data-page="gallery"] { overflow: hidden; height: 100svh; }
+
+.ig {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--paper);
+  touch-action: none;
+  cursor: grab;
+}
+.ig[data-ig-status="dragging"] { cursor: grabbing; }
+.ig[data-ig-status="loading"] { opacity: 0; }
+.ig { transition: opacity .6s ease; }
+
+.ig__collection { position: absolute; top: 0; left: 0; will-change: transform; }
+
+.ig__list {
+  position: absolute;
+  top: 0; left: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--ig-columns, 4), var(--ig-cell));
+}
+
+/* Spacing lives inside the cell so the tiles butt up seamlessly. */
+.ig {
+  --ig-cell: clamp(190px, 21vw, 330px);
+  --ig-gap: clamp(.5rem, 1vw, 1rem);
+}
+.ig__item { width: var(--ig-cell); padding: var(--ig-gap); }
+
+.ig__card {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #e4e2dd;
+  outline: 1px solid rgba(10, 10, 10, .1);
+  outline-offset: -1px;
+  transition: filter .5s ease;
+}
+.ig__img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: saturate(.5) contrast(1.02);
+  transition: filter .6s ease, transform .8s cubic-bezier(.16, 1, .3, 1);
+}
+.ig__card:hover .ig__img { filter: saturate(1.05); transform: scale(1.03); }
+
+.ig__idx {
+  position: absolute;
+  z-index: 2;
+  top: .55rem; left: .6rem;
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity .35s ease;
+}
+.ig__card:hover .ig__idx { opacity: 1; }
+
+/* Halftone stand-in for a missing photo, varied by index. */
+[data-placeholder]::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle at center, rgba(10, 10, 10, .78) 1.1px, transparent 1.3px);
+  background-size: var(--dot, 7px) var(--dot, 7px);
+  /* Wide falloff — the plate should read across the whole cell, not as a blob. */
+  -webkit-mask-image: radial-gradient(var(--shape, 96% 88% at 50% 46%), #000 12%, transparent 100%);
+          mask-image: radial-gradient(var(--shape, 96% 88% at 50% 46%), #000 12%, transparent 100%);
+}
+[data-placeholder="1"] { --dot: 6px;  --shape: 92% 80% at 44% 40%; }
+[data-placeholder="2"] { --dot: 9px;  --shape: 100% 92% at 58% 54%; }
+[data-placeholder="3"] { --dot: 5px;  --shape: 86% 100% at 40% 58%; }
+[data-placeholder="4"] { --dot: 8px;  --shape: 96% 84% at 54% 36%; }
+[data-placeholder="5"] { --dot: 7px;  --shape: 90% 96% at 50% 52%; }
+[data-placeholder="6"] { --dot: 11px; --shape: 104% 78% at 42% 46%; }
+
+/* --- HUD over the grid --- */
+.ig__hud {
+  position: fixed;
+  left: var(--pad); right: var(--pad); bottom: var(--pad);
+  z-index: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  pointer-events: none;
+  color: var(--paper);
+  mix-blend-mode: difference;
+}
+.ig__hud-left { display: flex; gap: 1.2rem; align-items: baseline; }
+.ig__hud .is-dim { color: #8a8a86; }
+
+/* --- draggable popup --- */
+.ig-popup {
+  position: fixed;
+  top: 50%; left: 50%;
+  z-index: 700;
+  width: min(90vw, 26rem);
+  margin: -13rem 0 0 -13rem;
+  display: none;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  box-shadow: 12px 12px 0 rgba(10, 10, 10, .1);
+}
+.ig-popup__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .5rem .6rem;
+  border-bottom: 1px solid var(--ink);
+  cursor: grab;
+  user-select: none;
+}
+.ig-popup__bar:active { cursor: grabbing; }
+.ig-popup__grab { letter-spacing: .18em; }
+.ig-popup__close { cursor: pointer; }
+.ig-popup__close:hover { color: var(--red); }
+
+.ig-popup__stage {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--plate);
+}
+.ig-popup__stage img { width: 100%; height: 100%; object-fit: cover; }
+
+.ig-popup__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .8rem .7rem .2rem;
+}
+.ig-popup__meta h2 {
+  font-family: var(--f-inter);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -.02em;
+}
+.ig-popup__body {
+  padding: .4rem .7rem .9rem;
+  font-size: .82rem;
+  line-height: 1.5;
+  color: #3d3d3b;
+}
+
+@media (max-width: 767px) {
+  .ig { --ig-cell: clamp(150px, 44vw, 220px); }
+  .ig-popup { width: min(92vw, 22rem); margin-left: -11rem; }
+}
+
+/* =========================================================
    Responsive
    ========================================================= */
 @media (min-width: 768px) {

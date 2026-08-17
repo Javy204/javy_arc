@@ -5,10 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gallery — VRgD</title>
 <meta name="description" content="VRgD — archive. An infinite grid.">
-<script>document.documentElement.classList.add('js');</script>
+<script>
+document.documentElement.classList.add('js');
+(function () {
+  var t;
+  try { t = localStorage.getItem('vrgd-theme'); } catch (e) { t = null; }
+  if (t !== 'dark' && t !== 'light') {
+    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
 <link rel="icon" href="assets/VRgD.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/fonts.css">
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body data-page="gallery">
 
@@ -35,6 +45,9 @@
   <div class="navbar__meta">
     <span class="mono" data-local-time>--:--:--</span>
     <span class="mono is-dim">PRG</span>
+    <button class="themetoggle mono" data-theme-toggle aria-pressed="false" aria-label="Toggle dark mode">
+      <i></i><span data-theme-label>LIGHT</span>
+    </button>
   </div>
   <button class="menu-button" data-menu-button="open" data-cursor-hover data-cursor-text="OPEN">
     <span class="menu-button__lines"><i></i><i></i></span>
@@ -87,7 +100,7 @@
 <script src="js/vendor/Observer.min.js"></script>
 <script src="js/vendor/Draggable.min.js"></script>
 <script src="js/vendor/InertiaPlugin.min.js"></script>
-<script src="js/shared.js?v=2"></script>
+<script src="js/shared.js?v=3"></script>
 <script src="js/gallery.js?v=1"></script>
 </body>
 </html>

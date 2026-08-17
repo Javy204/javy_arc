@@ -23,6 +23,44 @@ Pak `http://localhost:3336`. (V Claude Code je nakonfigurovaný jako preview ser
 | `assets/fonts/` | Mea Culpa, Inter, Annie Use Your Telescope, Instrument Sans jako woff2. |
 | `assets/VRgD.svg` | Původní logo. |
 
+## Tmavý režim
+
+Přepíná se **v hlavičce** (půlený čtvereček + `LIGHT` / `DARK`). Volba se
+pamatuje v `localStorage` pod `vrgd-theme` a platí i na galerii. Dokud si
+uživatel nevybere sám, jede se podle **`prefers-color-scheme`** systému — a
+pokud si systém přepne za běhu, web to sleduje.
+
+Režim se nastavuje **inline scriptem v `<head>`, tedy před prvním vykreslením**
+(jinak by světlá varianta probliknula).
+
+**Celý trik:** `--paper` je *vždy* podklad stránky a `--ink` *vždy* barva
+značky. Tmavý režim jen prohodí jejich hodnoty, takže všechna pravidla ve
+stylu fungují dál bez úprav:
+
+```css
+:root                      { --paper: #f4f4f2; --ink: #0a0a0a; }
+:root[data-theme="dark"]   { --paper: #0b0b0b; --ink: #f2f2ef; }
+```
+
+Kvůli tomu **nesmí být v CSS barvy natvrdo** — všechno jde přes tokeny
+(`--muted`, `--plate`, `--plate2`, `--dotink`, `--shadow`, `--line`, `--hair`).
+Když přidáváš barvu, přidej si token, ne literál.
+
+Dvě věci se s tématem musí přepnout zvlášť:
+
+- **`--blend`** (`multiply` ↔ `screen`) — používá to zrno a červený
+  misregister loga. Na tmavém by `multiply` nebylo vidět.
+- **Dither canvas** v `initDither()` kreslí pixely v JS, takže si čte
+  `data-theme` a na událost `vrgd:theme` se překreslí.
+
+> Výjimka: **kurzor má barvu natvrdo** (`#f4f4f2`). Jede na
+> `mix-blend-mode: difference`, kde se světlá značka invertuje proti
+> jakémukoli podkladu — takže je vidět v obou režimech a token by to rozbil.
+
+`.is-invert` bloky jsou invertované *vůči stránce*, takže na světlém tématu
+jsou tmavé a na tmavém světlé. Třída `.on-invert` na navigaci (dřív `.on-dark`)
+proto znamená „nad invertovaným blokem", ne „nad tmavým".
+
 ## Barevné schéma — papírová bílá
 
 Web je celý sladěný do bílé (`--paper #f4f4f2`) s inkoustovou typografií

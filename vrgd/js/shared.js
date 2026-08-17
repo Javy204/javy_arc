@@ -151,6 +151,50 @@
   }
 
   /* -------------------------------------------------------
+     Theme — paper / dark. The pre-paint script in <head> has
+     already applied it; this only wires the toggle.
+     ------------------------------------------------------- */
+  function initTheme() {
+    const root = document.documentElement;
+    const buttons = $$('[data-theme-toggle]');
+    if (!buttons.length) return;
+
+    const label = () => (root.getAttribute('data-theme') === 'dark' ? 'DARK' : 'LIGHT');
+
+    const paint = (animate) => {
+      $$('[data-theme-label]').forEach((el) => {
+        if (animate) scramble(el, label(), 0.5);
+        else el.textContent = label();
+      });
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(root.getAttribute('data-theme') === 'dark')));
+    };
+
+    const apply = (theme) => {
+      root.setAttribute('data-theme', theme);
+      try { localStorage.setItem('vrgd-theme', theme); } catch { /* private mode */ }
+      paint(true);
+      // Let the canvas backdrop and anything else redraw for the new palette.
+      window.dispatchEvent(new CustomEvent('vrgd:theme', { detail: { theme } }));
+    };
+
+    paint(false);
+    buttons.forEach((b) => b.addEventListener('click', () => {
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    }));
+
+    // Follow the OS only while the user has not chosen for themselves.
+    let stored = null;
+    try { stored = localStorage.getItem('vrgd-theme'); } catch { /* ignore */ }
+    if (!stored && window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        paint(true);
+        window.dispatchEvent(new CustomEvent('vrgd:theme'));
+      });
+    }
+  }
+
+  /* -------------------------------------------------------
      Local time + year
      ------------------------------------------------------- */
   function initClock() {
@@ -172,6 +216,7 @@
     initCursor();
     initScrambleHover();
     initMenu();
+    initTheme();
     initClock();
   };
 

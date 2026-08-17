@@ -85,9 +85,15 @@
     ];
     const img = ctx.createImageData(W, H);
     let t = 0, raf = null, running = true;
+    let dark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-    function frame() {
-      if (!running) return;
+    // Repaint once on a theme flip, even if the loop has already stopped.
+    window.addEventListener('vrgd:theme', () => {
+      dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      draw();
+    });
+
+    function draw() {
       t += 0.016;
       const d = img.data;
       for (let y = 0; y < H; y++) {
@@ -106,12 +112,20 @@
 
           const threshold = (BAYER[y & 3][x & 3] + 0.5) / 16;
           const i = (y * W + x) * 4;
-          // Faint ink on paper — a texture, not a pattern. The logotype must win.
-          const shade = v > threshold * 1.25 ? 231 - Math.round(v * 22) : 244;
-          d[i] = shade; d[i + 1] = shade; d[i + 2] = shade - 2; d[i + 3] = 255;
+          // Faint ink on the page ground — a texture, not a pattern. The
+          // logotype must win in either theme.
+          const shade = v > threshold * 1.25
+            ? (dark ? 26 + Math.round(v * 26) : 231 - Math.round(v * 22))
+            : (dark ? 11 : 244);
+          d[i] = shade; d[i + 1] = shade; d[i + 2] = shade + (dark ? 1 : -2); d[i + 3] = 255;
         }
       }
       ctx.putImageData(img, 0, 0);
+    }
+
+    function frame() {
+      if (!running) return;
+      draw();
       raf = setTimeout(() => requestAnimationFrame(frame), 55); // ~18fps, on purpose
     }
 
@@ -357,7 +371,7 @@
           trigger: dark,
           start: `top top+=${parseFloat(getComputedStyle(navbar).minHeight) || 72}`,
           end: 'bottom top',
-          onToggle: (self) => navbar.classList.toggle('on-dark', self.isActive)
+          onToggle: (self) => navbar.classList.toggle('on-invert', self.isActive)
         });
       }
       [sidenav, spine].filter(Boolean).forEach((el) => {
@@ -365,7 +379,7 @@
           trigger: dark,
           start: 'top center',
           end: 'bottom center',
-          onToggle: (self) => el.classList.toggle('on-dark', self.isActive)
+          onToggle: (self) => el.classList.toggle('on-invert', self.isActive)
         });
       });
     });

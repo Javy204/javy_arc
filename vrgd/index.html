@@ -10,14 +10,21 @@
 /* Set the nav mode before first paint so no two navigations ever flash together. */
 document.documentElement.classList.add('js');
 (function () {
-  var modes = ['sidenav', 'topnav', 'jumpbar'], m;
+  var root = document.documentElement, modes = ['sidenav', 'topnav', 'jumpbar'], m, t;
   try { m = localStorage.getItem('vrgd-nav'); } catch (e) { m = null; }
-  document.documentElement.setAttribute('data-nav', modes.indexOf(m) > -1 ? m : 'sidenav');
+  root.setAttribute('data-nav', modes.indexOf(m) > -1 ? m : 'sidenav');
+
+  /* Theme too — saved choice wins, otherwise follow the OS. */
+  try { t = localStorage.getItem('vrgd-theme'); } catch (e) { t = null; }
+  if (t !== 'dark' && t !== 'light') {
+    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  root.setAttribute('data-theme', t);
 })();
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body data-loading="true">
 
@@ -88,6 +95,10 @@ document.documentElement.classList.add('js');
   <div class="navbar__meta">
     <span class="mono" data-local-time>--:--:--</span>
     <span class="mono is-dim">PRG</span>
+
+    <button class="themetoggle mono" data-theme-toggle aria-pressed="false" aria-label="Toggle dark mode">
+      <i></i><span data-theme-label>LIGHT</span>
+    </button>
 
     <!-- BETA: nav mode switcher, collapsed behind the spark toggle. Remove this
          block (and .navswitch in style.css) once the winner is decided. -->
@@ -365,7 +376,7 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/Draggable.min.js"></script>
 <script src="js/vendor/InertiaPlugin.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
-<script src="js/shared.js?v=2"></script>
-<script src="js/main.js?v=8"></script>
+<script src="js/shared.js?v=3"></script>
+<script src="js/main.js?v=9"></script>
 </body>
 </html>

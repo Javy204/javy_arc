@@ -163,7 +163,7 @@
     const text = $('[data-loader-text]');
     const bar = $('[data-loader-bar]');
     const logo = $('[data-hero-logo]');
-    const reveal = ['.navbar', '.sidenav', '[data-hero-bottom]', '[data-hero-markers]'];
+    const reveal = ['.navbar', '.sidenav', '.spine', '[data-hero-bottom]', '[data-hero-markers]'];
 
     // Second visit in this tab: skip straight to the resting state.
     if (sessionStorage.getItem('vrgdIntro') || REDUCED) {
@@ -215,6 +215,7 @@
       .to(loader, { autoAlpha: 0, duration: 0.5 }, '<')
       .to('.navbar', { autoAlpha: 1, y: 0, duration: 1, ease: 'power4.out' }, '-=0.35')
       .to('.sidenav', { autoAlpha: 1, duration: 1, ease: 'power4.out' }, '<')
+      .to('.spine', { autoAlpha: 1, duration: 1.2, ease: 'power2.out' }, '<')
       .to('[data-hero-bottom]', { autoAlpha: 1, y: 0, duration: 1, ease: 'power4.out' }, '<+0.1')
       .to('[data-hero-markers]', { autoAlpha: 1, duration: 0.8, ease: 'power4.out' }, '<');
   }
@@ -344,20 +345,12 @@
   function initChrome() {
     const navbar = $('[data-navbar]');
     const jumpbar = $('[data-jumpbar]');
-    const progress = $('[data-scroll-progress]');
     const hero = $('.hero');
-
-    if (progress) {
-      gsap.to(progress, {
-        scaleX: 1,
-        ease: 'none',
-        scrollTrigger: { start: 0, end: 'max', scrub: 0.3 }
-      });
-    }
 
     // No backdrop. Instead the chrome flips its own colours whenever an
     // inverted section is actually behind it.
     const sidenav = $('.sidenav');
+    const spine = $('[data-spine]');
     $$('.is-invert').forEach((dark) => {
       if (navbar) {
         ScrollTrigger.create({
@@ -367,14 +360,14 @@
           onToggle: (self) => navbar.classList.toggle('on-dark', self.isActive)
         });
       }
-      if (sidenav) {
+      [sidenav, spine].filter(Boolean).forEach((el) => {
         ScrollTrigger.create({
           trigger: dark,
           start: 'top center',
           end: 'bottom center',
-          onToggle: (self) => sidenav.classList.toggle('on-dark', self.isActive)
+          onToggle: (self) => el.classList.toggle('on-dark', self.isActive)
         });
-      }
+      });
     });
 
     // Side nav borrows the jumpbar's move: the NOW readout slides in past the
@@ -416,6 +409,21 @@
     const MODES = ['sidenav', 'topnav', 'jumpbar'];
     const root = document.documentElement;
     const buttons = $$('[data-navswitch-btn]');
+    const wrap = $('[data-navswitch]');
+    const toggle = $('[data-navswitch-toggle]');
+
+    // Collapsed by default; the spark toggle opens the panel.
+    if (wrap && toggle) {
+      const setOpen = (open) => {
+        wrap.setAttribute('data-open', String(open));
+        toggle.setAttribute('aria-expanded', String(open));
+      };
+      setOpen(false);
+      toggle.addEventListener('click', () => setOpen(wrap.getAttribute('data-open') !== 'true'));
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-navswitch]')) setOpen(false);
+      });
+    }
 
     // The head script already set the mode; this only mirrors it into the UI.
     let mode = MODES.includes(root.getAttribute('data-nav')) ? root.getAttribute('data-nav') : 'sidenav';
@@ -441,43 +449,82 @@
   }
 
   /* =======================================================
-     9. Marquee — infinite ticker whose speed follows the scroll
+     9. The spine — a hairline the spark travels down as you scroll.
+     Section nodes light up as they are passed; the spark spins
+     idly and gets a kick from scroll velocity.
      ======================================================= */
-  function initMarquee() {
-    $$('[data-marquee]').forEach((wrap) => {
-      const track = $('[data-marquee-track]', wrap);
-      if (!track) return;
+  function initSpine() {
+    const spine = $('[data-spine]');
+    const fill = $('[data-spine-fill]');
+    const spark = $('[data-spine-spark]');
+    const nodeList = $('[data-spine-nodes]');
+    if (!spine || !fill || !spark || !nodeList) return;
 
-      const baseDir = Number(wrap.getAttribute('data-dir')) || 1;
-      const original = track.innerHTML;
+    const sections = $$('main section[id], main footer[id]');
 
-      // Duplicate until the track comfortably covers two screens.
-      let guard = 0;
-      while (track.scrollWidth < window.innerWidth * 2 && guard++ < 12) {
-        track.innerHTML += original;
-      }
+    // Build one node per section at its share of the document height.
+    const nodes = sections.map((section) => {
+      // Dots only — the navs already name the section, and a label out here
+      // would run into the content column.
+      const li = document.createElement('li');
+      li.innerHTML = '<i></i>';
+      nodeList.appendChild(li);
+      return { li, section };
+    });
 
-      if (REDUCED) return;
-
-      const half = track.scrollWidth / 2;
-      const wrapX = gsap.utils.wrap(-half, 0);
-      let x = 0;
-      let boost = 0, dir = 1;
-      let lastY = window.scrollY;
-
-      window.addEventListener('scroll', () => {
-        const y = window.scrollY;
-        boost = Math.min(220, Math.abs(y - lastY) * 1.6);
-        dir = y >= lastY ? 1 : -1;   // scrolling up runs the ticker backwards
-        lastY = y;
-      }, { passive: true });
-
-      gsap.ticker.add(() => {
-        const dr = gsap.ticker.deltaRatio();
-        x -= (0.9 + boost) * baseDir * dir * dr;
-        gsap.set(track, { x: wrapX(x) });
-        boost *= 0.90;  // bleed back to the idle crawl
+    const place = () => {
+      const docH = document.documentElement.scrollHeight - window.innerHeight;
+      nodes.forEach(({ li, section }) => {
+        const p = docH > 0 ? gsap.utils.clamp(0, 1, section.offsetTop / docH) : 0;
+        li.style.top = `${p * 100}%`;
       });
+    };
+    place();
+    ScrollTrigger.addEventListener('refreshInit', place);
+
+    // Fill + spark position both track raw scroll progress.
+    const setSparkY = gsap.quickTo(spark, 'y', { duration: 0.5, ease: 'power3.out' });
+    let railH = spine.clientHeight;
+
+    const onScroll = () => {
+      const docH = document.documentElement.scrollHeight - window.innerHeight;
+      const p = docH > 0 ? gsap.utils.clamp(0, 1, window.scrollY / docH) : 0;
+      gsap.set(fill, { scaleY: p });
+      setSparkY(p * railH);
+      nodes.forEach(({ li, section }) => {
+        const sp = docH > 0 ? section.offsetTop / docH : 0;
+        li.setAttribute('data-passed', String(p >= sp - 0.005));
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', () => { railH = spine.clientHeight; place(); onScroll(); });
+    onScroll();
+
+    // Active node mirrors whichever section the navs consider current.
+    sections.forEach((section, i) => {
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top 55%',
+        end: 'bottom 55%',
+        onToggle: (self) => nodes[i].li.setAttribute('data-active', String(self.isActive))
+      });
+    });
+
+    if (REDUCED) return;
+
+    // Idle spin, plus a nudge proportional to how hard you are scrolling.
+    let spin = 0, kick = 0, lastY = window.scrollY;
+    window.addEventListener('scroll', () => {
+      kick = gsap.utils.clamp(-14, 14, (window.scrollY - lastY) * 0.35);
+      lastY = window.scrollY;
+    }, { passive: true });
+
+    gsap.ticker.add(() => {
+      const dr = gsap.ticker.deltaRatio();
+      spin += (0.25 + kick) * dr;
+      kick *= 0.9;
+      gsap.set(spark, { rotation: spin });
     });
   }
 
@@ -546,7 +593,7 @@
     initNav();
     initChrome();
     initNavSwitch();
-    initMarquee();
+    initSpine();
     initMicroMotion();
     initReveals();
     initLoader();

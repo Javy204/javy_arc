@@ -79,8 +79,8 @@ Doporučeně H.264, tichý, ideálně pod ~10 MB a zaloopovatelný.
 - **Loader** — počítadlo 0–100 %, červený progress bar, plát se rozevírá
   0 → 4rem → 45vw → celá obrazovka, logo škáluje s ním. Jednou za session
   (`sessionStorage`, klíč `vrgdIntro`).
-- **Kurzor** — vlastní tečka + popisek, který se „scrambluje" podle
-  `data-cursor-text` na hoverovaném prvku.
+- **Kurzor** — spark (viz níž) + popisek, který se „scrambluje" podle
+  `data-cursor-text` na hoverovaném prvku. Na hoveru se zvětší a otočí o 90°.
 - **Scramble na hover** — odkazy s `data-scramble-hover`, část znaků problikne červeně.
 - **Reveal** — proza se přes `SplitText` + `Flip` přesype z ragged do justified,
   nadpisy najíždějí po slovech.
@@ -89,6 +89,28 @@ Doporučeně H.264, tichý, ideálně pod ~10 MB a zaloopovatelný.
 
 Vše respektuje `prefers-reduced-motion` a bez JS se stránka zobrazí staticky
 (skryté pre-roll stavy jsou schované pod `.js`).
+
+## Spark a spina — motiv, který provází webem
+
+Z moodboardu je vzatá **čtyřcípá hvězdička** (dlouhá vodorovná ramena, kratší
+diagonály, prohnutý pas). Je v obou stránkách jako `<symbol id="spark">`
+a používá se na třech místech, aby držela web pohromadě:
+
+1. **Spina** — hairline v levém okraji (`left: max(13px, pad*.42)`, tedy mimo
+   textové sloupce). Vyplňuje se podle scrollu a **spark po ní putuje** na
+   pozici odpovídající tvému postupu. Točí se sám pomalu a dostane kopanec
+   podle scroll velocity (`kick`, dojezd `*0.9`).
+2. **Uzly** — jeden na každou sekci, umístěné na `section.offsetTop / docH`.
+   Projité se rozsvítí, aktivní se zvětší a zčervená. Bez popisků záměrně —
+   názvy sekcí říká navigace a text by tady lezl do obsahu.
+3. **Kurzor** a **tlačítko beta přepínače** (kde se při otevření otočí o 90°).
+
+Spina se přebarvuje nad tmavými bloky stejným mechanismem jako navigace
+(třída `.on-dark`).
+
+> Marquee pásy s textem tu byly a **jsou odstraněné** — nahradil je tenhle
+> motiv. Kdyby se někdy vracely, jsou v historii commitu „trvale viditelna
+> navigace + vic motion".
 
 ## Navigace — tři varianty, jedna aktivní
 

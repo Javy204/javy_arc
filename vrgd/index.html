@@ -9,7 +9,7 @@
 <script>document.documentElement.classList.add('js');</script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body data-loading="true">
 
@@ -83,7 +83,6 @@
 
     <div class="hero__logo" data-hero-logo>
       <span class="split split--r" aria-hidden="true"><svg viewBox="0 0 1839 827"><use href="#vrgd"/></svg></span>
-      <span class="split split--b" aria-hidden="true"><svg viewBox="0 0 1839 827"><use href="#vrgd"/></svg></span>
       <span class="split split--w"><svg viewBox="0 0 1839 827" role="img" aria-label="VRgD"><use href="#vrgd"/></svg></span>
     </div>
 
@@ -188,11 +187,11 @@
 
     <div class="assets__grid">
       <div class="asset asset--wide">
-        <div class="asset__stage">
+        <div class="asset__stage is-invert">
           <svg class="asset__logo" viewBox="0 0 1839 827"><use href="#vrgd"/></svg>
         </div>
         <div class="asset__meta">
-          <span>Primary logotype</span>
+          <span>Primary logotype — reversed</span>
           <span class="mono is-dim">SVG · 1839×827</span>
         </div>
       </div>
@@ -230,7 +229,7 @@
   </section>
 
   <!-- ============ CONTACTS ============ -->
-  <footer class="section section--contacts" id="contacts" data-section="CONTACTS">
+  <footer class="section section--contacts is-invert" id="contacts" data-section="CONTACTS">
     <div class="section__head">
       <span class="mono is-dim">[04]</span>
       <span class="mono">CONTACTS</span>
@@ -270,7 +269,7 @@
 
 <!-- ============ FULLSCREEN MENU ============ -->
 <div class="menu-wrapper" data-menu-wrapper>
-  <div class="menu" data-menu>
+  <div class="menu is-invert" data-menu>
     <button class="menu__close" data-menu-button="close" data-cursor-hover data-cursor-text="CLOSE" aria-label="Close menu">
       <span class="mono">CLOSE</span>
     </button>
@@ -296,6 +295,6 @@
 <script src="js/vendor/Draggable.min.js"></script>
 <script src="js/vendor/InertiaPlugin.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
-<script src="js/main.js"></script>
+<script src="js/main.js?v=2"></script>
 </body>
 </html>

@@ -196,8 +196,9 @@
 
           const threshold = (BAYER[y & 3][x & 3] + 0.5) / 16;
           const i = (y * W + x) * 4;
-          const shade = v > threshold ? 95 + Math.round(v * 120) : 6;
-          d[i] = shade; d[i + 1] = shade; d[i + 2] = shade; d[i + 3] = 255;
+          // Faint ink on paper — a texture, not a pattern. The logotype must win.
+          const shade = v > threshold * 1.25 ? 231 - Math.round(v * 22) : 244;
+          d[i] = shade; d[i + 1] = shade; d[i + 2] = shade - 2; d[i + 3] = 255;
         }
       }
       ctx.putImageData(img, 0, 0);
@@ -327,19 +328,16 @@
       });
     }
 
-    // Chromatic aberration that tracks the pointer.
-    if (!logo || !CAN_HOVER || REDUCED) return;
-    const r = $('.split--r', logo), b = $('.split--b', logo);
+    // A single red plate drifting off register — the one bit of colour.
+    const r = logo && $('.split--r', logo);
+    if (!r || !CAN_HOVER || REDUCED) return;
     const setRX = gsap.quickTo(r, 'x', { duration: 0.9, ease: 'power3.out' });
     const setRY = gsap.quickTo(r, 'y', { duration: 0.9, ease: 'power3.out' });
-    const setBX = gsap.quickTo(b, 'x', { duration: 0.9, ease: 'power3.out' });
-    const setBY = gsap.quickTo(b, 'y', { duration: 0.9, ease: 'power3.out' });
 
     window.addEventListener('mousemove', (e) => {
       const dx = (e.clientX / window.innerWidth - 0.5) * 2;
       const dy = (e.clientY / window.innerHeight - 0.5) * 2;
-      setRX(dx * 6); setRY(dy * 4);
-      setBX(dx * -6); setBY(dy * -4);
+      setRX(dx * 5); setRY(dy * 3.5);
     });
   }
 

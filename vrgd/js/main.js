@@ -315,7 +315,8 @@
     });
     $('.navbar__mark')?.addEventListener('click', (e) => { e.preventDefault(); scrollTo(0); });
 
-    const nowLabel = $('[data-jumpbar-now]');
+    // Every nav mode has its own NOW readout; all of them scramble together.
+    const nowLabels = $$('[data-nav-now]');
 
     $$('main section[id], main footer[id]').forEach((section) => {
       // One section can drive several navs at once.
@@ -328,9 +329,9 @@
         end: 'bottom 55%',
         onToggle: (self) => {
           links.forEach((l) => l.setAttribute('data-active', self.isActive ? 'true' : 'false'));
-          if (self.isActive && nowLabel) {
+          if (self.isActive) {
             const name = section.getAttribute('data-section') || section.id.toUpperCase();
-            window.VRGD.scramble(nowLabel, name, 0.55);
+            nowLabels.forEach((el) => window.VRGD.scramble(el, name, 0.55));
           }
         }
       });
@@ -354,14 +355,42 @@
       });
     }
 
-    // Give the bar a ground as soon as it leaves the hero.
-    if (navbar && hero) {
+    // No backdrop. Instead the chrome flips its own colours whenever an
+    // inverted section is actually behind it.
+    const sidenav = $('.sidenav');
+    $$('.is-invert').forEach((dark) => {
+      if (navbar) {
+        ScrollTrigger.create({
+          trigger: dark,
+          start: `top top+=${parseFloat(getComputedStyle(navbar).minHeight) || 72}`,
+          end: 'bottom top',
+          onToggle: (self) => navbar.classList.toggle('on-dark', self.isActive)
+        });
+      }
+      if (sidenav) {
+        ScrollTrigger.create({
+          trigger: dark,
+          start: 'top center',
+          end: 'bottom center',
+          onToggle: (self) => sidenav.classList.toggle('on-dark', self.isActive)
+        });
+      }
+    });
+
+    // Side nav borrows the jumpbar's move: the NOW readout slides in past the
+    // hero (and the list nudges over with it), then retracts back at the top.
+    const now = $('[data-sidenav-now]');
+    if (sidenav && now && hero) {
+      const list = $('ul', sidenav);
+      const engage = gsap.timeline({ paused: true })
+        .fromTo(now, { autoAlpha: 0, x: 24 }, { autoAlpha: 1, x: 0, duration: 0.55, ease: 'expo.out' })
+        .fromTo(list, { x: 16 }, { x: 0, duration: 0.6, ease: 'expo.out' }, '<');
+
       ScrollTrigger.create({
         trigger: hero,
-        start: 'bottom 90%',
-        onToggle: (self) => navbar.setAttribute('data-scrolled', self.isActive ? 'false' : 'true'),
-        onLeave: () => navbar.setAttribute('data-scrolled', 'true'),
-        onEnterBack: () => navbar.setAttribute('data-scrolled', 'false')
+        start: 'bottom 75%',
+        onEnter: () => engage.play(),
+        onLeaveBack: () => engage.reverse()
       });
     }
 

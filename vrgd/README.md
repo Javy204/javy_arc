@@ -37,8 +37,14 @@ stačí ji přidat na jakýkoli blok. Fullscreen menu je taky invertované.
 > přes `--plate`), musí se v `.is-invert` variantě přepsat explicitně —
 > jinak vyhraje pořadím v souboru.
 
-Navbar a side nav jedou na `mix-blend-mode: difference`, takže se nad
-tmavými bloky **samy přebarví** — není potřeba nic přepínat.
+Navbar a side nav **nemají žádný podklad ani blur**. Místo toho si přebarví
+samy sebe: `initChrome()` v `main.js` navěsí na každý `.is-invert` blok
+ScrollTrigger, a když je ten blok reálně za nimi, dostanou třídu `.on-dark`,
+která překlopí jejich `--nav-fg` z inkoustu na papír.
+
+Proti dřívějšímu `mix-blend-mode: difference` to má dvě výhody: nepotřebuje
+to žádný panel pod textem, a **červená zůstane červená** (pod `difference` se
+rozpadala na cyanovou, takže tam nešly použít červené tečky aktivní sekce).
 
 **Červená (`--red #ff2b29`) je použitá záměrně skoupě** — jen progress
 linka v loaderu, tečka aktivní sekce v nav, vzorník v ASSETS a jemný
@@ -91,7 +97,7 @@ Režim drží atribut `data-nav` na `<html>`:
 
 | Režim | Co to je |
 |---|---|
-| `sidenav` | Svislý seznam vpravo uprostřed (výchozí). |
+| `sidenav` | Svislý seznam vpravo uprostřed (výchozí, favorit). Má chování jumpbaru: NOW readout, který za herem vyjede zprava a nahoře se zasune, hover fill a červená tečka aktivní sekce. |
 | `topnav` | Trvale viditelná mřížka odkazů v hlavičce, à la noartmusic. |
 | `jumpbar` | Tmavý pill, který vyjede zdola za herem. |
 

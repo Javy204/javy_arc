@@ -17,7 +17,7 @@ document.documentElement.classList.add('js');
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=5">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body data-loading="true">
 
@@ -92,7 +92,7 @@ document.documentElement.classList.add('js');
 
 <!-- Pops in once you start scrolling: where you are + one click anywhere. -->
 <aside class="jumpbar" data-jumpbar aria-hidden="true">
-  <span class="jumpbar__now mono"><i></i><span data-jumpbar-now>ABOUT</span></span>
+  <span class="jumpbar__now mono"><i></i><span data-nav-now>ABOUT</span></span>
   <ul class="jumpbar__list">
     <li><a href="#hero"     data-nav-link>INDEX</a></li>
     <li><a href="#about"    data-nav-link data-jump-link>ABOUT</a></li>
@@ -105,6 +105,9 @@ document.documentElement.classList.add('js');
 
 <!-- ============ SIDE NAV ============ -->
 <nav class="sidenav" data-sidenav aria-label="Sections">
+  <span class="sidenav__now mono" data-sidenav-now aria-hidden="true">
+    <i></i><span data-nav-now>INDEX</span>
+  </span>
   <ul>
     <li><a href="#about"   data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="01"><span data-scramble-hover="target">ABOUT</span></a></li>
     <li><a href="#work"    data-nav-link data-scramble-hover="link" data-cursor-hover data-cursor-text="02"><span data-scramble-hover="target">WORK</span></a></li>
@@ -355,6 +358,6 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/InertiaPlugin.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=1"></script>
-<script src="js/main.js?v=5"></script>
+<script src="js/main.js?v=6"></script>
 </body>
 </html>

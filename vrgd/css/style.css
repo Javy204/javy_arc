@@ -266,16 +266,14 @@ html:not(.js) .loader { display: none; }
   align-items: center;
   justify-content: space-between;
   gap: clamp(1rem, 3vw, 3rem);
-  color: var(--ink);
-  transition: background-color .4s ease, border-color .4s ease;
-  border-bottom: 1px solid transparent;
+  --nav-fg: var(--ink);
+  color: var(--nav-fg);
+  transition: color .45s ease;
 }
-/* Once past the hero the bar needs its own ground to stay legible. */
-.navbar[data-scrolled="true"] {
-  background: rgba(244, 244, 242, .88);
-  backdrop-filter: blur(10px);
-  border-bottom-color: var(--line);
-}
+/* No backdrop — over an inverted section the chrome just flips its own colours
+   (see initChromeTheme in main.js). */
+.navbar.on-dark { --nav-fg: var(--paper); }
+.navbar .is-dim { color: color-mix(in srgb, var(--nav-fg) 55%, transparent); }
 .js .navbar { opacity: 0; transform: translateY(-1em); }
 .navbar__mark { width: clamp(52px, 5vw, 74px); flex: 0 0 auto; }
 .navbar__mark svg { width: 100%; height: auto; fill: currentColor; }
@@ -299,7 +297,7 @@ html:not(.js) .loader { display: none; }
   font-size: .68rem;
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: var(--dim);
+  color: color-mix(in srgb, var(--nav-fg) 55%, transparent);
   transition: color .3s ease;
   cursor: pointer;
   white-space: nowrap;
@@ -310,8 +308,8 @@ html:not(.js) .loader { display: none; }
   background: currentColor;
   transition: background-color .3s ease;
 }
-.topnav a:hover { color: var(--ink); }
-.topnav a[data-active="true"] { color: var(--ink); }
+.topnav a:hover { color: var(--nav-fg); }
+.topnav a[data-active="true"] { color: var(--nav-fg); }
 .topnav a[data-active="true"] i { background: var(--red); }
 
 /* ---------- jumpbar — pops in on scroll ---------- */
@@ -366,39 +364,75 @@ html:not(.js) .loader { display: none; }
    Side nav
    ========================================================= */
 .sidenav {
+  --nav-fg: var(--ink);
   position: fixed;
   right: var(--pad);
   top: 50%;
   transform: translateY(-50%);
   z-index: 600;
-  color: var(--paper);
-  mix-blend-mode: difference;
+  color: var(--nav-fg);
+  transition: color .45s ease;
 }
 .js .sidenav { opacity: 0; }
+.sidenav.on-dark { --nav-fg: var(--paper); }
+
+/* --- the jumpbar's "where am I" readout, borrowed --- */
+.sidenav__now {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .45rem;
+  padding: 0 .55rem .7rem 0;
+  white-space: nowrap;
+  opacity: 0;
+}
+.sidenav__now i {
+  order: -1;
+  width: 5px; height: 5px;
+  flex: 0 0 auto;
+  background: var(--red);
+}
+
 .sidenav ul { display: grid; }
-.sidenav li + li { border-top: 1px solid rgba(244, 244, 242, .32); }
+.sidenav li + li {
+  border-top: 1px solid;
+  border-top-color: color-mix(in srgb, var(--nav-fg) 28%, transparent);
+}
+
 .sidenav a {
   display: block;
-  padding: 1.15rem 0 1.15rem 3rem;
+  position: relative;
+  padding: 1.15rem .55rem 1.15rem 3rem;
   text-align: right;
   font-family: var(--f-inter);
   font-size: clamp(.95rem, 1.15vw, 1.15rem);
   font-weight: 500;
   letter-spacing: .02em;
-  color: #9a9a97;
-  transition: color .35s ease;
+  color: color-mix(in srgb, var(--nav-fg) 50%, transparent);
+  transition: color .35s ease, padding-right .45s cubic-bezier(.16, 1, .3, 1);
   cursor: pointer;
 }
-.sidenav a:hover,
-.sidenav a[data-active="true"] { color: var(--paper); }
-/* currentColor, not red — the sidenav sits under difference blending, where
-   red would resolve to cyan. Red lives in the topnav instead. */
+/* Hover fill, straight off the jumpbar. */
+.sidenav a::before {
+  content: "";
+  position: absolute;
+  inset: .35rem 0;
+  background: color-mix(in srgb, var(--nav-fg) 10%, transparent);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform .45s cubic-bezier(.16, 1, .3, 1);
+}
+.sidenav a > span { position: relative; }
+.sidenav a:hover::before { transform: scaleX(1); }
+.sidenav a:hover { color: var(--nav-fg); padding-right: .9rem; }
+.sidenav a[data-active="true"] { color: var(--nav-fg); }
 .sidenav a[data-active="true"]::after {
   content: "";
   display: inline-block;
+  position: relative;
   width: 5px; height: 5px;
   margin-left: .6rem;
-  background: currentColor;
+  background: var(--red);
   vertical-align: middle;
 }
 

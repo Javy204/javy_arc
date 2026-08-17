@@ -483,6 +483,7 @@
     const navbar = $('[data-navbar]');
     const jumpbar = $('[data-jumpbar]');
     const hero = $('.hero');
+    const sidenav = $('.sidenav');
 
     $$('.is-invert').forEach(registerDarkSurface);
 
@@ -703,18 +704,26 @@
      Boot
      ======================================================= */
   function boot() {
-    initDither();
-    initHeroVideo();
-    initHero();
-    initSlider();
-    initEvents();
-    initNav();
-    initChrome();
-    initNavSwitch();
-    initSpine();
-    initMicroMotion();
-    initReveals();
-    initLoader();
+    /* Each module is isolated: one throwing must not take the rest of the page
+       down with it. A ReferenceError in initChrome once stopped initLoader from
+       running, which left the hero plate collapsed at 0x0 — the video played
+       into nothing and the page looked blank. */
+    const modules = [
+      ['dither', initDither], ['heroVideo', initHeroVideo], ['hero', initHero],
+      ['slider', initSlider], ['events', initEvents], ['nav', initNav],
+      ['chrome', initChrome], ['navSwitch', initNavSwitch], ['spine', initSpine],
+      ['microMotion', initMicroMotion], ['reveals', initReveals], ['loader', initLoader]
+    ];
+
+    modules.forEach(([name, fn]) => {
+      try { fn(); } catch (err) { console.error(`[vrgd] ${name} failed:`, err); }
+    });
+
+    // The loader owns un-hiding the page, so never leave it stuck on a throw.
+    if (document.body.getAttribute('data-loading') === 'true') {
+      document.body.setAttribute('data-loading', 'false');
+      lenis.start();
+    }
     ScrollTrigger.refresh();
   }
 

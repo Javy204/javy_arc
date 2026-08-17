@@ -572,6 +572,9 @@ html:not(.js) .loader { display: none; }
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  /* Keeps the logotype's difference blend looking at the footage behind it
+     and nothing further up the page. */
+  isolation: isolate;
 }
 
 .hero__media {
@@ -615,7 +618,7 @@ html:not(.js) .loader { display: none; }
     radial-gradient(115% 85% at 50% 45%, transparent 30%, rgba(6, 6, 6, .5) 88%),
     linear-gradient(to bottom, rgba(6, 6, 6, .45), transparent 24%, transparent 58%, rgba(6, 6, 6, .8));
 }
-.hero.has-video .hero__logo .split--w svg { fill: #f4f4f2; }
+.hero.has-video .hero__logo { --logo-fill: #f4f4f2; }
 .hero.has-video .hero__lede { color: rgba(244, 244, 242, .88); }
 .hero.has-video .hero__bottom,
 .hero.has-video .hero__markers { color: #f4f4f2; }
@@ -627,6 +630,7 @@ html:not(.js) .loader { display: none; }
 
 /* --- logo + red misregistration --- */
 .hero__logo {
+  --logo-fill: var(--ink);
   position: relative;
   z-index: 3;
   width: clamp(280px, 46vw, 900px);
@@ -640,9 +644,31 @@ html:not(.js) .loader { display: none; }
 }
 .hero__logo .split--w { position: relative; }
 .hero__logo svg { width: 100%; height: auto; }
-.hero__logo .split--w svg { fill: var(--ink); }
+.hero__logo .split--w svg { fill: var(--logo-fill); }
 .hero__logo .split--r svg { fill: var(--red); }
-.hero__logo .split--r { mix-blend-mode: var(--blend); opacity: .18; }
+.hero__logo .split--r { mix-blend-mode: var(--blend); opacity: .18; transition: opacity .35s ease; }
+
+/* Press I: the logotype either sits on the footage or inverts it.
+   Blending is on the wrapper, not the inner span — .hero__logo is its own
+   stacking context, so a blend set inside it would only see its own children.
+   Placed after the .has-video rule so it wins the specificity tie. */
+.hero .hero__logo[data-logo-blend="difference"] {
+  --logo-fill: #fff;
+  mix-blend-mode: difference;
+}
+.hero .hero__logo[data-logo-blend="difference"] .split--r { opacity: 0; }
+
+/* Brief readout of the current mode, right under the logotype. */
+.hero__mode {
+  position: absolute;
+  top: calc(50% + clamp(90px, 15vw, 260px));
+  left: 0; right: 0;
+  z-index: 4;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  color: var(--logo-fill, var(--ink));
+}
 
 /* --- corner markers --- */
 .hero__markers { position: absolute; inset: var(--pad); z-index: 4; pointer-events: none; }

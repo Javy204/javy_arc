@@ -133,6 +133,27 @@ Rozlišení rozhoduje o zátěži víc než délka — 4K je zbytečné, video s
 scrimem a pod logem. Presety: `Preset960x540`, `Preset1280x720`,
 `Preset1920x1080`.
 
+## Klávesa I — blend logotypu
+
+Na landing page přepíná **klávesa `I`** velké logo mezi dvěma režimy:
+
+- **NORMAL** — plná výplň (bílá přes záběr, jinak inkoustová)
+- **DIFFERENCE** — `mix-blend-mode: difference`, logo invertuje to, co je pod ním
+
+Volba se pamatuje v `localStorage` (`vrgd-logo-blend`) a při přepnutí krátce
+probliskne popisek režimu pod logem.
+
+Dvě věci, na kterých to stojí:
+
+- **Blend je na `.hero__logo`, ne na vnitřním spanu.** `.hero__logo` má
+  `z-index`, takže je vlastní stacking context — blend nastavený uvnitř by
+  viděl jen své sourozence, ne video pod sebou.
+- **`.hero__stage` má `isolation: isolate`**, aby difference sahal jen na
+  záběr v heru a ne dál po stránce.
+
+V difference režimu se skryje červený misregister (`.split--r`) — dva efekty
+přes sebe se perou.
+
 ## Events — vertikální karusel
 
 Sekce `#events`: tři sloupce — jména vlevo, artworky uprostřed, data vpravo.

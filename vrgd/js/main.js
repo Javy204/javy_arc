@@ -445,6 +445,44 @@
   }
 
   /* =======================================================
+     6c. Logotype blend — press I to flip the big hero mark
+     between sitting on the footage and inverting it.
+     ======================================================= */
+  function initLogoBlend() {
+    const logo = $('[data-hero-logo]');
+    const readout = $('[data-logo-mode]');
+    if (!logo) return;
+
+    const MODES = { normal: 'NORMAL', difference: 'DIFFERENCE' };
+    let mode = 'normal';
+    try {
+      const saved = localStorage.getItem('vrgd-logo-blend');
+      if (saved in MODES) mode = saved;
+    } catch { /* private mode */ }
+
+    let hide;
+    const apply = (next, announce) => {
+      mode = next;
+      logo.setAttribute('data-logo-blend', mode);
+      try { localStorage.setItem('vrgd-logo-blend', mode); } catch { /* ignore */ }
+
+      if (!readout || !announce) return;
+      window.VRGD.scramble(readout, MODES[mode], 0.5);
+      hide?.kill();
+      gsap.to(readout, { autoAlpha: 1, duration: 0.25, ease: 'power2.out' });
+      hide = gsap.to(readout, { autoAlpha: 0, duration: 0.5, delay: 1.4, ease: 'power2.in' });
+    };
+
+    apply(mode, false);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key?.toLowerCase() !== 'i' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
+      apply(mode === 'normal' ? 'difference' : 'normal', true);
+    });
+  }
+
+  /* =======================================================
      7. Section nav — smooth anchors + active state everywhere
      ======================================================= */
   function initNav() {
@@ -710,7 +748,7 @@
        into nothing and the page looked blank. */
     const modules = [
       ['dither', initDither], ['heroVideo', initHeroVideo], ['hero', initHero],
-      ['slider', initSlider], ['events', initEvents], ['nav', initNav],
+      ['slider', initSlider], ['events', initEvents], ['logoBlend', initLogoBlend], ['nav', initNav],
       ['chrome', initChrome], ['navSwitch', initNavSwitch], ['spine', initSpine],
       ['microMotion', initMicroMotion], ['reveals', initReveals], ['loader', initLoader]
     ];

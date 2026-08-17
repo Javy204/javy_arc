@@ -9,7 +9,7 @@
 <script>document.documentElement.classList.add('js');</script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body data-loading="true">
 
@@ -44,19 +44,47 @@
 </div>
 
 <!-- ============ NAVBAR ============ -->
-<header class="navbar">
+<div class="scrollbar" aria-hidden="true"><i data-scroll-progress></i></div>
+
+<header class="navbar" data-navbar>
   <a class="navbar__mark" href="#hero" data-cursor-hover data-cursor-text="TOP" aria-label="VRgD — home">
     <svg viewBox="0 0 1839 827"><use href="#vrgd"/></svg>
   </a>
+
+  <!-- Always-on link grid — nothing to go looking for. -->
+  <nav class="topnav" aria-label="Sections">
+    <ul>
+      <li><a href="#about"    data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">ABOUT</span></a></li>
+      <li><a href="#work"     data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">WORK</span></a></li>
+      <li><a href="#assets"   data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">ASSETS</span></a></li>
+      <li><a href="#contacts" data-nav-link data-topnav-link data-scramble-hover="link"><i></i><span data-scramble-hover="target">CONTACTS</span></a></li>
+      <li><a href="gallery.html" data-scramble-hover="link"><i></i><span data-scramble-hover="target">GALLERY</span></a></li>
+    </ul>
+  </nav>
+
   <div class="navbar__meta">
     <span class="mono" data-local-time>--:--:--</span>
     <span class="mono is-dim">PRG</span>
   </div>
+
   <button class="menu-button" data-menu-button="open" data-cursor-hover data-cursor-text="OPEN">
     <span class="menu-button__lines"><i></i><i></i></span>
     <span class="mono">MENU</span>
   </button>
 </header>
+
+<!-- Pops in once you start scrolling: where you are + one click anywhere. -->
+<aside class="jumpbar" data-jumpbar aria-hidden="true">
+  <span class="jumpbar__now mono"><i></i><span data-jumpbar-now>ABOUT</span></span>
+  <ul class="jumpbar__list">
+    <li><a href="#hero"     data-nav-link>INDEX</a></li>
+    <li><a href="#about"    data-nav-link data-jump-link>ABOUT</a></li>
+    <li><a href="#work"     data-nav-link data-jump-link>WORK</a></li>
+    <li><a href="#assets"   data-nav-link data-jump-link>ASSETS</a></li>
+    <li><a href="#contacts" data-nav-link data-jump-link>CONTACTS</a></li>
+    <li><a href="gallery.html">GALLERY</a></li>
+  </ul>
+</aside>
 
 <!-- ============ SIDE NAV ============ -->
 <nav class="sidenav" data-sidenav aria-label="Sections">
@@ -72,7 +100,7 @@
 <main>
 
   <!-- ============ HERO ============ -->
-  <section class="hero" id="hero">
+  <section class="hero" id="hero" data-section="INDEX">
     <div class="hero__media" data-hero-media>
       <div class="hero__media-inner" data-hero-parallax>
         <canvas class="hero__canvas" data-dither></canvas>
@@ -137,6 +165,12 @@
       <li data-cursor-hover data-cursor-text="→"><span class="mono is-dim">04</span><span>Print &amp; objects</span><span class="mono is-dim">04 — 04</span></li>
     </ul>
   </section>
+
+  <div class="marquee" data-marquee data-dir="1" aria-hidden="true">
+    <div class="marquee__track" data-marquee-track>
+      <span>VISUAL RESEARCH</span><em>·</em><span>DIRECTION</span><em>·</em><span>MOVING IMAGE</span><em>·</em><span>TYPE</span><em>·</em><span>PRINT</span><em>·</em>
+    </div>
+  </div>
 
   <!-- ============ WORK ============ -->
   <section class="section section--work" id="work" data-section="WORK">
@@ -229,6 +263,12 @@
     </ul>
   </section>
 
+  <div class="marquee" data-marquee data-dir="-1" aria-hidden="true">
+    <div class="marquee__track" data-marquee-track>
+      <span>PRAGUE</span><em>·</em><span>AVAILABLE FOR WORK</span><em>·</em><span>2026</span><em>·</em><span>GOT FOOTAGE?</span><em>·</em>
+    </div>
+  </div>
+
   <!-- ============ CONTACTS ============ -->
   <footer class="section section--contacts is-invert" id="contacts" data-section="CONTACTS">
     <div class="section__head">
@@ -298,6 +338,6 @@
 <script src="js/vendor/InertiaPlugin.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=1"></script>
-<script src="js/main.js?v=3"></script>
+<script src="js/main.js?v=4"></script>
 </body>
 </html>

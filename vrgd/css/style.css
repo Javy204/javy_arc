@@ -202,25 +202,119 @@ html:not(.js) .loader { display: none; }
 /* =========================================================
    Navbar — difference blending auto-inverts over dark blocks
    ========================================================= */
+/* Thin scroll indicator along the very top edge. */
+.scrollbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 650;
+  height: 2px;
+  pointer-events: none;
+}
+.scrollbar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
 .navbar {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 600;
-  height: var(--nav-h);
-  padding: 0 var(--pad);
+  min-height: var(--nav-h);
+  padding: .8rem var(--pad);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  color: var(--paper);
-  mix-blend-mode: difference;
+  gap: clamp(1rem, 3vw, 3rem);
+  color: var(--ink);
+  transition: background-color .4s ease, border-color .4s ease;
+  border-bottom: 1px solid transparent;
+}
+/* Once past the hero the bar needs its own ground to stay legible. */
+.navbar[data-scrolled="true"] {
+  background: rgba(244, 244, 242, .88);
+  backdrop-filter: blur(10px);
+  border-bottom-color: var(--line);
 }
 .js .navbar { opacity: 0; transform: translateY(-1em); }
-.navbar__mark { width: clamp(52px, 5vw, 74px); }
+.navbar__mark { width: clamp(52px, 5vw, 74px); flex: 0 0 auto; }
 .navbar__mark svg { width: 100%; height: auto; fill: currentColor; }
 .navbar__meta { display: flex; gap: .9rem; align-items: baseline; }
 .navbar__meta [data-local-time] { font-variant-numeric: tabular-nums; }
-.navbar .is-dim { color: #8a8a86; }
+.navbar .is-dim { color: var(--dim); }
+
+/* ---------- always-on link grid (top right) ---------- */
+.topnav { flex: 1 1 auto; display: flex; justify-content: flex-end; }
+.topnav ul {
+  display: grid;
+  grid-template-rows: repeat(2, auto);
+  grid-auto-flow: column;
+  gap: .35rem clamp(1rem, 2.4vw, 2.5rem);
+}
+.topnav a {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-family: var(--f-mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  transition: color .3s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.topnav a i {
+  width: 5px; height: 5px;
+  flex: 0 0 auto;
+  background: currentColor;
+  transition: background-color .3s ease;
+}
+.topnav a:hover { color: var(--ink); }
+.topnav a[data-active="true"] { color: var(--ink); }
+.topnav a[data-active="true"] i { background: var(--red); }
+
+/* ---------- jumpbar — pops in on scroll ---------- */
+.jumpbar {
+  position: fixed;
+  left: 50%; bottom: calc(var(--pad) + .2rem);
+  z-index: 620;
+  transform: translate(-50%, 150%);
+  display: flex;
+  align-items: center;
+  gap: .2rem;
+  padding: .4rem .5rem;
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 0 6px 30px rgba(10, 10, 10, .18);
+}
+.jumpbar__now {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .35rem .7rem .35rem .55rem;
+  border-right: 1px solid rgba(244, 244, 242, .22);
+  margin-right: .3rem;
+  white-space: nowrap;
+}
+.jumpbar__now i { width: 5px; height: 5px; background: var(--red); flex: 0 0 auto; }
+.jumpbar__list { display: flex; gap: .1rem; }
+.jumpbar__list a {
+  display: block;
+  padding: .35rem .6rem;
+  font-family: var(--f-mono);
+  font-size: .64rem;
+  letter-spacing: .1em;
+  color: rgba(244, 244, 242, .55);
+  transition: color .25s ease, background-color .25s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.jumpbar__list a:hover { color: var(--paper); background: rgba(244, 244, 242, .1); }
+.jumpbar__list a[data-active="true"] { color: var(--paper); }
 
 .menu-button {
   display: none;
@@ -245,7 +339,7 @@ html:not(.js) .loader { display: none; }
 }
 .js .sidenav { opacity: 0; }
 .sidenav ul { display: grid; }
-.sidenav li + li { border-top: 1px solid rgba(244, 244, 242, .3); }
+.sidenav li + li { border-top: 1px solid rgba(244, 244, 242, .32); }
 .sidenav a {
   display: block;
   padding: 1.15rem 0 1.15rem 3rem;
@@ -260,12 +354,14 @@ html:not(.js) .loader { display: none; }
 }
 .sidenav a:hover,
 .sidenav a[data-active="true"] { color: var(--paper); }
+/* currentColor, not red — the sidenav sits under difference blending, where
+   red would resolve to cyan. Red lives in the topnav instead. */
 .sidenav a[data-active="true"]::after {
   content: "";
   display: inline-block;
   width: 5px; height: 5px;
   margin-left: .6rem;
-  background: var(--red);
+  background: currentColor;
   vertical-align: middle;
 }
 
@@ -648,6 +744,45 @@ html:not(.js) .loader { display: none; }
 .word { display: inline-block; }
 
 /* =========================================================
+   Marquee — infinite ticker, speed follows scroll velocity
+   ========================================================= */
+.marquee {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  padding: .9rem 0;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  user-select: none;
+}
+.marquee__track {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  width: max-content;
+  will-change: transform;
+}
+.marquee__track span {
+  font-family: var(--f-inter);
+  font-weight: 700;
+  font-size: clamp(1.1rem, 2.4vw, 2.1rem);
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.marquee__track em {
+  font-style: normal;
+  color: var(--red);
+  font-size: clamp(1.1rem, 2.4vw, 2.1rem);
+}
+
+/* =========================================================
+   Clip reveal — plates wipe in from the bottom
+   ========================================================= */
+.js [data-clip] { clip-path: inset(100% 0 0 0); }
+
+/* =========================================================
    Gallery — infinite draggable grid
    ========================================================= */
 body[data-page="gallery"] { overflow: hidden; height: 100svh; }
@@ -811,18 +946,26 @@ body[data-page="gallery"] { overflow: hidden; height: 100svh; }
   .contacts__grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-@media (min-width: 992px) {
-  /* Keep section content clear of the fixed side nav. */
+/* Gutter tracks the side nav, so it starts at the same breakpoint (768px). */
+@media (min-width: 768px) {
   .section { padding-right: var(--gutter); }
   .contacts__mark,
   .contacts__legal { margin-right: calc(var(--pad) - var(--gutter)); }
 }
 
-@media (max-width: 991px) {
+/* Side nav survives down to tablet — it is the navigation Stepan wants kept. */
+@media (max-width: 767px) {
   .sidenav { display: none; }
+  .topnav { display: none; }
   .menu-button { display: flex; }
+  .jumpbar { left: var(--pad); right: var(--pad); transform: translateY(150%); }
+  .jumpbar__list { overflow-x: auto; }
+}
+
+@media (max-width: 991px) {
   .hero__bottom { flex-direction: column; align-items: flex-start; gap: 1.2rem; }
   .rule-grid { grid-template-columns: repeat(2, 1fr); }
+  .topnav ul { gap: .3rem 1rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

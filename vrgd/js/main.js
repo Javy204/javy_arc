@@ -307,7 +307,7 @@
   }
 
   /* =======================================================
-     7. Section nav — smooth anchors + active state
+     7. Section nav — smooth anchors + active state everywhere
      ======================================================= */
   function initNav() {
     $$('[data-nav-link]').forEach((a) => {
@@ -315,15 +315,164 @@
     });
     $('.navbar__mark')?.addEventListener('click', (e) => { e.preventDefault(); scrollTo(0); });
 
+    const nowLabel = $('[data-jumpbar-now]');
+
     $$('main section[id], main footer[id]').forEach((section) => {
-      const link = $(`[data-nav-link][href="#${section.id}"]`);
-      if (!link) return;
+      // One section can drive several navs at once.
+      const links = $$(`[data-nav-link][href="#${section.id}"]`);
+      if (!links.length) return;
+
       ScrollTrigger.create({
         trigger: section,
         start: 'top 55%',
         end: 'bottom 55%',
-        onToggle: (self) => link.setAttribute('data-active', self.isActive ? 'true' : 'false')
+        onToggle: (self) => {
+          links.forEach((l) => l.setAttribute('data-active', self.isActive ? 'true' : 'false'));
+          if (self.isActive && nowLabel) {
+            const name = section.getAttribute('data-section') || section.id.toUpperCase();
+            window.VRGD.scramble(nowLabel, name, 0.55);
+          }
+        }
       });
+    });
+  }
+
+  /* =======================================================
+     8. Navbar backdrop + the jumpbar that pops in on scroll
+     ======================================================= */
+  function initChrome() {
+    const navbar = $('[data-navbar]');
+    const jumpbar = $('[data-jumpbar]');
+    const progress = $('[data-scroll-progress]');
+    const hero = $('.hero');
+
+    if (progress) {
+      gsap.to(progress, {
+        scaleX: 1,
+        ease: 'none',
+        scrollTrigger: { start: 0, end: 'max', scrub: 0.3 }
+      });
+    }
+
+    // Give the bar a ground as soon as it leaves the hero.
+    if (navbar && hero) {
+      ScrollTrigger.create({
+        trigger: hero,
+        start: 'bottom 90%',
+        onToggle: (self) => navbar.setAttribute('data-scrolled', self.isActive ? 'false' : 'true'),
+        onLeave: () => navbar.setAttribute('data-scrolled', 'true'),
+        onEnterBack: () => navbar.setAttribute('data-scrolled', 'false')
+      });
+    }
+
+    // Jumpbar rides in past the hero and hides again at the very top.
+    if (jumpbar && hero) {
+      const show = gsap.to(jumpbar, {
+        y: 0, autoAlpha: 1, duration: 0.6, ease: 'expo.out', paused: true
+      });
+      gsap.set(jumpbar, { autoAlpha: 0 });
+      ScrollTrigger.create({
+        trigger: hero,
+        start: 'bottom 75%',
+        onEnter: () => { jumpbar.removeAttribute('aria-hidden'); show.play(); },
+        onLeaveBack: () => { show.reverse(); jumpbar.setAttribute('aria-hidden', 'true'); }
+      });
+    }
+  }
+
+  /* =======================================================
+     9. Marquee — infinite ticker whose speed follows the scroll
+     ======================================================= */
+  function initMarquee() {
+    $$('[data-marquee]').forEach((wrap) => {
+      const track = $('[data-marquee-track]', wrap);
+      if (!track) return;
+
+      const baseDir = Number(wrap.getAttribute('data-dir')) || 1;
+      const original = track.innerHTML;
+
+      // Duplicate until the track comfortably covers two screens.
+      let guard = 0;
+      while (track.scrollWidth < window.innerWidth * 2 && guard++ < 12) {
+        track.innerHTML += original;
+      }
+
+      if (REDUCED) return;
+
+      const half = track.scrollWidth / 2;
+      const wrapX = gsap.utils.wrap(-half, 0);
+      let x = 0;
+      let boost = 0, dir = 1;
+      let lastY = window.scrollY;
+
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        boost = Math.min(220, Math.abs(y - lastY) * 1.6);
+        dir = y >= lastY ? 1 : -1;   // scrolling up runs the ticker backwards
+        lastY = y;
+      }, { passive: true });
+
+      gsap.ticker.add(() => {
+        const dr = gsap.ticker.deltaRatio();
+        x -= (0.9 + boost) * baseDir * dir * dr;
+        gsap.set(track, { x: wrapX(x) });
+        boost *= 0.90;  // bleed back to the idle crawl
+      });
+    });
+  }
+
+  /* =======================================================
+     10. Extra motion — scramble-in labels, clip-wiped plates
+     ======================================================= */
+  function initMicroMotion() {
+    // Mono meta scrambles itself into place as it arrives.
+    const labels = [
+      ...$$('.section__head .mono'),
+      ...$$('[data-scramble-in]')
+    ];
+    labels.forEach((el) => {
+      const text = el.textContent;
+      ScrollTrigger.create({
+        trigger: el,
+        start: 'top 92%',
+        once: true,
+        onEnter: () => window.VRGD.scramble(el, text, 0.7)
+      });
+    });
+
+    if (REDUCED) return;
+
+    // Plates wipe up instead of just fading.
+    $$('.card__thumb, .asset__stage').forEach((el) => {
+      el.setAttribute('data-clip', '');
+      gsap.to(el, {
+        clipPath: 'inset(0% 0 0 0)',
+        duration: 1.1,
+        ease: 'expo.out',
+        scrollTrigger: { trigger: el, start: 'top 88%', once: true }
+      });
+    });
+
+    // List rows nudge in from the left.
+    gsap.from('.about__list li', {
+      x: -28, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.07,
+      scrollTrigger: { trigger: '.about__list', start: 'top 85%', once: true }
+    });
+
+    // Typespec rows and contact columns arrive on a stagger.
+    gsap.from('.typespec li', {
+      y: 24, autoAlpha: 0, duration: 0.8, ease: 'expo.out', stagger: 0.06,
+      scrollTrigger: { trigger: '.typespec', start: 'top 88%', once: true }
+    });
+    gsap.from('.contacts__col', {
+      y: 30, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.1,
+      scrollTrigger: { trigger: '.contacts__grid', start: 'top 88%', once: true }
+    });
+    // The footer wordmark scales up as it comes into frame.
+    gsap.from('.contacts__mark svg', {
+      scaleY: 0.82, transformOrigin: 'bottom center', autoAlpha: 0,
+      duration: 1.2, ease: 'expo.out',
+      scrollTrigger: { trigger: '.contacts__mark', start: 'top 95%', once: true }
     });
   }
 
@@ -335,6 +484,9 @@
     initHero();
     initSlider();
     initNav();
+    initChrome();
+    initMarquee();
+    initMicroMotion();
     initReveals();
     initLoader();
     ScrollTrigger.refresh();

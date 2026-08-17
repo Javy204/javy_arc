@@ -123,10 +123,37 @@ hýbe, je scroll. Kód je v `initHeroScrub()`:
 - Scrub se zapne teprve po `HEAD` dotazu, že soubor existuje, a po
   `loadedmetadata`.
 
-**Doporučený export (DaVinci):** H.264, **1920 px na šířce**, **bez zvuku**,
-a hlavně **keyframe interval 1** (all-intra) — každý frame vlastní keyframe.
-Cíl do ~5 MB. Bez hustých keyframů musí prohlížeč u každého seeku dekódovat
-od předchozího keyframu, což scrub na slabších strojích trhá.
+### Čím rozhoduje plynulost
+
+Změřené na tomhle stroji (40 seeků, rozpočet jednoho frame při 60 fps je 16,7 ms):
+
+| Verze | Průměr seeku | Nad rozpočtem |
+|---|---|---|
+| 4K (originál) | 54 ms | většina |
+| 1080p | 13,2 ms | 10 / 40 |
+| **720p (nasazeno)** | **9,9 ms** | **1 / 40** |
+
+Takže **rozlišení rozhoduje víc než cokoli jiného** — 4K dekódování při seeku
+je 3× nad rozpočtem a viditelně trhá. Aktuální `hero.mp4` je proto 720p
+(8,9 MB). Video sedí za tmavým scrimem a pod logem, takže je to nepoznat.
+
+Druhý faktor je **kolik pixelů scrollu padne na jeden frame**. Teď ~4,7 px
+(dřív 20 px při krátkém videu, což byla ta krokovost). Řídí to
+`min-height` u `.hero.has-scrub` — **kratší dráha = plynulejší**, ne naopak.
+
+Převod na 720p jde vestavěným macOS nástrojem, ffmpeg není potřeba:
+
+```bash
+avconvert --source vstup.mp4 --preset Preset1280x720 --output hero.mp4 --replace
+```
+
+Presety: `Preset960x540`, `Preset1280x720`, `Preset1920x1080`. Kdybys chtěl
+ještě lehčí, 540p vyjde kolem 5 MB.
+
+**Co by pomohlo nad tohle:** export s **keyframe interval 1** (all-intra) —
+teď je keyframe každé ~2 s, takže prohlížeč musí u seeku dozadu dekódovat až
+50 framů. `avconvert` to neumí nastavit, chtělo by to ffmpeg nebo export
+z Resolve.
 
 ## Starší poznámka k videu
 

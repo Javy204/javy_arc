@@ -274,12 +274,14 @@
         });
 
         // Chase the target instead of snapping to it — a raw currentTime write
-        // on every scroll event makes the decoder thrash.
+        // on every scroll event makes the decoder thrash. And never queue a
+        // seek while one is still in flight; that is what causes the stutter.
         gsap.ticker.add(() => {
-          if (video.readyState < 2) return;
+          if (video.readyState < 2 || video.seeking) return;
           const now = video.currentTime;
-          const next = now + (target - now) * 0.18;
-          if (Math.abs(next - now) > 0.002) video.currentTime = next;
+          const delta = target - now;
+          if (Math.abs(delta) < 0.004) return;          // deadzone: already there
+          video.currentTime = now + delta * 0.18;
         });
       }, { once: true });
     }

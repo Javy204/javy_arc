@@ -565,8 +565,10 @@ html:not(.js) .loader { display: none; }
   background: var(--paper);
 }
 /* Extra scroll length exists only when there is footage to scrub through.
-   Without it the hero stays exactly one viewport tall. */
-.hero.has-scrub { min-height: 320svh; }
+   Without it the hero stays exactly one viewport tall.
+   Shorter distance = fewer pixels per video frame = smoother at slow scroll,
+   so keep this tight rather than generous. */
+.hero.has-scrub { min-height: 280svh; }
 
 .hero__stage {
   position: relative;

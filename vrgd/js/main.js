@@ -445,6 +445,57 @@
   }
 
   /* =======================================================
+     6bb. Shop — lookbook grid with a working size filter.
+     No cart: a static host cannot take payment, so each item
+     is an enquiry link until a real store is wired up.
+     ======================================================= */
+  function initShop() {
+    const grid = $('[data-shop-grid]');
+    const bar = $('[data-shop-filter]');
+    if (!grid || !bar) return;
+
+    const items = $$('[data-shop-item]', grid);
+    const buttons = $$('button', bar);
+    const empty = $('[data-shop-empty]');
+    const count = $('[data-shop-count]');
+
+    const setCount = (n) => {
+      if (count) count.textContent = `[${String(n).padStart(2, '0')}]`;
+    };
+    setCount(items.length);
+
+    function filter(size) {
+      let shown = 0;
+      items.forEach((item) => {
+        const sizes = (item.getAttribute('data-sizes') || '').split(/\s+/);
+        const match = size === 'all' || sizes.includes(size);
+        item.hidden = !match;
+        if (match) shown++;
+      });
+
+      buttons.forEach((b) => b.setAttribute('data-active', String(b.getAttribute('data-size') === size)));
+      if (empty) empty.hidden = shown > 0;
+      setCount(shown);
+
+      if (!REDUCED && shown) {
+        gsap.fromTo(items.filter((i) => !i.hidden),
+          { autoAlpha: 0, y: 14 },
+          { autoAlpha: 1, y: 0, duration: 0.5, ease: 'expo.out', stagger: 0.04, overwrite: true });
+      }
+      ScrollTrigger.refresh();
+    }
+
+    buttons.forEach((b) => b.addEventListener('click', () => filter(b.getAttribute('data-size'))));
+
+    if (!REDUCED) {
+      gsap.from(items, {
+        y: 40, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.06,
+        scrollTrigger: { trigger: grid, start: 'top 82%', once: true }
+      });
+    }
+  }
+
+  /* =======================================================
      6c. Logotype blend — press I to flip the big hero mark
      between sitting on the footage and inverting it.
      ======================================================= */
@@ -748,7 +799,8 @@
        into nothing and the page looked blank. */
     const modules = [
       ['dither', initDither], ['heroVideo', initHeroVideo], ['hero', initHero],
-      ['slider', initSlider], ['events', initEvents], ['logoBlend', initLogoBlend], ['nav', initNav],
+      ['slider', initSlider], ['events', initEvents], ['shop', initShop],
+      ['logoBlend', initLogoBlend], ['nav', initNav],
       ['chrome', initChrome], ['navSwitch', initNavSwitch], ['spine', initSpine],
       ['microMotion', initMicroMotion], ['reveals', initReveals], ['loader', initLoader]
     ];

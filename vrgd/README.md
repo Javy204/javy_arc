@@ -133,6 +133,24 @@ Rozlišení rozhoduje o zátěži víc než délka — 4K je zbytečné, video s
 scrimem a pod logem. Presety: `Preset960x540`, `Preset1280x720`,
 `Preset1920x1080`.
 
+## Shop — lookbook bez košíku
+
+Sekce `#shop`: mřížka produktů s **funkčním filtrem velikostí** a swapem fotky
+na hover (dva plátky pod sebou, druhý se prolne).
+
+**Košík tu záměrně není.** GitHub Pages je statika, platby musí řešit externí
+služba (Shopify/Stripe/Snipcart) — a předstírat košík, který nic neudělá, je
+horší než ho nemít. Každá položka je proto `mailto:` poptávka a nahoře stojí,
+že jde o lookbook.
+
+Filtr čte `data-sizes` na položce a schová nesedící přes `hidden` (tedy
+`display: none`, takže se mřížka přeskládá). Počet v hlavičce sekce se
+přepočítá; když nic nezbude, ukáže se hláška.
+
+Přidání produktu = jedno `<a class="prod" data-shop-item data-sizes="S M L">`
+do `[data-shop-grid]`. Až bude reálný obchod, tahle vrstva zůstane a napojí se
+na ni jen data a checkout.
+
 ## Klávesa I — blend logotypu
 
 Na landing page přepíná **klávesa `I`** velké logo mezi dvěma režimy:

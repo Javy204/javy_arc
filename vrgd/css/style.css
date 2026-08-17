@@ -523,10 +523,12 @@ html:not(.js) .loader { display: none; }
 .sidenav a {
   display: block;
   position: relative;
-  padding: 1.15rem .55rem 1.15rem 3rem;
+  /* Vertical padding tracks viewport height — with seven entries the list has
+     to stay inside short windows instead of running off the bottom. */
+  padding: clamp(.5rem, 1.35vh, 1.15rem) .55rem clamp(.5rem, 1.35vh, 1.15rem) 3rem;
   text-align: right;
   font-family: var(--f-inter);
-  font-size: clamp(.95rem, 1.15vw, 1.15rem);
+  font-size: clamp(.88rem, 1.05vw, 1.1rem);
   font-weight: 500;
   letter-spacing: .02em;
   color: color-mix(in srgb, var(--nav-fg) 50%, transparent);
@@ -916,6 +918,77 @@ html:not(.js) .loader { display: none; }
 @media (min-width: 768px) {
   .events { grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr) minmax(0, .9fr); }
 }
+
+/* ---------- Shop — lookbook grid, no cart ---------- */
+.shop__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: clamp(1.5rem, 4vh, 2.5rem);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
+}
+.shop__filter { display: flex; flex-wrap: wrap; gap: .35rem; align-items: baseline; }
+.shop__filter button {
+  padding: .3rem .55rem;
+  color: var(--dim);
+  cursor: pointer;
+  transition: color .25s ease, background-color .25s ease;
+}
+.shop__filter button:hover { color: var(--fg); }
+.shop__filter button[data-active="true"] {
+  color: var(--bg);
+  background: var(--fg);
+}
+
+.shop__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(1rem, 2vw, 1.8rem) clamp(.8rem, 1.6vw, 1.4rem);
+}
+.prod { display: grid; gap: .7rem; align-content: start; }
+.prod__thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--plate2);
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+.prod__thumb i {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transition: opacity .5s ease;
+}
+/* Second plate sits underneath and swaps in on hover, like the reference shop. */
+.prod__alt { opacity: 0; }
+.prod:hover .prod__alt { opacity: 1; }
+.prod:hover .prod__thumb i:first-child { opacity: 0; }
+
+.prod__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .8rem;
+  font-family: var(--f-inter);
+  font-size: clamp(.9rem, 1.1vw, 1.02rem);
+  font-weight: 500;
+  letter-spacing: -.01em;
+}
+.prod__meta .mono { font-weight: 400; }
+.prod__sizes { display: block; margin-top: -.35rem; }
+
+/* Filtered-out items collapse out of the grid entirely. */
+.prod[hidden] { display: none; }
+.shop__empty { padding-top: 2rem; }
+.shop__empty[hidden] { display: none; }
+
+@media (min-width: 768px) { .shop__grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1200px) { .shop__grid { grid-template-columns: repeat(4, 1fr); } }
 
 /* ---------- Assets ---------- */
 .assets__grid {

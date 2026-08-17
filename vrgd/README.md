@@ -251,6 +251,22 @@ Pod 768 px se všechny tři skrývají a nastupuje hamburger s fullscreen menu.
 > `index.html`, sekci `.navswitch` ve `style.css`, funkci `initNavSwitch()`
 > v `main.js`, a nech v CSS jen pravidla schovávající ty dvě nepoužité.
 
+## Navigace — dvě úrovně
+
+Sedm položek bylo vizuálně moc. Nav proto rozlišuje **dvě váhy**:
+
+- **Hlavní** — ABOUT, WORK, CONTACTS, GALLERY (Inter, plná velikost)
+- **Vedlejší** — EVENTS, SHOP, ASSETS (mono, menší, tlumené)
+
+Dělá to atribut **`data-tier="2"`** na odkazu; platí ve všech třech
+navigacích i ve fullscreen menu, aby hierarchie nesedela jen v jednom režimu.
+
+Pořadí zůstává **podle stránky**, ne přeskládané podle důležitosti — nav pak
+odpovídá tomu, čím při scrollování reálně procházíš.
+
+Přesun položky mezi úrovněmi = přidat/odebrat `data-tier="2"` u jejích odkazů
+(je jich několik, jeden na každou navigaci).
+
 ## Galerie — jak přidat fotky
 
 Obsah je v **`assets/gallery.json`**. Jedna položka = jedna dlaždice:

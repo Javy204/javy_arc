@@ -549,6 +549,36 @@ html:not(.js) .loader { display: none; }
 .sidenav a:hover::before { transform: scaleX(1); }
 .sidenav a:hover { color: var(--nav-fg); padding-right: .9rem; }
 .sidenav a[data-active="true"] { color: var(--nav-fg); }
+/* Second tier — EVENTS / SHOP / ASSETS still reachable, but they read as a
+   quiet mono sub-list instead of competing with the four main sections. */
+.sidenav a[data-tier="2"] {
+  padding-top: clamp(.3rem, .7vh, .55rem);
+  padding-bottom: clamp(.3rem, .7vh, .55rem);
+  font-family: var(--f-mono);
+  font-size: .66rem;
+  font-weight: 400;
+  letter-spacing: .1em;
+  color: color-mix(in srgb, var(--nav-fg) 36%, transparent);
+}
+.sidenav a[data-tier="2"]:hover,
+.sidenav a[data-tier="2"][data-active="true"] { color: var(--nav-fg); }
+.sidenav li:has(a[data-tier="2"]) + li:has(a[data-tier="2"]) { border-top-color: transparent; }
+
+.topnav a[data-tier="2"] { color: color-mix(in srgb, var(--nav-fg) 38%, transparent); }
+.topnav a[data-tier="2"]:hover,
+.topnav a[data-tier="2"][data-active="true"] { color: var(--nav-fg); }
+
+.menu__list a[data-tier="2"] {
+  font-size: clamp(1rem, 3vw, 1.7rem);
+  font-weight: 500;
+  color: color-mix(in srgb, var(--fg) 55%, transparent);
+}
+.menu__list a[data-tier="2"]:hover { color: var(--fg); }
+
+.jumpbar__list a[data-tier="2"] { opacity: .6; }
+.jumpbar__list a[data-tier="2"]:hover,
+.jumpbar__list a[data-tier="2"][data-active="true"] { opacity: 1; }
+
 .sidenav a[data-active="true"]::after {
   content: "";
   display: inline-block;

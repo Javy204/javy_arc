@@ -251,21 +251,20 @@ Pod 768 px se všechny tři skrývají a nastupuje hamburger s fullscreen menu.
 > `index.html`, sekci `.navswitch` ve `style.css`, funkci `initNavSwitch()`
 > v `main.js`, a nech v CSS jen pravidla schovávající ty dvě nepoužité.
 
-## Navigace — dvě úrovně
+## Navigace — co v ní je a co ne
 
-Sedm položek bylo vizuálně moc. Nav proto rozlišuje **dvě váhy**:
+Trvalé navigace (side nav / topnav / jumpbar) nesou **jen čtyři položky**:
+ABOUT, WORK, CONTACTS, GALLERY.
 
-- **Hlavní** — ABOUT, WORK, CONTACTS, GALLERY (Inter, plná velikost)
-- **Vedlejší** — EVENTS, SHOP, ASSETS (mono, menší, tlumené)
+**EVENTS, SHOP a ASSETS v nich nejsou vůbec.** Sekce na stránce zůstávají,
+projdeš je scrollem — a cílený proklik na ně je **v patičce**, ve čtvrtém
+sloupci „ALSO ON THIS PAGE". Fullscreen menu (mobil) si drží plný index,
+tam dává smysl mít všechno pohromadě; tyhle tři tam jsou o stupeň tišeji
+přes `data-tier="2"`.
 
-Dělá to atribut **`data-tier="2"`** na odkazu; platí ve všech třech
-navigacích i ve fullscreen menu, aby hierarchie nesedela jen v jednom režimu.
-
-Pořadí zůstává **podle stránky**, ne přeskládané podle důležitosti — nav pak
-odpovídá tomu, čím při scrollování reálně procházíš.
-
-Přesun položky mezi úrovněmi = přidat/odebrat `data-tier="2"` u jejích odkazů
-(je jich několik, jeden na každou navigaci).
+Když budeš chtít něco vrátit do hlavní lišty, je potřeba přidat `<li>` do
+**tří** míst (sidenav, topnav, jumpbar) — schválně nejsou generované z jednoho
+zdroje, protože každá má jinou strukturu a jiné chování.
 
 ## Galerie — jak přidat fotky
 

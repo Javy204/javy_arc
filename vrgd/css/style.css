@@ -566,9 +566,10 @@ html:not(.js) .loader { display: none; }
 }
 /* Extra scroll length exists only when there is footage to scrub through.
    Without it the hero stays exactly one viewport tall.
-   Shorter distance = fewer pixels per video frame = smoother at slow scroll,
-   so keep this tight rather than generous. */
-.hero.has-scrub { min-height: 280svh; }
+   Longer distance = less sensitive playback. Smoothness is handled by playing
+   the video rather than seeking it (see initHeroScrub), so this can be
+   generous without reintroducing the stepping. */
+.hero.has-scrub { min-height: 420svh; }
 
 .hero__stage {
   position: relative;

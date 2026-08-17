@@ -113,15 +113,40 @@ takže se záběr posune přesně o to, co odscrolluješ. Když soubor chybí, h
 zůstane vysoké jeden viewport a jede na něm halftone canvas. Nic se nemusí
 přepínat.
 
-Video se **nepřehrává samo** a nemá `loop` — je pauzované a jediné, co s ním
-hýbe, je scroll. Kód je v `initHeroScrub()`:
+Video se **nepřehrává samo** a nemá `loop` — jediné, co s ním hýbe, je scroll.
+Kód je v `initHeroScrub()`.
 
-- `currentTime` se **nenastavuje natvrdo** na každý scroll event, ale dohání
-  cíl lerpem (`0.18`). Bez toho dekodér mlátí sebou a obraz trhá.
-- Safari nedekóduje pro seek, dokud se přehrávání jednou nedotkneš — proto
-  to jednou tiše `play()` a hned `pause()`.
-- Scrub se zapne teprve po `HEAD` dotazu, že soubor existuje, a po
-  `loadedmetadata`.
+**Klíčové rozhodnutí: video se nescrubuje seekováním, ale skutečně se
+přehrává.** Seek znamená dekódování na každý frame a právě to trhalo.
+Rychlost přehrávání je proporcionální tomu, jak moc je video pozadu za cílem:
+
+```js
+video.playbackRate = clamp(RATE_MIN, RATE_MAX, gap * GAIN);
+```
+
+Díky tomu se to samo rozjíždí a dojíždí, nepřestřeluje, a obraz je plynulý,
+protože dekodér jede sekvenčně. **Seek se použije jen při scrollu nahoru**,
+kde přehrávání pozpátku neexistuje.
+
+Ladicí konstanty: `RATE_MIN`, `RATE_MAX`, `GAIN`, `DEAD` (deadzone, kdy se
+pauzuje).
+
+**Rychlostní křivka** je `power1.inOut` nad podílem scrollu — pomalý rozjezd,
+zrychlení v prostřední části, zpomalení na konci. Změna křivky = jeden řádek
+(`curve`).
+
+**Video dojede na `VIDEO_END` (0.82) pinu**, ne na konci. Zbylých 18 % scrollu
+je odjezd hera, takže záběr nikdy nedoběhne na statické obrazovce. Odjezd
+(parallax + fade loga) je řízený **ze stejného `onUpdate`**, aby existoval
+jeden zdroj pravdy; `initHero` si pro případ bez videa staví vlastní tweeny do
+`heroExit` a `arm()` je zabije.
+
+Citlivost se řídí `min-height` u `.hero.has-scrub` — **delší dráha = méně
+citlivé**. Plynulost na tom teď nezávisí, o tu se stará přehrávání.
+
+Safari nedekóduje pro seek, dokud se přehrávání jednou nedotkneš, proto jedno
+tiché `play()` + `pause()` na začátku. Scrub se zapne teprve po `HEAD` dotazu,
+že soubor existuje, a po `loadedmetadata`.
 
 ### Čím rozhoduje plynulost
 

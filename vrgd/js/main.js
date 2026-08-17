@@ -20,6 +20,10 @@
 
   const scrollTo = (target) => lenis.scrollTo(target, { offset: 0, duration: 1.4 });
 
+  /* Hero exit motion. initHero builds it for the plain, un-pinned hero;
+     initHeroScrub replaces it once footage is armed. */
+  let heroExit = [];
+
   /* =======================================================
      2. Reveals
      Prose  → SplitText words, Flip from ragged to justified.
@@ -259,7 +263,20 @@
 
         video.setAttribute('data-ready', 'true');
         hero.classList.add('has-scrub');
-        ScrollTrigger.refresh();
+
+        // The footage is done by this share of the pin; the rest of the scroll
+        // is the hero leaving, so the shot never ends on a static screen.
+        const VIDEO_END = 0.82;
+        const curve = gsap.parseEase('power1.inOut');   // the playback speed curve
+
+        // initHero built linear exit tweens for the un-pinned case. Drive the
+        // exit from this progress instead so both share one source of truth.
+        heroExit.forEach((tw) => { tw.scrollTrigger?.kill(); tw.kill(); });
+        heroExit = [];
+        const parallax = $('[data-hero-parallax]');
+        const logo = $('[data-hero-logo]');
+        gsap.set([parallax, logo], { yPercent: 0 });
+        gsap.set(logo, { autoAlpha: 1 });
 
         let target = 0;
 
@@ -269,19 +286,39 @@
           end: 'bottom bottom',
           pin: stage,
           pinSpacing: false,
-          scrub: true,
-          onUpdate: (self) => { target = self.progress * duration; }
+          onUpdate: (self) => {
+            const p = self.progress;
+            target = curve(gsap.utils.clamp(0, 1, p / VIDEO_END)) * duration;
+
+            const exit = gsap.utils.clamp(0, 1, (p - VIDEO_END) / (1 - VIDEO_END));
+            if (parallax) gsap.set(parallax, { yPercent: 12 * exit });
+            if (logo) gsap.set(logo, { yPercent: -18 * exit, autoAlpha: 1 - 0.8 * exit });
+          }
         });
 
-        // Chase the target instead of snapping to it — a raw currentTime write
-        // on every scroll event makes the decoder thrash. And never queue a
-        // seek while one is still in flight; that is what causes the stutter.
+        ScrollTrigger.refresh();
+
+        /* Follow the target by PLAYING, not seeking. Seeking costs a decode
+           every frame and is what made this stutter; native playback is
+           sequential and smooth. Rate is proportional to how far behind we
+           are, so it eases in and out on its own and settles without
+           overshooting. Only scrolling back up needs a real seek. */
+        const RATE_MIN = 0.12, RATE_MAX = 3.2, GAIN = 2.4, DEAD = 0.03;
+
         gsap.ticker.add(() => {
-          if (video.readyState < 2 || video.seeking) return;
+          if (video.readyState < 2) return;
           const now = video.currentTime;
-          const delta = target - now;
-          if (Math.abs(delta) < 0.004) return;          // deadzone: already there
-          video.currentTime = now + delta * 0.18;
+          const gap = target - now;
+
+          if (gap > DEAD) {
+            video.playbackRate = gsap.utils.clamp(RATE_MIN, RATE_MAX, gap * GAIN);
+            if (video.paused) video.play().catch(() => {});
+          } else if (gap < -DEAD) {
+            if (!video.paused) video.pause();
+            if (!video.seeking) video.currentTime = now + gap * 0.2;
+          } else if (!video.paused) {
+            video.pause();
+          }
         });
       }, { once: true });
     }
@@ -295,20 +332,20 @@
     if (!logo) return;
 
     if (!REDUCED) {
-      // Both of these ride the tail of the hero, so they read the same whether
-      // the hero is one viewport or pinned across several.
-      gsap.to('[data-hero-parallax]', {
+      // Exit motion for the plain hero. If footage arms the scrub, these get
+      // killed and the same movement is driven off the pin's progress instead.
+      heroExit.push(gsap.to('[data-hero-parallax]', {
         yPercent: 12,
         ease: 'none',
         scrollTrigger: { trigger: '.hero', start: 'bottom bottom', end: 'bottom top', scrub: true }
-      });
+      }));
       // No scale here — the loader owns that channel and a scrub would fight it.
-      gsap.to(logo, {
+      heroExit.push(gsap.to(logo, {
         yPercent: -18,
         autoAlpha: 0.2,
         ease: 'none',
         scrollTrigger: { trigger: '.hero', start: 'bottom bottom+=25%', end: 'bottom top', scrub: true }
-      });
+      }));
     }
 
     const r = $('.split--r', logo);

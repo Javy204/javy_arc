@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gallery — VRgD</title>
-<meta name="description" content="VRgD — archive. An infinite grid.">
+<title>Shop — VRgD</title>
+<meta name="description" content="VRgD — lookbook.">
 <script>
 document.documentElement.classList.add('js');
 (function () {
@@ -20,7 +20,7 @@ document.documentElement.classList.add('js');
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/style.css?v=22">
 </head>
-<body data-page="gallery">
+<body data-page="shop">
 
 <svg class="sprite" aria-hidden="true" focusable="false">
   <symbol id="vrgd" viewBox="0 0 1839 827">
@@ -55,27 +55,73 @@ document.documentElement.classList.add('js');
   </button>
 </header>
 
-<!-- ============ INFINITE GRID ============ -->
 <main>
-  <section class="ig" data-ig-init data-ig-status="loading" aria-label="Gallery">
-    <div class="ig__collection" data-ig-collection>
-      <div class="ig__list" data-ig-list role="list"></div>
+  <!-- ============ SHOP ============ -->
+  <section class="section section--shop" id="shop" data-section="SHOP">
+    <div class="section__head">
+      <span class="mono is-dim">[06]</span>
+      <span class="mono">SHOP</span>
+      <span class="mono is-dim" data-shop-count>[00]</span>
     </div>
-  </section>
 
-  <div class="ig__hud" aria-hidden="true">
-    <div class="ig__hud-left">
-      <span class="mono is-dim">[07]</span>
-      <span class="mono">GALLERY</span>
-      <span class="mono is-dim" data-ig-count>[00]</span>
+    <div class="shop__bar">
+      <p class="shop__note mono is-dim">LOOKBOOK — ENQUIRIES BY MAIL UNTIL THE STORE OPENS</p>
+      <div class="shop__filter" data-shop-filter>
+        <span class="mono is-dim">AVAILABLE SIZE</span>
+        <button class="mono" data-size="all" data-active="true">ALL</button>
+        <button class="mono" data-size="XS">XS</button>
+        <button class="mono" data-size="S">S</button>
+        <button class="mono" data-size="M">M</button>
+        <button class="mono" data-size="L">L</button>
+        <button class="mono" data-size="XL">XL</button>
+      </div>
     </div>
-    <div class="ig__hud-right mono is-dim">
-      <span data-ig-hint>DRAG · SCROLL</span>
+
+    <div class="shop__grid" data-shop-grid>
+      <a class="prod" href="mailto:hello@vrgd.studio?subject=VRgD%20—%20Register%20Tee" data-shop-item data-sizes="S M L XL" data-cursor-hover data-cursor-text="ENQUIRE">
+        <span class="prod__thumb"><i data-placeholder="1"></i><i class="prod__alt" data-placeholder="4"></i></span>
+        <span class="prod__meta"><span>Register Tee</span><span class="mono">€45</span></span>
+        <span class="prod__sizes mono is-dim">S · M · L · XL</span>
+      </a>
+      <a class="prod" href="mailto:hello@vrgd.studio?subject=VRgD%20—%20Misregister%20Hoodie" data-shop-item data-sizes="M L XL" data-cursor-hover data-cursor-text="ENQUIRE">
+        <span class="prod__thumb"><i data-placeholder="2"></i><i class="prod__alt" data-placeholder="5"></i></span>
+        <span class="prod__meta"><span>Misregister Hoodie</span><span class="mono">€95</span></span>
+        <span class="prod__sizes mono is-dim">M · L · XL</span>
+      </a>
+      <a class="prod" href="mailto:hello@vrgd.studio?subject=VRgD%20—%20Halftone%20Cap" data-shop-item data-sizes="XS S M L XL" data-cursor-hover data-cursor-text="ENQUIRE">
+        <span class="prod__thumb"><i data-placeholder="3"></i><i class="prod__alt" data-placeholder="6"></i></span>
+        <span class="prod__meta"><span>Halftone Cap</span><span class="mono">€35</span></span>
+        <span class="prod__sizes mono is-dim">ONE SIZE</span>
+      </a>
+      <a class="prod" href="mailto:hello@vrgd.studio?subject=VRgD%20—%20Contact%20Sheet%20Longsleeve" data-shop-item data-sizes="XS S M" data-cursor-hover data-cursor-text="ENQUIRE">
+        <span class="prod__thumb"><i data-placeholder="4"></i><i class="prod__alt" data-placeholder="1"></i></span>
+        <span class="prod__meta"><span>Contact Sheet LS</span><span class="mono">€65</span></span>
+        <span class="prod__sizes mono is-dim">XS · S · M</span>
+      </a>
+      <a class="prod" href="mailto:hello@vrgd.studio?subject=VRgD%20—%20Archive%20Tote" data-shop-item data-sizes="XS S M L XL" data-cursor-hover data-cursor-text="ENQUIRE">
+        <span class="prod__thumb"><i data-placeholder="5"></i><i class="prod__alt" data-placeholder="2"></i></span>
+        <span class="prod__meta"><span>Archive Tote</span><span class="mono">€28</span></span>
+        <span class="prod__sizes mono is-dim">ONE SIZE</span>
+      </a>
+      <a class="prod" href="mailto:hello@vrgd.studio?subject=VRgD%20—%20Plate%20Poster" data-shop-item data-sizes="XS S M L XL" data-cursor-hover data-cursor-text="ENQUIRE">
+        <span class="prod__thumb"><i data-placeholder="6"></i><i class="prod__alt" data-placeholder="3"></i></span>
+        <span class="prod__meta"><span>Plate Poster A1</span><span class="mono">€22</span></span>
+        <span class="prod__sizes mono is-dim">A1 · RISO</span>
+      </a>
     </div>
-  </div>
+
+    <p class="shop__empty mono is-dim" data-shop-empty hidden>NOTHING IN THAT SIZE — TRY ANOTHER.</p>
+  </section>
 </main>
 
-<!-- popups are injected here by gallery.js -->
+<nav class="pagefoot" aria-label="Elsewhere">
+  <span class="mono is-dim">ELSEWHERE</span>
+  <div class="pagefoot__links">
+    <a href="index.html" data-scramble-hover="link" data-cursor-hover data-cursor-text="00"><span data-scramble-hover="target">INDEX</span></a>
+    <a href="events.html" data-scramble-hover="link" data-cursor-hover data-cursor-text="05"><span data-scramble-hover="target">EVENTS</span></a>
+    <a href="gallery.html" data-scramble-hover="link" data-cursor-hover data-cursor-text="07"><span data-scramble-hover="target">GALLERY</span></a>
+  </div>
+</nav>
 
 <div class="menu-wrapper" data-menu-wrapper>
   <div class="menu is-invert" data-menu>
@@ -89,8 +135,8 @@ document.documentElement.classList.add('js');
       <li><a href="index.html#assets" data-tier="2" data-scramble-hover="link"><span class="mono is-dim">03</span><span data-scramble-hover="target">ASSETS</span></a></li>
       <li><a href="index.html#contacts" data-scramble-hover="link"><span class="mono is-dim">04</span><span data-scramble-hover="target">CONTACTS</span></a></li>
       <li><a href="events.html" data-tier="2" data-scramble-hover="link"><span class="mono is-dim">05</span><span data-scramble-hover="target">EVENTS</span></a></li>
-      <li><a href="shop.html" data-tier="2" data-scramble-hover="link"><span class="mono is-dim">06</span><span data-scramble-hover="target">SHOP</span></a></li>
-      <li><a href="gallery.html" data-scramble-hover="link" aria-current="page"><span class="mono is-dim">07</span><span data-scramble-hover="target">GALLERY</span></a></li>
+      <li><a href="shop.html" data-tier="2" data-scramble-hover="link" aria-current="page"><span class="mono is-dim">06</span><span data-scramble-hover="target">SHOP</span></a></li>
+      <li><a href="gallery.html" data-scramble-hover="link"><span class="mono is-dim">07</span><span data-scramble-hover="target">GALLERY</span></a></li>
     </ul>
     <div class="menu__foot mono is-dim">
       <span>PRAGUE — CZ</span><span data-local-time>--:--:--</span>
@@ -99,10 +145,10 @@ document.documentElement.classList.add('js');
 </div>
 
 <script src="js/vendor/gsap.min.js"></script>
+<script src="js/vendor/ScrollTrigger.min.js"></script>
 <script src="js/vendor/Observer.min.js"></script>
-<script src="js/vendor/Draggable.min.js"></script>
-<script src="js/vendor/InertiaPlugin.min.js"></script>
+<script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=3"></script>
-<script src="js/gallery.js?v=1"></script>
+<script src="js/pages.js?v=4"></script>
 </body>
 </html>

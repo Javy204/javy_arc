@@ -20,9 +20,12 @@ Pak `http://localhost:3336`. (V Claude Code je nakonfigurovaný jako preview ser
 | `index.html` | Celá stránka. Logo je inline SVG `<symbol id="vrgd">`, používá se přes `<use>`. |
 | `css/style.css` | Kompletní styl. Barvy a fonty jsou nahoře jako CSS proměnné. |
 | `gallery.html` | Galerie — nekonečná draggable mřížka. |
+| `events.html` | Události — vertikální karusel. |
+| `shop.html` | Lookbook — mřížka s filtrem velikostí. |
 | `js/shared.js` | Společné pro všechny stránky: kurzor, scramble, menu, hodiny. |
 | `js/main.js` | Jen index — loader, hero, slider, revealy, nav. |
 | `js/gallery.js` | Jen galerie — mřížka a pop-upy. |
+| `js/pages.js` | Podstránky events + shop. Každý blok se vypne, když jeho markup na stránce není. |
 | `assets/gallery.json` | **Obsah galerie.** Tady se přidávají fotky. |
 | `js/vendor/` | GSAP 3.15 (+ ScrollTrigger, SplitText, Flip, Draggable, Inertia, CustomEase, Observer) a Lenis. Lokálně, nic se netahá z CDN. |
 | `assets/fonts/` | Mea Culpa, Inter, Annie Use Your Telescope, Instrument Sans jako woff2. |
@@ -135,7 +138,7 @@ scrimem a pod logem. Presety: `Preset960x540`, `Preset1280x720`,
 
 ## Shop — lookbook bez košíku
 
-Sekce `#shop`: mřížka produktů s **funkčním filtrem velikostí** a swapem fotky
+Stránka `shop.html`: mřížka produktů s **funkčním filtrem velikostí** a swapem fotky
 na hover (dva plátky pod sebou, druhý se prolne).
 
 **Košík tu záměrně není.** GitHub Pages je statika, platby musí řešit externí
@@ -174,7 +177,7 @@ přes sebe se perou.
 
 ## Events — vertikální karusel
 
-Sekce `#events`: tři sloupce — jména vlevo, artworky uprostřed, data vpravo.
+Stránka `events.html`: tři sloupce — jména vlevo, artworky uprostřed, data vpravo.
 Aktivní se drží ve všech třech zároveň.
 
 Postavené na **`Observer`**, ne na Swiperu, aby nepřibyla další závislost.
@@ -251,20 +254,40 @@ Pod 768 px se všechny tři skrývají a nastupuje hamburger s fullscreen menu.
 > `index.html`, sekci `.navswitch` ve `style.css`, funkci `initNavSwitch()`
 > v `main.js`, a nech v CSS jen pravidla schovávající ty dvě nepoužité.
 
-## Navigace — co v ní je a co ne
+## Struktura — co je kde
 
-Trvalé navigace (side nav / topnav / jumpbar) nesou **jen čtyři položky**:
-ABOUT, WORK, CONTACTS, GALLERY.
+**Index** nese jen `hero`, `about`, `work`, `assets`, `contacts`. Trvalé
+navigace (side nav / topnav / jumpbar) proto mají **čtyři položky**: ABOUT,
+WORK, CONTACTS, GALLERY.
 
-**EVENTS, SHOP a ASSETS v nich nejsou vůbec.** Sekce na stránce zůstávají,
-projdeš je scrollem — a cílený proklik na ně je **v patičce**, ve čtvrtém
-sloupci „ALSO ON THIS PAGE". Fullscreen menu (mobil) si drží plný index,
-tam dává smysl mít všechno pohromadě; tyhle tři tam jsou o stupeň tišeji
-přes `data-tier="2"`.
+**EVENTS a SHOP jsou samostatné stránky** — `events.html` a `shop.html`.
+Dostaneš se na ně:
 
-Když budeš chtít něco vrátit do hlavní lišty, je potřeba přidat `<li>` do
-**tří** míst (sidenav, topnav, jumpbar) — schválně nejsou generované z jednoho
-zdroje, protože každá má jinou strukturu a jiné chování.
+- ze patičky indexu, sloupec **MORE**
+- z fullscreen menu (má plný index, tyhle o stupeň tišeji přes `data-tier="2"`)
+- z lišty **ELSEWHERE** na dně každé podstránky
+
+Číslování je stabilní a nezávislé na tom, kde sekce leží:
+`01 ABOUT · 02 WORK · 03 ASSETS · 04 CONTACTS · 05 EVENTS · 06 SHOP · 07 GALLERY`
+
+### Podstránky
+
+Sdílejí `shared.js` (kurzor, scramble, menu, hodiny) a `pages.js` (Lenis +
+karusel + filtr). Nemají loader ani spinu — jsou to jednoúčelové stránky.
+
+> **Dvě pasti, na které jsem narazil:**
+>
+> Skrytý pre-roll stav navbaru byl `.js .navbar { opacity: 0 }` a odhaloval ho
+> **loader, který je jen na indexu**. Na podstránkách tedy lišta zůstávala
+> neviditelná (postihovalo to i galerii). Teď je to scopnuté na
+> `body[data-loading="true"]`.
+>
+> `initHeadings()` scrambluje mono v hlavičkách sekcí — a přepisovalo to
+> počty, které dopočítá `initShop`/`initEvents`. Proto **headings běží v
+> `pages.js` jako poslední** a text čte až v `onEnter`.
+
+Podstránky nemají trvalou lištu, takže se jim hamburger zobrazuje i na
+desktopu (`body[data-page] .menu-button`).
 
 ## Galerie — jak přidat fotky
 

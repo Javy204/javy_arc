@@ -395,7 +395,10 @@ html:not(.js) .loader { display: none; }
   transition: transform .5s cubic-bezier(.16, 1, .3, 1);
 }
 :root[data-theme="dark"] .themetoggle i { transform: rotate(180deg); }
-.js .navbar { opacity: 0; transform: translateY(-1em); }
+/* Hidden only while the index loader is running. Subpages have no loader, so
+   without scoping this the navbar stayed invisible there — and the corner
+   logotype is the only way back. */
+.js body[data-loading="true"] .navbar { opacity: 0; transform: translateY(-1em); }
 .navbar__mark { width: clamp(52px, 5vw, 74px); flex: 0 0 auto; }
 .navbar__mark svg { width: 100%; height: auto; fill: currentColor; }
 .navbar__meta { display: flex; gap: .9rem; align-items: baseline; }
@@ -908,6 +911,10 @@ html:not(.js) .loader { display: none; }
   margin-left: calc(min(100%, 26rem) / -2);
   display: grid;
   gap: .6rem;
+  padding-bottom: .5rem;
+  /* Opaque so the stacked neighbours cannot show through behind the title —
+     same colour as the section, so it reads as no panel at all. */
+  background: var(--bg);
   will-change: transform;
 }
 .events__art {
@@ -1150,6 +1157,36 @@ html:not(.js) .loader { display: none; }
    Clip reveal — plates wipe in from the bottom
    ========================================================= */
 .js [data-clip] { clip-path: inset(100% 0 0 0); }
+
+/* =========================================================
+   Subpages (events, shop, gallery)
+   ========================================================= */
+/* No persistent nav lives here, so the hamburger has to be reachable on
+   desktop too — otherwise the only way back is the corner logotype. */
+body[data-page] .menu-button { display: flex; }
+
+/* Subpages start below the fixed navbar. */
+body[data-page="events"] main,
+body[data-page="shop"] main { padding-top: var(--nav-h); }
+
+.pagefoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .8rem clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(2rem, 6vh, 4rem) var(--pad) clamp(2.5rem, 7vh, 5rem);
+  border-top: 1px solid var(--line);
+}
+.pagefoot__links { display: flex; flex-wrap: wrap; gap: .6rem clamp(1rem, 2.5vw, 2rem); }
+.pagefoot__links a {
+  font-family: var(--f-inter);
+  font-size: clamp(1.1rem, 2vw, 1.7rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  cursor: pointer;
+  transition: color .3s ease;
+}
+.pagefoot__links a:hover { color: var(--dim); }
 
 /* =========================================================
    Gallery — infinite draggable grid

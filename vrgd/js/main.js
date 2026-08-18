@@ -368,134 +368,6 @@
   }
 
   /* =======================================================
-     6b. Events — vertical carousel with two synced meta columns.
-     Built on Observer rather than pulling in another slider.
-     ======================================================= */
-  function initEvents() {
-    const root = $('[data-events]');
-    const stage = $('[data-events-stage]');
-    if (!root || !stage) return;
-
-    const cards = $$('[data-events-card]', stage);
-    const namesList = $('[data-events-names]');
-    const dates = $$('[data-events-dates] li');
-    if (!cards.length) return;
-
-    // Names column is generated from the cards so the two can never drift.
-    cards.forEach((card, i) => {
-      const li = document.createElement('li');
-      li.innerHTML = `<span class="events__bullet"></span>[${String(i + 1).padStart(2, '0')}] ${card.querySelector('h3').textContent}`;
-      li.addEventListener('click', () => go(i));
-      namesList?.appendChild(li);
-    });
-    const names = $$('li', namesList);
-
-    const count = $('[data-events-count]');
-    if (count) count.textContent = `[${String(cards.length).padStart(2, '0')}]`;
-
-    const SPACING = 78;   // px between stacked cards
-    let index = 0;
-
-    function layout(animate) {
-      cards.forEach((card, i) => {
-        const off = i - index;
-        const away = Math.abs(off);
-        gsap.to(card, {
-          yPercent: -50,
-          y: off * SPACING,
-          scale: Math.max(0.72, 1 - away * 0.11),
-          autoAlpha: away === 0 ? 1 : Math.max(0, 0.42 - (away - 1) * 0.18),
-          zIndex: cards.length - away,
-          duration: animate ? 0.75 : 0,
-          ease: 'expo.out',
-          overwrite: 'auto'
-        });
-      });
-      names.forEach((li, i) => li.setAttribute('data-active', String(i === index)));
-      dates.forEach((li, i) => li.setAttribute('data-active', String(i === index)));
-    }
-
-    function go(next) {
-      const clamped = gsap.utils.clamp(0, cards.length - 1, next);
-      if (clamped === index) return;
-      index = clamped;
-      layout(true);
-    }
-
-    layout(false);
-
-    if (REDUCED) return;
-
-    // Wheel and drag move one step at a time; the section keeps its own scroll
-    // once an edge is reached, so the page never feels trapped.
-    Observer.create({
-      target: stage,
-      type: 'wheel,touch',
-      tolerance: 40,
-      preventDefault: false,
-      onUp: () => go(index - 1),
-      onDown: () => go(index + 1)
-    });
-
-    gsap.from(cards, {
-      y: 40, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.06,
-      scrollTrigger: { trigger: root, start: 'top 80%', once: true },
-      onComplete: () => layout(false)
-    });
-  }
-
-  /* =======================================================
-     6bb. Shop — lookbook grid with a working size filter.
-     No cart: a static host cannot take payment, so each item
-     is an enquiry link until a real store is wired up.
-     ======================================================= */
-  function initShop() {
-    const grid = $('[data-shop-grid]');
-    const bar = $('[data-shop-filter]');
-    if (!grid || !bar) return;
-
-    const items = $$('[data-shop-item]', grid);
-    const buttons = $$('button', bar);
-    const empty = $('[data-shop-empty]');
-    const count = $('[data-shop-count]');
-
-    const setCount = (n) => {
-      if (count) count.textContent = `[${String(n).padStart(2, '0')}]`;
-    };
-    setCount(items.length);
-
-    function filter(size) {
-      let shown = 0;
-      items.forEach((item) => {
-        const sizes = (item.getAttribute('data-sizes') || '').split(/\s+/);
-        const match = size === 'all' || sizes.includes(size);
-        item.hidden = !match;
-        if (match) shown++;
-      });
-
-      buttons.forEach((b) => b.setAttribute('data-active', String(b.getAttribute('data-size') === size)));
-      if (empty) empty.hidden = shown > 0;
-      setCount(shown);
-
-      if (!REDUCED && shown) {
-        gsap.fromTo(items.filter((i) => !i.hidden),
-          { autoAlpha: 0, y: 14 },
-          { autoAlpha: 1, y: 0, duration: 0.5, ease: 'expo.out', stagger: 0.04, overwrite: true });
-      }
-      ScrollTrigger.refresh();
-    }
-
-    buttons.forEach((b) => b.addEventListener('click', () => filter(b.getAttribute('data-size'))));
-
-    if (!REDUCED) {
-      gsap.from(items, {
-        y: 40, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.06,
-        scrollTrigger: { trigger: grid, start: 'top 82%', once: true }
-      });
-    }
-  }
-
-  /* =======================================================
      6c. Logotype blend — press I to flip the big hero mark
      between sitting on the footage and inverting it.
      ======================================================= */
@@ -799,8 +671,7 @@
        into nothing and the page looked blank. */
     const modules = [
       ['dither', initDither], ['heroVideo', initHeroVideo], ['hero', initHero],
-      ['slider', initSlider], ['events', initEvents], ['shop', initShop],
-      ['logoBlend', initLogoBlend], ['nav', initNav],
+      ['slider', initSlider], ['logoBlend', initLogoBlend], ['nav', initNav],
       ['chrome', initChrome], ['navSwitch', initNavSwitch], ['spine', initSpine],
       ['microMotion', initMicroMotion], ['reveals', initReveals], ['loader', initLoader]
     ];

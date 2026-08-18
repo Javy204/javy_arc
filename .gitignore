@@ -16,7 +16,3 @@ _site/
 
 # koš (smazané fotky/složky — mimo web)
 _trash/
-
-# VRgD hero video — drz mimo repo. GitHub Pages nema zadnou ochranu obsahu,
-# takze cokoli tady je, je verejne stazitelne primou adresou.
-vrgd/assets/*.mp4

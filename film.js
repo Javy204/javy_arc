@@ -132,6 +132,62 @@ function fitText() {
 }
 
 /* ---- WORK: scrollovatelný index + sticky reveal ---- */
+// telefon = jiný layout WORKu (fotky v přirozeném poměru, míň náhledů) — jedno místo pravdy
+const PHONE_Q = window.matchMedia("(max-width: 720px)");
+const isPhone = () => PHONE_Q.matches;
+/* ============================================================
+   LAYOUTY BĚHU FOTEK POD HEREM (přepínač L)
+   „pics" = kolik fotek celkem (1. je hero), zbytek se skládá pod něj.
+   Kolážové layouty se NEOŘEZÁVAJÍ: velikost se počítá z poměru stran
+   (viz sizeCollagePh), překryv dělá záporný horní okraj a scroll je
+   zase rozjíždí od sebe (rychlost `sp`), zaostřená fotka jde navrch.
+   w = zlomek šířky sloupce (odtud se velikost počítá — jinak portréty
+   vyjdou úzké), maxH = strop výšky ve zlomku okna, ov = překryv ve zlomku
+   okna, x = 0 vlevo … 1 vpravo v rámci volného místa, sp = rychlost odjezdu.
+   ============================================================ */
+const LAYOUTS = {
+  S: {                       // klidný sloupec, žádný překryv (původní chování)
+    name: "SLOUPEC", collage: false, pics: { phone: 2, desk: 5 },
+  },
+  K: {                       // koláž: fotky bloudí do stran a nesymetricky se překrývají
+    name: "KOLÁŽ", collage: true, pics: { phone: 4, desk: 5 },
+    ph: (rnd, k, phone) => ({
+      w:    (phone ? 0.62 : 0.34) + rnd(0) * (phone ? 0.26 : 0.20),
+      maxH: phone ? 0.60 : 0.86,
+      // bloudění místo střídání krajů: sousední fotky jsou blízko sebe → reálně se překryjí
+      x:    0.5 + 0.5 * Math.sin(k * 2.3 + rnd(1) * 6.28),
+      ov:   k === 0 ? 0 : (phone ? 0.06 : 0.20) + rnd(2) * (phone ? 0.08 : 0.16),
+      sp:   (k % 2 ? 1 : -1) * ((phone ? 14 : 22) + rnd(3) * (phone ? 12 : 20)),
+    }),
+  },
+  D: {                       // kaskáda: schodiště napříč, silnější překryv
+    name: "KASKÁDA", collage: true, pics: { phone: 5, desk: 7 },
+    ph: (rnd, k, phone) => ({
+      w:    (phone ? 0.60 : 0.32) + rnd(0) * (phone ? 0.20 : 0.14),
+      maxH: phone ? 0.56 : 0.80,
+      x:    ((k * 0.34) % 1.2 > 1 ? 2 - (k * 0.34) % 1.2 : (k * 0.34) % 1.2),
+      ov:   k === 0 ? 0 : (phone ? 0.12 : 0.28) + rnd(1) * 0.08,
+      sp:   (phone ? -20 : -34) + k * (phone ? 12 : 20),
+    }),
+  },
+  T: {                       // stoh: fotky skoro na sobě, scroll je rozevírá nejvíc
+    name: "STOH", collage: true, pics: { phone: 5, desk: 7 },
+    ph: (rnd, k, phone) => ({
+      w:    (phone ? 0.70 : 0.40) + rnd(0) * (phone ? 0.20 : 0.18),
+      maxH: phone ? 0.64 : 0.90,
+      x:    0.5 + (k % 2 ? 1 : -1) * (0.10 + rnd(1) * 0.18),
+      ov:   k === 0 ? 0 : (phone ? 0.20 : 0.38) + rnd(2) * 0.08,
+      sp:   (k % 2 ? 1 : -1) * ((phone ? 22 : 38) + rnd(3) * (phone ? 10 : 18)),
+    }),
+  },
+};
+const LAYOUT_ORDER = ["S", "K", "D", "T"];
+let wfLayout = LAYOUTS[new URLSearchParams(location.search).get("wl")] ? new URLSearchParams(location.search).get("wl")
+             : (LAYOUTS[localStorage.getItem("javy-wflayout")] ? localStorage.getItem("javy-wflayout") : "K");
+// stabilní pseudonáhoda: stejný akt + stejná fotka = vždy stejné rozložení (nepřeskakuje mezi rendery)
+function seeded(a, k) {
+  return (s) => { const x = Math.sin((a + 1) * 12.9898 + (k + 1) * 78.233 + (s + 1) * 37.719) * 43758.5453; return x - Math.floor(x); };
+}
 // fotky setu (u skupiny ber první shoot) + rovnoměrný výběr n snímků napříč shootem
 function imagesOf(set) { return set.images || (set.shoots && set.shoots[0] && set.shoots[0].images) || []; }
 function sampleImages(imgs, n) {
@@ -297,28 +353,64 @@ function panReveal(wr, vh) {
    Každý shoot = akt ve svislém scrollu: hero full-bleed + jméno přes,
    pak editorial běh fotek. Parallax (typ vs obraz jinou rychlostí) + reveal.
    ============================================================ */
+let wfPhone = null;    // pro jakou šířku je film aktuálně vyrenderovaný
+let cPhs = [];         // kolážové fotky napříč všemi akty: {el, img, act, h, maxW, x, ov, sp}
 function renderWorkFilm() {
   if (!workFilm) return;
-  workFilm.innerHTML = ""; wfActs = [];
+  wfPhone = isPhone();
+  const L = LAYOUTS[wfLayout] || LAYOUTS.K;
+  workFilm.innerHTML = ""; wfActs = []; cPhs = [];
   SETS.forEach((set, i) => {
     const imgs = imagesOf(set);
-    const pics = sampleImages(imgs, 5);            // hero + až 4 (dokud nemáme ruční výběr)
+    const pics = sampleImages(imgs, wfPhone ? L.pics.phone : L.pics.desk);
     const hero = pics[0] || coverOf(set) || "";
     const r = pics.slice(1);
     const shots = set.count || imgs.length;
     const act = document.createElement("section"); act.className = "act";
     let run = "";
-    if (r[0]) run += `<div class="wf-ph wf-solo reveal"><img alt="" src="${r[0]}"></div>`;
-    if (r[1] || r[2]) run += `<div class="wf-row">${r[1] ? `<div class="wf-ph reveal"><img alt="" src="${r[1]}"></div>` : ""}${r[2] ? `<div class="wf-ph reveal"><img alt="" src="${r[2]}"></div>` : ""}</div>`;
-    if (r[3]) run += `<div class="wf-ph wf-tail reveal"><img alt="" src="${r[3]}"></div>`;
+    if (L.collage) {
+      run = r.map((src, k) => `<div class="wf-ph cph" style="z-index:${k + 1}"><img alt="" src="${src}"></div>`).join("");
+    } else {
+      if (r[0]) run += `<div class="wf-ph wf-solo reveal"><img alt="" src="${r[0]}"></div>`;
+      if (r[1] || r[2]) run += `<div class="wf-row">${r[1] ? `<div class="wf-ph reveal"><img alt="" src="${r[1]}"></div>` : ""}${r[2] ? `<div class="wf-ph reveal"><img alt="" src="${r[2]}"></div>` : ""}</div>`;
+      if (r[3]) run += `<div class="wf-ph wf-tail reveal"><img alt="" src="${r[3]}"></div>`;
+    }
     act.innerHTML =
       `<figure class="wf-hero reveal"><img alt="" src="${hero}"><figcaption class="wf-name"><span class="wf-name-i">${set.title}</span></figcaption></figure>` +
-      `<div class="wf-run">${run}</div>` +
+      `<div class="wf-run${L.collage ? " collage" : ""}">${run}</div>` +
       `<div class="wf-meta reveal">${pad2(i + 1)} / ${pad2(SETS.length)} · ${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""} · OTEVŘÍT ↗</div>`;
     act.querySelectorAll(".wf-hero, .wf-ph, .wf-meta").forEach((el) => el.addEventListener("click", () => openShoot(i)));
     workFilm.appendChild(act); wfActs.push(act);
+    if (L.collage) {
+      act.querySelectorAll(".cph").forEach((el, k) => {
+        const rec = Object.assign({ el, img: el.querySelector("img"), act }, L.ph(seeded(i, k), k, wfPhone));
+        cPhs.push(rec);
+        const apply = () => sizeCollagePh(rec);
+        rec.img.addEventListener("load", apply);
+        if (rec.img.complete && rec.img.naturalWidth) apply();
+      });
+    }
   });
 }
+/* velikost kolážové fotky: nikdy neořezávat — z poměru stran dopočítej šířku,
+   a když se nevejde do sloupce, zmenši výšku (ne ořízni). */
+function sizeCollagePh(rec) {
+  const par = rec.el.parentElement; if (!par) return;
+  // POZOR: clientWidth je včetně paddingu, ale margin-left se počítá od obsahové
+  // hrany — bez odečtení paddingu fotky přetečou vpravo a telefon jde do stran.
+  const cs = getComputedStyle(par);
+  const cw = par.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+  const vh = window.innerHeight || 860;
+  if (cw <= 0) return;
+  const im = rec.img;
+  const ar = (im.naturalWidth && im.naturalHeight) ? im.naturalWidth / im.naturalHeight : 0.72;
+  let w = rec.w * cw;                       // velikost se řídí šířkou sloupce…
+  if (w / ar > rec.maxH * vh) w = rec.maxH * vh * ar;   // …a strop výšky hlídá, ať se vejde do okna
+  rec.el.style.width = Math.round(w) + "px";
+  rec.el.style.marginLeft = Math.round(rec.x * Math.max(0, cw - w)) + "px";
+  rec.el.style.marginTop = rec.ov ? Math.round(-rec.ov * vh) + "px" : "0px";
+}
+function sizeCollage() { cPhs.forEach(sizeCollagePh); }
 // reveal při vstupu do obrazu + parallax (typ a obraz jedou různou rychlostí)
 function updateFilm(vh) {
   if (!workFilm || !wfActs.length) return;
@@ -326,12 +418,30 @@ function updateFilm(vh) {
     const r = el.getBoundingClientRect();
     if (r.top < vh * 0.82 && r.bottom > vh * 0.05) el.classList.add("in");
   });
+  const phone = isPhone();
   workFilm.querySelectorAll(".wf-hero").forEach((h) => {
     const r = h.getBoundingClientRect();
     const prog = (r.top + r.height / 2 - vh / 2) / vh;   // -1 … +1
-    const img = h.querySelector("img"); if (img) img.style.transform = `translateY(${(prog * -7).toFixed(1)}%)`;
-    const name = h.querySelector(".wf-name"); if (name) name.style.transform = `translateY(${(prog * -46).toFixed(0)}px)`;
+    const img = h.querySelector("img"); if (img) img.style.transform = phone ? "" : `translateY(${(prog * -7).toFixed(1)}%)`;
+    const name = h.querySelector(".wf-name"); if (name) name.style.transform = `translateY(${(prog * (phone ? -18 : -46)).toFixed(0)}px)`;
   });
+  updateCollage(vh);
+}
+/* koláž: fotky se při scrollu rozjíždějí od sebe (různá rychlost) a ta,
+   která je nejblíž středu obrazovky, jde navrch — takže je vždycky celá vidět */
+function updateCollage(vh) {
+  if (!cPhs.length) return;
+  let best = null, bd = Infinity;
+  for (const rec of cPhs) {
+    const r = rec.el.getBoundingClientRect();
+    if (r.bottom < -vh * 0.5 || r.top > vh * 1.5) { rec.el.classList.remove("front", "near"); continue; }
+    const prog = (r.top + r.height / 2 - vh / 2) / vh;          // -1 … +1
+    rec.el.style.transform = `translateY(${(prog * rec.sp).toFixed(1)}px)`;
+    const d = Math.abs(prog);
+    rec.el.classList.toggle("near", d < 0.75);
+    if (d < bd) { bd = d; best = rec; }
+  }
+  for (const rec of cPhs) rec.el.classList.toggle("front", rec === best && bd < 0.75);
 }
 function applyWorkMode() {
   const film = workMode === "A" || workMode === "B";
@@ -340,9 +450,17 @@ function applyWorkMode() {
   document.body.classList.toggle("wf-B", workMode === "B");
   if (film) { sWork.style.height = "auto"; }
   else { layoutWork(); }
-  if (vHint) vHint.textContent = `V — ${workMode === "A" ? "FILM / OVERLAP" : workMode === "B" ? "FILM / MAGAZÍN" : "HORIZONTÁLNĚ"}`;
+  if (vHint) vHint.textContent = `V — ${workMode === "A" ? "FILM / OVERLAP" : workMode === "B" ? "FILM / MAGAZÍN" : "HORIZONTÁLNĚ"}   ·   L — ${(LAYOUTS[wfLayout] || LAYOUTS.K).name}`;
   fitText();
   requestAnimationFrame ? setTimeout(() => { fitText(); updateJourney(); }, 30) : updateJourney();
+}
+function cycleWorkLayout() {
+  const i = LAYOUT_ORDER.indexOf(wfLayout);
+  wfLayout = LAYOUT_ORDER[(i + 1) % LAYOUT_ORDER.length];
+  localStorage.setItem("javy-wflayout", wfLayout);
+  renderWorkFilm();
+  applyWorkMode();
+  setTimeout(() => { sizeCollage(); updateFilm(window.innerHeight); }, 40);
 }
 function cycleWorkMode() {
   workMode = workMode === "A" ? "B" : workMode === "B" ? "C" : "A";
@@ -624,6 +742,7 @@ viewport.addEventListener("pointercancel", endDrag);
 
 document.addEventListener("keydown", (e) => {
   if ((e.key === "v" || e.key === "V") && light.hidden && stage.hidden && groupEl.hidden && journalEntry.hidden) { cycleWorkMode(); return; }
+  if ((e.key === "l" || e.key === "L") && light.hidden && stage.hidden && groupEl.hidden && journalEntry.hidden) { cycleWorkLayout(); return; }
   if (!light.hidden) { if (e.key === "Escape") closeLight(); else if (e.key === "ArrowRight") stepLight(1); else if (e.key === "ArrowLeft") stepLight(-1); return; }
   if (!journalEntry.hidden) { if (e.key === "Escape") { journalEntry.hidden = true; if (stage.hidden && groupEl.hidden) back.hidden = true; } return; }
   if (!groupEl.hidden) {
@@ -711,7 +830,7 @@ function initLoader() {
 /* ---- go ---- */
 const loader = initLoader();
 journey.addEventListener("scroll", updateJourney, { passive: true });
-window.addEventListener("resize", () => { fitText(); layoutWork(); if (!groupEl.hidden) positionDrum(); else if (!stage.hidden) measure(); else updateJourney(); });
+window.addEventListener("resize", () => { if (wfPhone !== null && wfPhone !== isPhone()) renderWorkFilm(); sizeCollage(); updateFilm(window.innerHeight); fitText(); layoutWork(); if (!groupEl.hidden) positionDrum(); else if (!stage.hidden) measure(); else updateJourney(); });
 (async () => {
   loader.set(4);
   await loadData();                       // manifest + journal

@@ -262,6 +262,26 @@ body.wf-film .work-tag { display: none; }
 .wf-B .wf-tail { width: 40%; height: 66vh; margin-left: auto; }
 .wf-B .wf-meta { width: 100%; padding-top: 3vh; display: flex; justify-content: space-between; }
 
+/* ---------- KOLÁŽ (přepínač L): fotky se nesymetricky překrývají ----------
+   Rozměry počítá JS z poměru stran (sizeCollagePh), takže se nikdy neořezávají;
+   překryv dělá záporný horní okraj, scroll je rozjíždí a zaostřená jde navrch. */
+.wf-A .wf-run.collage, .wf-B .wf-run.collage { display: block; position: relative; padding: 8vh 5vw 4vh; }
+.collage .wf-ph {
+  position: relative; display: block; height: auto; margin: 0; flex: none;
+  will-change: transform; transition: box-shadow .5s ease;
+}
+.collage .wf-ph img {
+  display: block; width: 100%; height: auto; object-fit: fill;
+  filter: grayscale(1) contrast(1.24) brightness(1.02);
+  transition: filter .7s ease;
+  box-shadow: 0 14px 40px rgba(12, 11, 9, .16);
+}
+/* fotka nejblíž středu obrazovky = navrch, celá viditelná a barevná */
+.collage .wf-ph.front { z-index: 40 !important; }
+.collage .wf-ph.front img { filter: grayscale(0) contrast(1.05) saturate(1.05); box-shadow: 0 30px 70px rgba(12, 11, 9, .3); }
+/* :not(.front) — jinak by tohle pravidlo (je níž, stejná specificita) přebilo vybarvení zaostřené */
+.collage .wf-ph.near:not(.front) img { filter: grayscale(.55) contrast(1.14); }
+
 /* --- VARIANTA A: řádek náhledů pod zaostřeným slovem --- */
 /* místo je rezervované vždy → žádné poskakování layoutu */
 .wv-a .wi-slot { height: 27vw; flex-direction: column; align-items: stretch; justify-content: center; }
@@ -424,4 +444,20 @@ body.wf-film .work-tag { display: none; }
   .wi { font-size: 19vw; }
   .dots { display: none; }
   .fit-load { font-size: 40vw; }
+
+  /* WORK na telefonu: hero i náhledy v přirozeném poměru = žádné ořezávání.
+     Fixní výšky ve vh dělaly z portrétů úzké pruhy (ubíraly přes půlku fotky). */
+  .wf-A .wf-hero { height: auto; }
+  .wf-A .wf-hero > img { position: static; width: 100%; height: auto; }
+  .wf-A .wf-hero .wf-name { left: 5vw; right: 5vw; bottom: 4vh; }
+  .wf-A .wf-hero .wf-name-i { font-size: 15vw; }
+  .wf-ph img { height: auto; }
+  .wf-A .wf-run { padding: 5vh 5vw 0; }
+  .wf-A .wf-solo { width: 100%; height: auto; margin: 0 0 4vh; }
+  .wf-A .wf-row { gap: 3vw; margin-bottom: 4vh; }
+  .wf-A .wf-row .wf-ph { height: auto; }
+  .wf-A .wf-tail { width: 74%; height: auto; margin: 0 0 3vh auto; }
+  .wf-A .wf-meta { padding: 0 5vw 3vh; }
+  .wf-A .wf-run.collage, .wf-B .wf-run.collage { padding: 4vh 4vw 2vh; }
+  .act + .act { margin-top: 5vh; }
 }

@@ -282,6 +282,239 @@ body.wf-film .work-tag { display: none; }
 /* :not(.front) — jinak by tohle pravidlo (je níž, stejná specificita) přebilo vybarvení zaostřené */
 .collage .wf-ph.near:not(.front) img { filter: grayscale(.55) contrast(1.14); }
 
+/* ============================================================
+   INDEX — hlavní směr. Tmavá galerijní plocha, jeden projekt = jeden
+   celoobrazovkový výjev, neořezaná dlaždice a přes ni obří jméno
+   (mix-blend difference). Vzadu drží rozostřené pozadí aktivního projektu.
+   ============================================================ */
+body.ixdark .s-work { background: #0a0908; }
+body.ixdark .work-film { background: #0a0908; color: #f3f1ea; }
+
+.ix-back { position: sticky; top: 0; height: 100vh; margin-bottom: -100vh; z-index: 0; overflow: hidden; }
+.ix-back-l {
+  position: absolute; inset: -6%;
+  background-size: cover; background-position: center;
+  filter: blur(34px) grayscale(.35) brightness(.34) contrast(1.1);
+  transform: scale(1.12); opacity: 0; transition: opacity 1.1s ease;
+  will-change: opacity;
+}
+.ix-back-l.on { opacity: 1; }
+
+.wf-A .wf-run.index, .wf-B .wf-run.index { display: block; position: relative; z-index: 1; padding: 0 5vw; }
+.act.ix { position: relative; z-index: 1; }
+.act.ix + .act.ix { margin-top: 0; }
+.ix-row {
+  position: relative; min-height: 100vh;
+  display: flex; align-items: center; gap: 3vw;
+}
+/* dvoudobý rytmus: sudý akt = hlavní dlaždice u pravého kraje, doprovodná vlevo;
+   lichý akt zrcadlově. `order` mění pořadí, ne DOM — hlavní zůstává první. */
+.act.ix-r .ix-row { justify-content: flex-end; }
+.act.ix-r .ix-side { order: -1; }
+.act.ix-l .ix-row { justify-content: flex-start; }
+.act.ix-l .ix-side { order: 1; }
+
+.ix-tile, .ix-side { position: relative; height: auto; margin: 0; flex: none; will-change: transform; }
+.ix-tile img, .ix-side img {
+  display: block; width: 100%; height: auto; object-fit: fill;
+  filter: grayscale(1) contrast(1.22) brightness(.9);
+  transition: filter 1s ease, opacity 1s ease;
+  opacity: .62;
+}
+.act.ix.on .ix-tile img { filter: grayscale(0) contrast(1.04) saturate(1.05) brightness(1); opacity: 1; }
+.act.ix.on .ix-side img { filter: grayscale(.3) contrast(1.1); opacity: .9; }
+.ix-side { align-self: flex-end; margin-bottom: 8vh; }
+
+/* jméno leží PŘES fotku — difference ho drží čitelné na fotce i na ploše */
+/* pozice na 58 % výšky = jméno protne spodní třetinu dlaždice (ta je svisle
+   na střed), takže překryv je záměrný a ne náhodné míjení */
+.ix-name {
+  position: absolute; left: 0; right: 0; top: 58%; z-index: 3;
+  pointer-events: none; mix-blend-mode: difference;
+}
+.ix-name-i {
+  display: block; white-space: nowrap; transform-origin: left center;
+  font-weight: 900; font-size: 13vw; line-height: .86; letter-spacing: -.03em;
+  text-transform: uppercase; color: #fff;
+  -webkit-text-stroke: 2px #fff; -webkit-text-fill-color: transparent;
+  transition: -webkit-text-fill-color .9s ease;
+}
+.act.ix.on .ix-name-i { -webkit-text-fill-color: #fff; }   /* obrys → plné = pohyb aktivního projektu */
+
+body.ixdark .wf-meta {
+  position: relative; z-index: 3; padding: 0 5vw 14vh;
+  display: flex; justify-content: space-between; opacity: .5;
+}
+
+/* ============================================================
+   ARCHIV — podle lokasasmita.com/work. Papírová plocha, sloupec obřích
+   čísel jako páteř, vedle malé náhledy, vpravo stálá legenda projektů
+   a velký živý náhled, který se překlápí podle aktivního shootu.
+   ============================================================ */
+body.arlight .work-film { background: var(--bg); color: var(--ink); }
+
+.ar-side {
+  position: sticky; top: 0; height: 100vh; margin-bottom: -100vh; z-index: 2;
+  pointer-events: none; padding: 12vh 4vw 8vh; display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: center; gap: 2.2vh;
+}
+.ar-prev { position: relative; width: 34vw; height: 44vh; overflow: hidden; }
+.ar-prev-l {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  opacity: 0; transition: opacity .7s ease;
+}
+.ar-prev-l.on { opacity: 1; }
+.ar-legend { list-style: none; margin: 0; padding: 0; text-align: right; width: 34vw; }
+.ar-legend li {
+  font-size: 14px; font-weight: 800; letter-spacing: -.01em; text-transform: capitalize;
+  opacity: .28; transition: opacity .45s ease, padding-right .45s ease; padding: 1px 0;
+}
+.ar-legend li.on { opacity: 1; padding-right: 10px; }
+.ar-note { width: 34vw; text-align: right; font-size: 11px; letter-spacing: .16em; opacity: .5; }
+
+.wf-A .wf-run.archive, .wf-B .wf-run.archive { display: block; position: relative; z-index: 3; padding: 0 5vw; }
+.act.ar { position: relative; z-index: 3; }
+.ar-row { display: flex; align-items: flex-start; gap: 3vw; min-height: 92vh; padding: 8vh 0; }
+.ar-num {
+  flex: 0 0 auto; font-size: 58px; font-weight: 500; line-height: 1;
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.ar-head { flex: 0 0 auto; }
+.ar-title { display: none; }        /* na desktopu je název v legendě vpravo */
+.ar-thumbs { display: flex; flex-direction: column; gap: 2.4vh; }
+.ar-th {
+  margin: 0; width: 15vw; max-width: 260px; cursor: pointer;
+  opacity: 0; transform: translateY(26px);
+  transition: opacity .8s ease, transform .9s cubic-bezier(.19,.85,.22,1);
+}
+.ar-th.in { opacity: .9; transform: none; }
+.ar-th:hover { opacity: 1; }
+.ar-th img { display: block; width: 100%; height: auto; object-fit: fill; }
+
+/* ============================================================
+   MAKRO — podle ghuynguyen.vercel.app. Úplná čerň, drobná typografie po
+   rozích včetně souřadnic, obří číslo shootu vzadu, jméno po písmenech,
+   opakující se textový pás — a fotka, která přijíždí jako extrémní výřez
+   a scrollem se odzoomuje do celku (scale řídí JS).
+   ============================================================ */
+body.mkdark .s-work, body.mkdark .work-film { background: #000; color: #fff; }
+
+.wf-A .wf-run.macro, .wf-B .wf-run.macro { display: block; position: relative; padding: 0; }
+.act.mk { position: relative; }
+.mk-stage {
+  position: relative; height: 100vh; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.mk-num {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-size: 46vw; font-weight: 900; line-height: .8; letter-spacing: -.06em;
+  color: #fff; opacity: .1; pointer-events: none; font-variant-numeric: tabular-nums;
+}
+.mk-frame {
+  position: relative; width: 46vw; height: 62vh; overflow: hidden; z-index: 2;
+  margin: 0; cursor: pointer;
+}
+.mk-frame img {
+  display: block; width: 100%; height: 100%; object-fit: contain;
+  transform-origin: center center; will-change: transform;
+  filter: contrast(1.06) saturate(1.02);
+}
+.mk-name {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  z-index: 3; text-align: center; pointer-events: none;
+  font-size: 5vw; font-weight: 900; letter-spacing: -.02em; text-transform: uppercase;
+  mix-blend-mode: difference; color: #fff;
+}
+.mk-name span {
+  display: inline-block; opacity: 0; transform: translateY(.42em);
+  transition: opacity .5s ease, transform .7s cubic-bezier(.19,.85,.22,1);
+}
+.mk-name.on span { opacity: 1; transform: none; }
+.mk-corner {
+  position: absolute; z-index: 4; font-size: 11px; font-weight: 700;
+  letter-spacing: -.01em; opacity: .55; pointer-events: none; white-space: nowrap;
+}
+.mk-tl { left: 4vw; top: 4vh; } .mk-tr { right: 4vw; top: 4vh; }
+.mk-bl { left: 4vw; bottom: 4vh; } .mk-br { right: 4vw; bottom: 4vh; }
+.mk-bc { left: 50%; bottom: 4vh; transform: translateX(-50%); }
+.mk-ribbon {
+  position: relative; overflow: hidden; padding: 2.4vh 0; z-index: 2;
+  border-top: 1px solid rgba(255,255,255,.14); border-bottom: 1px solid rgba(255,255,255,.14);
+}
+.mk-ribbon span {
+  display: inline-block; white-space: nowrap; will-change: transform;
+  font-size: 3.4vw; font-weight: 900; letter-spacing: -.02em; opacity: .16;
+}
+
+/* ============================================================
+   BETA MENU — nenápadný přepínač verzí vlevo dole
+   ============================================================ */
+.beta { position: fixed; left: 14px; bottom: 12px; z-index: 90; font-family: var(--sans); }
+.beta-tag {
+  appearance: none; border: 1px solid currentColor; background: transparent; color: #8a8a8a;
+  font: 700 10px/1 var(--sans); letter-spacing: .16em; padding: 7px 10px; cursor: pointer;
+  mix-blend-mode: difference; opacity: .5; transition: opacity .25s ease;
+}
+.beta-tag:hover, .beta.open .beta-tag { opacity: 1; }
+.beta-cur { opacity: .7; }
+.beta-panel {
+  position: absolute; left: 0; bottom: 34px; width: 250px;
+  background: #0d0d0c; color: #f3f1ea; border: 1px solid rgba(243,241,234,.18);
+  padding: 8px; display: flex; flex-direction: column; gap: 2px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5);
+}
+.beta-panel[hidden] { display: none; }   /* jinak by ho .beta-panel{display:flex} přebilo */
+.beta-head, .beta-foot {
+  font-size: 9px; font-weight: 700; letter-spacing: .18em; opacity: .45; padding: 6px 8px;
+}
+.beta-foot { border-top: 1px solid rgba(243,241,234,.12); margin-top: 4px; }
+.beta-item {
+  appearance: none; border: 0; background: transparent; color: inherit; text-align: left;
+  padding: 7px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 2px;
+  font-family: var(--sans);
+}
+.beta-item b { font-size: 11px; letter-spacing: .1em; }
+.beta-item span { font-size: 10px; opacity: .5; letter-spacing: .02em; }
+.beta-item:hover { background: rgba(243,241,234,.08); }
+.beta-item.on { background: #f3f1ea; color: #0d0d0c; }
+.beta-item.on span { opacity: .65; }
+
+/* ---------- MŘÍŽKA (L): pevná 12sloupcová osnova, sazební rytmus ----------
+   Pozice fotky plyne z opakující se sekvence slotů, ne z náhody. Odkrývá se
+   setřením zdola, sloupce jedou různou rychlostí (transform řídí JS). */
+.wf-A .wf-run.grid12, .wf-B .wf-run.grid12 {
+  display: grid; grid-template-columns: repeat(12, 1fr);
+  column-gap: 1.2vw; align-items: start; padding: 8vh 5vw 4vh;
+}
+.grid12 .gph {
+  position: relative; height: auto; margin: 0; flex: none; will-change: transform, clip-path;
+  clip-path: inset(0 0 100% 0); transition: clip-path 1.05s cubic-bezier(.19, .85, .22, 1);
+}
+.grid12 .gph.gin { clip-path: inset(0 0 0 0); }
+.grid12 .gph img {
+  display: block; width: 100%; height: auto; object-fit: fill;
+  filter: grayscale(1) contrast(1.24); transition: filter .8s ease;
+}
+.grid12 .gph.gin img { filter: grayscale(0) contrast(1.05) saturate(1.04); }
+
+/* ---------- KONTAKT (L): světelný stůl + lupa ----------
+   Hustá kontaktní kopie ve sloupcích (žádný ořez, výška podle fotky).
+   Co projede středem obrazovky, to JS zvětší a rozsvítí. */
+.wf-A .wf-run.sheet, .wf-B .wf-run.sheet {
+  display: block; columns: 5; column-gap: .7vw; padding: 8vh 5vw 5vh;
+}
+.sheet .sph {
+  position: relative; display: block; height: auto; flex: none;
+  break-inside: avoid; margin: 0 0 .7vw; transform-origin: center center;
+  transition: transform .18s linear, box-shadow .4s ease;
+}
+.sheet .sph img {
+  display: block; width: 100%; height: auto; object-fit: fill;
+  filter: grayscale(1) contrast(1.3) brightness(.94); transition: filter .35s ease;
+}
+.sheet .sph.lit { box-shadow: 0 24px 60px rgba(12, 11, 9, .34); }
+.sheet .sph.lit img { filter: grayscale(0) contrast(1.05) saturate(1.06) brightness(1); }
+
 /* --- VARIANTA A: řádek náhledů pod zaostřeným slovem --- */
 /* místo je rezervované vždy → žádné poskakování layoutu */
 .wv-a .wi-slot { height: 27vw; flex-direction: column; align-items: stretch; justify-content: center; }
@@ -459,5 +692,32 @@ body.wf-film .work-tag { display: none; }
   .wf-A .wf-tail { width: 74%; height: auto; margin: 0 0 3vh auto; }
   .wf-A .wf-meta { padding: 0 5vw 3vh; }
   .wf-A .wf-run.collage, .wf-B .wf-run.collage { padding: 4vh 4vw 2vh; }
+  .wf-A .wf-run.grid12, .wf-B .wf-run.grid12 { grid-template-columns: repeat(6, 1fr); column-gap: 2vw; padding: 5vh 4vw 2vh; }
+  .wf-A .wf-run.sheet, .wf-B .wf-run.sheet { columns: 3; column-gap: 1.5vw; padding: 5vh 4vw 3vh; }
+  .wf-A .wf-run.index, .wf-B .wf-run.index { padding: 0 6vw; }
+  .ix-row { min-height: 92vh; justify-content: center !important; }
+  .act.ix-l .ix-row { flex-direction: row; }
+  .ix-side { display: none; }                 /* na telefonu jen hlavní dlaždice */
+  .ix-name { top: 56%; }
+  .ix-name-i { font-size: 19vw; -webkit-text-stroke-width: 1.5px; }
+  body.ixdark .wf-meta { padding: 0 6vw 10vh; font-size: 10px; }
+
+  /* ARCHIV na telefonu: číslo + náhledy pod sebou, legenda a velký náhled pryč */
+  .ar-side { display: none; }
+  .ar-row { flex-direction: column; gap: 2vh; min-height: 0; padding: 6vh 0; }
+  .ar-num { font-size: 40px; }
+  .ar-thumbs { flex-direction: row; flex-wrap: wrap; gap: 2vw; }
+  .ar-th { width: 43vw; max-width: none; }
+  .ar-head { display: flex; align-items: baseline; gap: 3vw; }
+  .ar-title { display: block; font-size: 15px; font-weight: 800; text-transform: capitalize; }
+
+  /* MAKRO na telefonu */
+  .mk-frame { width: 84vw; height: 52vh; }
+  .mk-num { font-size: 72vw; }
+  .mk-name { font-size: 12vw; }
+  .mk-corner { font-size: 9px; }
+  .mk-ribbon span { font-size: 9vw; }
+  .beta-panel { width: 62vw; }
+  .sheet .sph { margin-bottom: 1.5vw; }
   .act + .act { margin-top: 5vh; }
 }

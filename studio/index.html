@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>JAVY — STUDIO</title>
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@700,800,500,400&display=swap" />
+  <link rel="stylesheet" href="studio.css?v=5" />
+</head>
+<body>
+
+  <!-- PRELOADER: bílá plocha, počítadlo, pak černé setření nahoru -->
+  <div class="pre" id="pre">
+    <div class="pre-count" id="preCount">000</div>
+    <div class="pre-wipe" id="preWipe"></div>
+  </div>
+
+  <!-- HLAVIČKA -->
+  <header class="hd">
+    <a class="hd-mark" href="#" data-go="index" aria-label="javy">℗</a>
+    <nav class="hd-nav">
+      <a href="#" data-go="index" class="on">work</a>
+      <a href="#about">about</a>
+      <a href="mailto:stepan.jav036@gmail.com">contact</a>
+    </nav>
+  </header>
+
+  <!-- INDEX PRACÍ -->
+  <main class="index" id="index">
+    <div class="lede">
+      <h1>Javy — výběr prací</h1>
+      <p>Fotografie: móda, portrét, event. Praha.</p>
+    </div>
+    <div class="rows" id="rows"></div>
+
+    <!-- pevný panel: legenda + popis + velký náhled (nikdy neořezaný) -->
+    <div class="panel" id="panel">
+      <ol class="legend" id="legend"></ol>
+      <div class="panel-desc" id="panelDesc"></div>
+      <div class="preview" id="preview">
+        <img id="prevA" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" /><img id="prevB" alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />
+      </div>
+    </div>
+
+    <footer class="ft">
+      <span>JAVY · FOTOGRAFIE</span>
+      <span id="ftCount"></span>
+      <span>PRAHA</span>
+    </footer>
+  </main>
+
+  <!-- DETAIL SHOOTU -->
+  <article class="shoot" id="shoot" hidden>
+    <button class="back" data-go="index">← work</button>
+    <h1 class="shoot-title" id="shootTitle"></h1>
+    <dl class="shoot-meta" id="shootMeta"></dl>
+    <div class="shoot-photos" id="shootPhotos"></div>
+  </article>
+
+  <script src="studio.js?v=5"></script>
+</body>
+</html>

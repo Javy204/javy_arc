@@ -168,8 +168,18 @@ const LAYOUTS = {
      jde přečíst pravidlo. Jméno leží PŘES fotku (mix-blend difference) — ten
      překryv s názvy projektů je to, co ze současné verze funguje. */
   B: {
-    name: "INDEX", kind: "index", pics: { phone: 2, desk: 3 },
-    tile: { h: { phone: 0.58, desk: 0.70 }, maxW: { phone: 0.92, desk: 0.46 } },
+    name: "INDEX", kind: "index", pics: { phone: 3, desk: 4 },
+    /* hlavní fotka nese obrazovku (84 % výšky), dvě doprovodné drží shluk
+       pohromadě, aby kolem nezůstávala mrtvá plocha. Vše ve zlomcích okna
+       / šířky sloupce; velikost se počítá z poměru stran, takže bez ořezu. */
+    tile: {
+      main: { h: { phone: 0.62, desk: 0.84 }, maxW: { phone: 0.94, desk: 0.62 } },
+      sub:  { h: { phone: 0.26, desk: 0.40 }, maxW: { phone: 0.44, desk: 0.17 } },
+      /* fotka NALEŽATO by při stejné šířce vyšla nízká a nad ní by zůstalo
+         prázdno — dostane proto víc šířky a jen jednu doprovodnou.
+         Kompozici tak určuje orientace snímku, ne náhoda. */
+      wide: { main: { maxW: { phone: 0.98, desk: 0.84 } }, sub: { maxW: { phone: 0.4, desk: 0.15 } } },
+    },
   },
   /* MŘÍŽKA — pozice fotky NEplyne z náhody, ale z pevného sazebního rytmu:
      12sloupcová osnova (na telefonu 6) a opakující se sekvence šesti slotů.
@@ -407,7 +417,7 @@ let wfPhone = null;    // pro jakou šířku je film aktuálně vyrenderovaný
 let cPhs = [];         // koláž: {el, img, act, w, maxH, x, ov, sp}
 let gActs = [];        // mřížka po aktech: {act, items:[{el, img, slot}]}
 let sActs = [];        // kontaktní kopie po aktech: {act, items:[el]}
-let ixActs = [], ixBackLayers = [], ixBackI = -1, ixActive = -1;   // INDEX
+let ixActs = [], ixBackLayers = [], ixBackI = -1, ixActive = -1, ixRail = [];   // INDEX
 let arActs = [], arNames = [], arPrevLayers = [], arPrevI = -1, arActive = -1;   // ARCHIV
 let mkActs = [];   // MAKRO
 function renderWorkFilm() {
@@ -415,7 +425,7 @@ function renderWorkFilm() {
   wfPhone = isPhone();
   const L = LAYOUTS[wfLayout] || LAYOUTS.K;
   workFilm.innerHTML = ""; wfActs = []; cPhs = []; gActs = []; sActs = []; ixActs = []; ixBackLayers = [];
-  arActs = []; arNames = []; arPrevLayers = []; mkActs = [];
+  arActs = []; arNames = []; arPrevLayers = []; mkActs = []; ixRail = [];
   SETS.forEach((set, i) => {
     const imgs = imagesOf(set);
     const pics = sampleImages(imgs, wfPhone ? L.pics.phone : L.pics.desk);
@@ -459,9 +469,13 @@ function renderWorkFilm() {
     } else if (L.kind === "index") {
       run =
         `<div class="ix-row">` +
-          `<div class="wf-ph ix-tile"><img alt="" src="${r[0] || hero}"></div>` +
-          (r[1] ? `<div class="wf-ph ix-side"><img alt="" loading="lazy" src="${r[1]}"></div>` : "") +
-          `<div class="ix-name"><span class="ix-name-i">${set.title}</span></div>` +
+          `<div class="ix-cluster">` +
+            `<div class="wf-ph ix-tile"><img alt="" src="${r[0] || hero}"></div>` +
+            (r[1] ? `<div class="wf-ph ix-sub ix-sub-a"><img alt="" loading="lazy" src="${r[1]}"></div>` : "") +
+            (r[2] ? `<div class="wf-ph ix-sub ix-sub-b"><img alt="" loading="lazy" src="${r[2]}"></div>` : "") +
+            `<div class="ix-name"><span class="ix-name-i">${set.title}</span></div>` +
+          `</div>` +
+          `<div class="ix-meta-line"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SNÍMKŮ</span><span>OTEVŘÍT ↗</span></div>` +
         `</div>`;
     } else {
       if (r[0]) run += `<div class="wf-ph wf-solo reveal"><img alt="" src="${r[0]}"></div>`;
@@ -477,7 +491,7 @@ function renderWorkFilm() {
     act.innerHTML =
       (bare ? "" : `<figure class="wf-hero reveal"><img alt="" src="${hero}"><figcaption class="wf-name"><span class="wf-name-i">${set.title}</span></figcaption></figure>`) +
       `<div class="wf-run${runCls}">${run}</div>` +
-      (L.kind === "macro" ? "" :
+      (L.kind === "macro" || L.kind === "index" ? "" :
         `<div class="wf-meta${bare ? "" : " reveal"}">${pad2(i + 1)} / ${pad2(SETS.length)} · ${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""} · OTEVŘÍT ↗</div>`);
     act.querySelectorAll(".wf-hero, .wf-ph, .wf-meta").forEach((el) => el.addEventListener("click", () => openShoot(i)));
     workFilm.appendChild(act); wfActs.push(act);
@@ -503,14 +517,16 @@ function renderWorkFilm() {
     } else if (L.kind === "sheet") {
       sActs.push({ act, items: [...act.querySelectorAll(".sph")] });
     } else if (L.kind === "index") {
-      const tiles = [...act.querySelectorAll(".ix-tile, .ix-side")].map((el, k) => {
-        const rec = { el, img: el.querySelector("img"), main: k === 0 };
-        const apply = () => sizeIndexTile(rec);
-        rec.img.addEventListener("load", apply);
-        if (rec.img.complete && rec.img.naturalWidth) apply();
-        return rec;
+      const tiles = [...act.querySelectorAll(".ix-tile, .ix-sub")].map((el) => ({
+        el, img: el.querySelector("img"), main: el.classList.contains("ix-tile"),
+      }));
+      const rec = { act, tiles, back: hero };
+      tiles.forEach((t) => {
+        const apply = () => sizeIndexAct(rec);
+        t.img.addEventListener("load", apply);
+        if (t.img.complete && t.img.naturalWidth) apply();
       });
-      ixActs.push({ act, tiles, back: hero });
+      ixActs.push(rec);
     } else if (L.kind === "archive") {
       arActs.push({ act, title: set.title, cover: coverOf(set) || hero, meta: `${shots} SHOTS`,
                     thumbs: [...act.querySelectorAll(".ar-th")] });
@@ -536,31 +552,46 @@ function renderWorkFilm() {
     }));
   }
   if (L.kind === "index") {
-    // rozostřené pozadí (wvh.global): drží se na místě a přebarvuje se podle aktivního projektu
-    const back = document.createElement("div"); back.className = "ix-back";
-    back.innerHTML = `<div class="ix-back-l"></div><div class="ix-back-l"></div>`;
-    workFilm.insertBefore(back, workFilm.firstChild);
-    ixBackLayers = [...back.querySelectorAll(".ix-back-l")];
-    ixBackI = -1; ixActive = -1;
+    // páteř sekce: tenká lišta čísel vlevo, aktivní se rozsvítí.
+    // (Rozostřené pozadí je pryč — dělalo z plochy tmavou díru.)
+    const rail = document.createElement("div"); rail.className = "ix-rail";
+    rail.innerHTML = ixActs.map((a, k) => `<button data-k="${k}">${pad2(k + 1)}</button>`).join("");
+    workFilm.insertBefore(rail, workFilm.firstChild);
+    ixRail = [...rail.querySelectorAll("button")];
+    ixRail.forEach((b, k) => b.addEventListener("click", () => {
+      const t = ixActs[k].act.getBoundingClientRect().top + journey.scrollTop - 20;
+      journey.scrollTo({ top: t, behavior: "smooth" });
+    }));
+    ixActive = -1;
   }
 }
 /* dlaždice indexu: neořezaná, velikost z poměru stran (šířka sloupce vs strop výšky) */
-function sizeIndexTile(rec) {
+/* celý akt se počítá najednou, aby doprovodné fotky věděly, jestli je
+   hlavní naležato (jiná kompozice) */
+function sizeIndexAct(rec) {
   const L = LAYOUTS[wfLayout]; if (!L || !L.tile) return;
-  const par = rec.el.parentElement; if (!par) return;
-  const cs = getComputedStyle(par);
-  const cw = par.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+  const cluster = rec.act.querySelector(".ix-cluster"); if (!cluster) return;
+  const cs = getComputedStyle(cluster);
+  const cw = cluster.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
   const vh = window.innerHeight || 860, phone = isPhone();
   if (cw <= 0) return;
-  const im = rec.img;
-  const ar = (im.naturalWidth && im.naturalHeight) ? im.naturalWidth / im.naturalHeight : 0.72;
-  const hf = (phone ? L.tile.h.phone : L.tile.h.desk) * (rec.main ? 1 : 0.52);
-  const wf = (phone ? L.tile.maxW.phone : L.tile.maxW.desk) * (rec.main ? 1 : 0.5);
-  let h = hf * vh;
-  if (h * ar > wf * cw) h = (wf * cw) / ar;
-  rec.el.style.width = Math.round(h * ar) + "px";
+  const arOf = (im) => (im.naturalWidth && im.naturalHeight) ? im.naturalWidth / im.naturalHeight : 0.72;
+  const mainRec = rec.tiles.find((t) => t.main);
+  const wide = mainRec ? arOf(mainRec.img) > 1.1 : false;
+  rec.act.classList.toggle("ix-wide", wide);
+  rec.tiles.forEach((t) => {
+    const base = t.main ? L.tile.main : L.tile.sub;
+    const over = wide ? (t.main ? L.tile.wide.main : L.tile.wide.sub) : null;
+    const ar = arOf(t.img);
+    let h = (phone ? base.h.phone : base.h.desk) * vh;
+    const mw = over ? over.maxW : base.maxW;
+    const maxW = (phone ? mw.phone : mw.desk) * cw;
+    if (h * ar > maxW) h = maxW / ar;            // nevejde se do šířky → zmenši, nikdy neořízni
+    t.el.style.width = Math.round(h * ar) + "px";
+    t.el.style.height = Math.round(h) + "px";
+  });
 }
-function sizeIndex() { ixActs.forEach((a) => a.tiles.forEach(sizeIndexTile)); }
+function sizeIndex() { ixActs.forEach(sizeIndexAct); }
 /* mřížka: šev (překryv/vzduch) ve zlomku okna + šířka slotu podle orientace fotky */
 function sizeGridPh(rec) {
   const vh = window.innerHeight || 860, cols = isPhone() ? 6 : 12;
@@ -682,13 +713,9 @@ function updateIndex(vh) {
   });
   if (best < 0 || bd > 0.62) return;
   ixActs.forEach((a, i) => a.act.classList.toggle("on", i === best));
-  if (best === ixActive || !ixBackLayers.length) return;
+  if (best === ixActive) return;
   ixActive = best;
-  const next = (ixBackI + 1) % ixBackLayers.length;
-  ixBackLayers[next].style.backgroundImage = `url("${ixActs[best].back}")`;
-  ixBackLayers[next].classList.add("on");
-  if (ixBackI >= 0) ixBackLayers[ixBackI].classList.remove("on");
-  ixBackI = next;
+  ixRail.forEach((b, k) => b.classList.toggle("on", k === best));
 }
 /* mřížka: setření (clip-path) při vstupu + sloupce jedou různou rychlostí */
 function updateGrid(vh) {
@@ -747,7 +774,7 @@ function updateCollage(vh) {
 function applyWorkMode() {
   const film = workMode === "A" || workMode === "B";
   document.body.classList.toggle("wf-film", film);
-  document.body.classList.toggle("ixdark", film && wfLayout === "B");   // INDEX = tmavá galerijní plocha
+  document.body.classList.toggle("ixpaper", film && wfLayout === "B");  // INDEX = papír jako zbytek webu
   document.body.classList.toggle("mkdark", film && wfLayout === "M");   // MAKRO = úplná čerň
   document.body.classList.toggle("arlight", film && wfLayout === "R");  // ARCHIV = papír
   document.body.classList.toggle("wf-A", workMode === "A");
@@ -770,6 +797,8 @@ function buildBetaMenu() {
     `<button class="beta-tag" id="betaTag" aria-expanded="false">BETA <span class="beta-cur" id="betaCur"></span></button>` +
     `<div class="beta-panel" id="betaPanel" hidden>` +
       `<div class="beta-head">VERZE PORTFOLIA</div>` +
+      `<a class="beta-item beta-link" href="studio/"><b>STUDIO ↗</b><span>nová podstránka — kompletní redesign</span></a>` +
+      `<div class="beta-head">STARŠÍ VERZE TÉHLE STRÁNKY</div>` +
       VERSIONS.map((v) => `<button class="beta-item" data-v="${v.id}"><b>${v.name}</b><span>${v.note}</span></button>`).join("") +
       `<div class="beta-foot">L = další layout · V = režim WORKu</div>` +
     `</div>`;

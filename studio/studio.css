@@ -1,0 +1,175 @@
+/* ============================================================
+   JAVY — STUDIO (nová podstránka, kompletní redesign)
+   Sazba i pohyb podle lokasasmita.com: čtyřsloupcová osnova
+   (číslo · náhledy · legenda · velký náhled), Satoshi, 16/800
+   navigace s neaktivními na .32, tiché opacity přechody 0.3s,
+   měkký setrvačný scroll, preloader s počítadlem a černé setření.
+   ŽELEZNÉ PRAVIDLO: žádná fotka se nikdy neořezává (object-fit
+   je všude contain / scale-down, nikde cover).
+   ============================================================ */
+
+:root {
+  --paper: #fff;
+  --ink: #121212;
+  --dim: rgba(18, 18, 18, .32);
+  --line: rgba(18, 18, 18, .12);
+  --dark: #111;
+  --sans: "Satoshi", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --ease: cubic-bezier(.19, .85, .22, 1);
+  --gut: 32px;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--paper); }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--sans); font-size: 14px; font-weight: 800;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+
+/* ---------- PRELOADER ---------- */
+.pre { position: fixed; inset: 0; z-index: 200; background: var(--paper); pointer-events: none; }
+.pre-count {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums;
+  transition: opacity .3s;
+}
+.pre-wipe { position: absolute; inset: 0; background: var(--dark); transform: translateY(100%); }
+.pre.go .pre-count { opacity: 0; }
+.pre.go .pre-wipe { transform: translateY(0); transition: transform .62s var(--ease); }
+.pre.done .pre-wipe { transform: translateY(-100%); transition: transform .72s var(--ease); }
+.pre.gone { display: none; }
+
+/* ---------- HLAVIČKA ---------- */
+.hd {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 16px var(--gut); mix-blend-mode: difference; color: #fff;
+}
+.hd-mark { font-size: 20px; line-height: 1; }
+.hd-nav { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.hd-nav a {
+  font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: .01em;
+  opacity: .32; transition: opacity .3s;
+}
+.hd-nav a.on, .hd-nav a:hover { opacity: 1; }
+
+/* ---------- INDEX ---------- */
+.index { position: relative; padding: 0 var(--gut) 12vh; }
+.lede { position: relative; z-index: 2; padding: 30vh 0 0; max-width: 520px; }
+.lede h1 { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: -.01em; }
+.lede p { margin: 10px 0 0; font-size: 14px; font-weight: 800; opacity: .32; }
+.rows { position: relative; z-index: 2; }
+
+.row {
+  display: grid; grid-template-columns: 235px 216px 1fr; align-items: start;
+  padding: 12vh 0 4vh; min-height: 70vh;
+}
+.row-name { display: none; }          /* na desktopu je název v legendě vpravo */
+.row-num {
+  font-size: 58px; font-weight: 500; line-height: 1; letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums;
+  opacity: .18; transition: opacity .5s ease;
+}
+.row.on .row-num { opacity: 1; }
+.row-thumbs { display: flex; flex-direction: column; gap: 20vh; }
+.th {
+  width: 216px; margin: 0; cursor: pointer;   /* figure má v UA stylu margin 1em 40px */
+  opacity: 0; transform: translateY(28px);
+  transition: opacity .7s ease, transform .9s var(--ease);
+}
+.th.in { opacity: 1; transform: none; }
+.th img { width: 100%; height: auto; }        /* přirozený poměr = žádný ořez */
+.th-cap {
+  margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; opacity: .32; transition: opacity .3s;
+}
+.th:hover .th-cap { opacity: 1; }
+
+/* pevný panel vpravo (legenda + popis + velký náhled) */
+.panel {
+  position: fixed; left: 576px; right: var(--gut); top: 0; height: 100vh; z-index: 1;
+  display: grid; grid-template-columns: 256px 1fr; align-content: center; gap: 0 0;
+  pointer-events: none;
+}
+.legend { grid-column: 1; list-style: none; margin: 0; padding: 0; align-self: center; pointer-events: auto; }
+.legend li {
+  font-size: 14px; font-weight: 800; line-height: 18px; cursor: pointer;
+  opacity: .32; transition: opacity .3s;
+  display: flex; align-items: center; gap: 8px;
+}
+.legend li.on, .legend li:hover { opacity: 1; }
+.legend li::after { content: "◀"; font-size: 9px; opacity: 0; transition: opacity .3s; }
+.legend li.on::after { opacity: 1; }
+.panel-desc {
+  grid-column: 1; align-self: end; margin-bottom: 8vh; width: 224px;
+  font-size: 14px; font-weight: 800; line-height: 1.5;
+}
+.panel-desc span { display: block; opacity: .32; font-size: 11px; letter-spacing: .12em; margin-top: 6px; }
+.preview {
+  grid-column: 2; grid-row: 1 / span 2; position: relative; align-self: center;
+  height: 46vh; width: 100%;
+}
+.preview img {
+  position: absolute; inset: 0; margin: auto;
+  max-width: 100%; max-height: 100%; width: auto; height: auto;
+  object-fit: scale-down;                      /* jako u reference: celá fotka, nikdy ořez */
+  opacity: 0; transition: opacity .45s ease;
+}
+.preview img.on { opacity: 1; }
+
+.ft {
+  position: relative; z-index: 2; display: flex; justify-content: space-between;
+  padding-top: 6vh; border-top: 1px solid var(--line);
+  font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .5;
+}
+
+/* ---------- DETAIL SHOOTU ---------- */
+.shoot { padding: 22vh var(--gut) 14vh; }
+.back {
+  position: fixed; left: var(--gut); bottom: 24px; z-index: 60;
+  appearance: none; border: 0; background: transparent; color: var(--ink);
+  font: 800 14px/1 var(--sans); cursor: pointer; opacity: .32; transition: opacity .3s;
+}
+.back:hover { opacity: 1; }
+.shoot-title {
+  margin: 0; font-size: 12vw; font-weight: 500; line-height: .9; letter-spacing: -.03em;
+  text-transform: uppercase;
+}
+.shoot-meta {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 24px;
+  margin: 8vh 0 0; padding-top: 18px; border-top: 1px solid var(--line);
+}
+.shoot-meta dt { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .32; }
+.shoot-meta dd { margin: 6px 0 0; font-size: 14px; font-weight: 800; text-transform: uppercase; }
+.shoot-photos { margin-top: 14vh; display: flex; flex-direction: column; align-items: center; gap: 12vh; }
+.sp { width: 100%; max-width: 980px; margin: 0; opacity: 0; transform: translateY(34px); }
+.sp.in { opacity: 1; transform: none; transition: opacity .9s ease, transform 1.1s var(--ease); }
+.sp img { width: 100%; height: auto; }        /* opět: přirozený poměr, žádný ořez */
+.sp figcaption {
+  margin-top: 10px; font-size: 11px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; opacity: .32;
+}
+
+/* ---------- TELEFON ---------- */
+@media (max-width: 860px) {
+  :root { --gut: 20px; }
+  .panel { display: none; }
+  .hd { padding: 12px var(--gut); }
+  .hd-nav { flex-direction: row; gap: 14px; }
+  .hd-nav a { font-size: 12px; }
+  .lede { padding: 22vh 0 0; }
+  .lede h1 { font-size: 22px; }
+  .row { grid-template-columns: 1fr; min-height: 0; padding: 8vh 0 4vh; gap: 3vh; }
+  .row-head { display: flex; align-items: baseline; gap: 14px; }
+  .row-num { font-size: 40px; opacity: 1; }
+  .row-name { display: block; font-size: 15px; font-weight: 800; text-transform: uppercase; }
+  .row-thumbs { flex-direction: column; gap: 6vh; }
+  .th { width: 100%; }
+  .shoot-title { font-size: 15vw; }
+  .shoot-meta { grid-template-columns: repeat(2, 1fr); gap: 20px 16px; }
+  .shoot-photos { gap: 8vh; }
+}

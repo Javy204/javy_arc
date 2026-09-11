@@ -47,7 +47,7 @@ let JOURNAL = [];   // načte se z journal.json
 
 let SETS = [];
 let wiEls = [], wiSlots = [], workActive = -1;
-let workMode = localStorage.getItem("javy-workmode") || "A";   // "A" film/overlap · "B" film/magazín · "C" horizontální pás
+let workMode = localStorage.getItem("javy-workmode3") || "C";   // "A" film/overlap · "B" film/magazín · "C" horizontální pás (výchozí)
 let SCENES = [], SCENE_NAMES = [];
 let ITEMS = [], FRAMES = [], centers = [];
 let targetX = 0, currentX = 0, minX = 0, maxX = 0;
@@ -242,7 +242,7 @@ const URLQ = new URLSearchParams(location.search);
 const URLV = VERSIONS.find((v) => v.id === URLQ.get("v"));
 let wfLayout = URLV ? URLV.layout
              : LAYOUTS[new URLSearchParams(location.search).get("wl")] ? new URLSearchParams(location.search).get("wl")
-             : (LAYOUTS[localStorage.getItem("javy-wflayout2")] ? localStorage.getItem("javy-wflayout2") : "R");
+             : (LAYOUTS[localStorage.getItem("javy-wflayout3")] ? localStorage.getItem("javy-wflayout3") : "S");
 if (URLV) workMode = URLV.mode;   // ?v=… přebíjí i uložený režim WORKu
 // stabilní pseudonáhoda: stejný akt + stejná fotka = vždy stejné rozložení (nepřeskakuje mezi rendery)
 function seeded(a, k) {
@@ -300,7 +300,7 @@ function renderWorkH() {
   });
 }
 function sizeWhItem(it, img) {
-  const H = 0.58 * (window.innerHeight || 860);
+  const H = 0.66 * (window.innerHeight || 860);   // MUSÍ sedět s .wh-ph height v CSS
   const a = (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 0.72;
   it.style.width = Math.round(H * a) + "px";
 }
@@ -351,7 +351,7 @@ function applyPanelDepth() {
     const t = Math.min(Math.abs(d), 1);
     const e = t * t * (3 - 2 * t);                    // smoothstep – měkký náběh
     const frame = el.firstElementChild;               // .wh-frame: střed velký (1.14), kraje malé (0.82)
-    if (frame) frame.style.transform = `scale(${(1.14 - e * 0.32).toFixed(3)})`;
+    if (frame) frame.style.transform = `scale(${(1.10 - e * 0.28).toFixed(3)})`;   // menší zvětšení, ať se vyšší fotka vejde
   });
 }
 function stepWorkH() {
@@ -538,10 +538,14 @@ function renderWorkFilm() {
   if (L.kind === "archive") {
     // stálá legenda + velký živý náhled (lokasasmita.com/work)
     const side = document.createElement("aside"); side.className = "ar-side";
+    // náhled vedle úzkého sloupce s legendou (dřív byly pod sebou a mezi
+    // náhledy vlevo a panelem zůstávalo ~500 px prázdna)
     side.innerHTML =
       `<div class="ar-prev"><img class="ar-prev-l" alt=""><img class="ar-prev-l" alt=""></div>` +
-      `<ol class="ar-legend">${arActs.map((a, k) => `<li data-k="${k}">${a.title}</li>`).join("")}</ol>` +
-      `<div class="ar-note"></div>`;
+      `<div class="ar-col">` +
+        `<ol class="ar-legend">${arActs.map((a, k) => `<li data-k="${k}">${a.title}</li>`).join("")}</ol>` +
+        `<div class="ar-note"></div>` +
+      `</div>`;
     workFilm.insertBefore(side, workFilm.firstChild);
     arNames = [...side.querySelectorAll(".ar-legend li")];
     arPrevLayers = [...side.querySelectorAll(".ar-prev-l")];
@@ -824,8 +828,8 @@ function syncBetaMenu() {
 function applyVersion(id) {
   const v = VERSIONS.find((x) => x.id === id); if (!v) return;
   workMode = v.mode; wfLayout = v.layout;
-  localStorage.setItem("javy-workmode", workMode);
-  localStorage.setItem("javy-wflayout2", wfLayout);
+  localStorage.setItem("javy-workmode3", workMode);
+  localStorage.setItem("javy-wflayout3", wfLayout);
   renderWorkFilm();
   applyWorkMode();
   const j = journey; if (j) j.scrollTop = Math.max(0, sWork.offsetTop - window.innerHeight * 0.2);
@@ -834,14 +838,14 @@ function applyVersion(id) {
 function cycleWorkLayout() {
   const i = LAYOUT_ORDER.indexOf(wfLayout);
   wfLayout = LAYOUT_ORDER[(i + 1) % LAYOUT_ORDER.length];
-  localStorage.setItem("javy-wflayout2", wfLayout);
+  localStorage.setItem("javy-wflayout3", wfLayout);
   renderWorkFilm();
   applyWorkMode();
   setTimeout(() => { sizeCollage(); updateFilm(window.innerHeight); }, 40);
 }
 function cycleWorkMode() {
   workMode = workMode === "A" ? "B" : workMode === "B" ? "C" : "A";
-  localStorage.setItem("javy-workmode", workMode);
+  localStorage.setItem("javy-workmode3", workMode);
   applyWorkMode();
 }
 

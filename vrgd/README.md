@@ -19,12 +19,12 @@ Pak `http://localhost:3336`. (V Claude Code je nakonfigurovaný jako preview ser
 |---|---|
 | `index.html` | Celá stránka. Logo je inline SVG `<symbol id="vrgd">`, používá se přes `<use>`. |
 | `css/style.css` | Kompletní styl. Barvy a fonty jsou nahoře jako CSS proměnné. |
-| `gallery.html` | Galerie — nekonečná draggable mřížka. |
+| `gallery.html` | Galerie — police knih, každý projekt jedna kniha. |
 | `events.html` | Události — vertikální karusel. |
 | `shop.html` | Lookbook — mřížka s filtrem velikostí. |
 | `js/shared.js` | Společné pro všechny stránky: kurzor, scramble, menu, hodiny. |
 | `js/main.js` | Jen index — loader, hero, slider, revealy, nav. |
-| `js/gallery.js` | Jen galerie — mřížka a pop-upy. |
+| `js/gallery.js` | Jen galerie — police, otevírání knihy a listování. |
 | `js/pages.js` | Podstránky events + shop. Každý blok se vypne, když jeho markup na stránce není. |
 | `assets/gallery.json` | **Obsah galerie.** Tady se přidávají fotky. |
 | `js/vendor/` | GSAP 3.15 (+ ScrollTrigger, SplitText, Flip, Draggable, Inertia, CustomEase, Observer) a Lenis. Lokálně, nic se netahá z CDN. |
@@ -289,42 +289,56 @@ karusel + filtr). Nemají loader ani spinu — jsou to jednoúčelové stránky.
 Podstránky nemají trvalou lištu, takže se jim hamburger zobrazuje i na
 desktopu (`body[data-page] .menu-button`).
 
-## Galerie — jak přidat fotky
+## Galerie — police knih
 
-Obsah je v **`assets/gallery.json`**. Jedna položka = jedna dlaždice:
+Každý projekt je **jedna kniha**. Klik na obálku ji přiblíží na fullscreen,
+další klik listuje po dvojstranách. Zavírá `CLOSE` nebo `Esc`, listuje se
+kliknutím do levé/pravé poloviny nebo šipkami.
+
+### Jak přidat obsah
+
+Všechno je v **`assets/gallery.json`**. Jedna kniha = jeden objekt, jedna
+fotka = jedna položka v `pages`:
 
 ```json
-{ "title": "Night Shift", "meta": "FILM / 2025",
-  "src": "assets/gallery/night-shift.jpg",
-  "body": "Popisek do pop-upu." }
+{
+  "title": "Night Shift", "meta": "FILM / 2025",
+  "blurb": "Text na titulní stranu.",
+  "cover": "assets/gallery/night-cover.jpg",
+  "pages": [
+    { "src": "assets/gallery/night-01.jpg", "caption": "První setup" }
+  ]
+}
 ```
 
 Fotky dej do `assets/gallery/`, ~1600 px na delší straně. Když `src` chybí
-nebo soubor neexistuje, vykreslí se místo fotky **halftone placeholder** —
-mřížka funguje i úplně prázdná, takže se dá plnit postupně.
+nebo soubor neexistuje, vykreslí se **halftone placeholder** — kniha funguje
+i úplně prázdná, takže se dá plnit postupně.
 
-**Jak to funguje:** ze seznamu se vyrobí jedna buňka, změří se, spočítá se
-kolik jich pokryje viewport (`+1` na okraj), a z toho se udělají **4 kopie
-poskládané do dlaždice 2 × 2**. Posun jde na kontejneru přes `gsap.quickTo`
-s `gsap.utils.wrap` v `modifiers` — proto to roluje nekonečně bez skoků.
-Vstup obsluhuje `Observer` (kolečko, touch, drag).
+### Jak je to udělané
 
-**Mřížka se nikdy nezastaví** — ambientní drift přes `gsap.ticker`
-(`deltaRatio()` normalizuje na 60 fps). Po hodu zdědí rychlost a plynule se
-vrátí k základní. Pauzuje při tažení a při otevřeném pop-upu.
+Kniha je **stoh listů** (`.leaf`), každý s přední a zadní stranou
+(`backface-visibility: hidden`, zadní předotočená o 180°). Listy sedí na
+pravé polovině a jsou zavěšené na hřbetu (`transform-origin: left center`);
+otočení o −180° je položí přesně na levou polovinu.
 
-Ladicí konstanty jsou pohromadě na začátku `gallery.js`:
-`WHEEL_SPEED`, `DRAG_SPEED`, `DRIFT_X/Y`, `MAX_DRIFT`, `DRIFT_DECAY`.
+Pořadí řeší `z-index`: při letu se list zvedne nad všechno, po dosednutí
+dostane finální hodnotu, takže otočená hromádka stohuje odshora a neotočená
+odspodu.
 
-**Pop-upy** jsou draggable okna — vyrobí se jednou, leží na `<body>` (proto je
-klonování mřížky nezduplikuje) a otevírají se podle `data-index`. `CLOSE`
-nebo `Escape` zavírá.
+Otevření není Flip — je to ruční FLIP výpočet: strana knihy má poměr 3/4,
+tedy **přesně poměr obálky**, takže se obálka geometricky přesně zvětší do
+pravé strany.
 
-> `CLICK_SLOP = 5` px rozhoduje klik vs. tažení. Bez toho by ti každé
-> přetažení mřížky otevřelo pop-up.
-
-Stav mřížky je v atributu `data-ig-status="loading|idle|dragging|paused"` —
-dá se na něj navěsit CSS.
+> **Dvě pasti:**
+>
+> Na úzkých oknech tu byl jednostránkový režim, ve kterém list zavěšený na
+> hřbetu odletěl mimo obrazovku a jeho **zadní strana se nikdy nezobrazila** —
+> tedy polovina každé knihy. Teď se dvojstrana jen zmenší.
+>
+> Pravidla pro `[data-placeholder]` byla původně uvnitř bloku galerie a při
+> jeho přepsání zmizela, což rozbilo plátky i na events a shop. Jsou proto
+> nahoře jako **sdílená utilita**.
 
 ## Cache
 

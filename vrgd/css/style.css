@@ -119,6 +119,28 @@ img, svg, video, canvas { display: block; max-width: 100%; }
 }
 
 /* =========================================================
+   Halftone plate — the stand-in wherever a photo is missing.
+   SHARED: used by work cards, events, shop and the book pages.
+   Keep it here, not inside a page block — it was once nested in
+   the gallery section and got deleted along with it.
+   ========================================================= */
+[data-placeholder] { position: relative; }
+[data-placeholder]::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle at center, var(--dotink) 1.1px, transparent 1.3px);
+  background-size: var(--dot, 7px) var(--dot, 7px);
+  -webkit-mask-image: radial-gradient(var(--shape, 96% 88% at 50% 46%), #000 12%, transparent 100%);
+          mask-image: radial-gradient(var(--shape, 96% 88% at 50% 46%), #000 12%, transparent 100%);
+}
+[data-placeholder="1"] { --dot: 6px;  --shape: 92% 80% at 44% 40%; }
+[data-placeholder="2"] { --dot: 9px;  --shape: 100% 92% at 58% 54%; }
+[data-placeholder="3"] { --dot: 5px;  --shape: 86% 100% at 40% 58%; }
+[data-placeholder="4"] { --dot: 8px;  --shape: 96% 84% at 54% 36%; }
+[data-placeholder="5"] { --dot: 7px;  --shape: 90% 96% at 50% 52%; }
+[data-placeholder="6"] { --dot: 11px; --shape: 104% 78% at 42% 46%; }
+
+/* =========================================================
    Cursor
    ========================================================= */
 .cursor {
@@ -1187,159 +1209,202 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
   transition: color .3s ease;
 }
 .pagefoot__links a:hover { color: var(--dim); }
-
 /* =========================================================
-   Gallery — infinite draggable grid
+   Gallery — a shelf of books, each project one book
    ========================================================= */
-body[data-page="gallery"] { overflow: hidden; height: 100svh; }
+.shelf { padding: calc(var(--nav-h) + clamp(2rem, 6vh, 4rem)) var(--pad) clamp(3rem, 8vh, 6rem); }
+.shelf__note { padding-bottom: clamp(2rem, 5vh, 3.5rem); }
 
-.ig {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: var(--paper);
-  touch-action: none;
-  cursor: grab;
-}
-.ig[data-ig-status="dragging"] { cursor: grabbing; }
-.ig[data-ig-status="loading"] { opacity: 0; }
-.ig { transition: opacity .6s ease; }
-
-.ig__collection { position: absolute; top: 0; left: 0; will-change: transform; }
-
-.ig__list {
-  position: absolute;
-  top: 0; left: 0;
+.shelf__row {
   display: grid;
-  grid-template-columns: repeat(var(--ig-columns, 4), var(--ig-cell));
+  grid-template-columns: repeat(auto-fill, minmax(clamp(150px, 20vw, 230px), 1fr));
+  gap: clamp(1.5rem, 4vw, 3.5rem) clamp(1.2rem, 3vw, 2.6rem);
+  align-items: end;
 }
 
-/* Spacing lives inside the cell so the tiles butt up seamlessly. */
-.ig {
-  --ig-cell: clamp(190px, 21vw, 330px);
-  --ig-gap: clamp(.5rem, 1vw, 1rem);
-}
-.ig__item { width: var(--ig-cell); padding: var(--ig-gap); }
-
-.ig__card {
+/* --- a book on the shelf --- */
+.tome {
   position: relative;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
+  display: grid;
+  gap: .75rem;
+  cursor: pointer;
+  background: none;
+  text-align: left;
+  transition: transform .5s cubic-bezier(.16, 1, .3, 1);
+}
+.tome:hover { transform: translateY(-8px); }
+
+.tome__cover {
+  position: relative;
+  aspect-ratio: 3 / 4;
   background: var(--plate2);
   outline: 1px solid var(--line);
   outline-offset: -1px;
-  transition: filter .5s ease;
+  overflow: hidden;
+  /* The spine: a darker strip down the binding edge. */
+  box-shadow: inset 10px 0 0 -6px color-mix(in srgb, var(--ink) 45%, transparent),
+              inset 14px 0 0 -13px color-mix(in srgb, var(--ink) 30%, transparent);
+  transition: box-shadow .5s ease;
 }
-.ig__img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  filter: saturate(.5) contrast(1.02);
-  transition: filter .6s ease, transform .8s cubic-bezier(.16, 1, .3, 1);
+.tome:hover .tome__cover {
+  box-shadow: inset 10px 0 0 -6px color-mix(in srgb, var(--ink) 45%, transparent),
+              inset 14px 0 0 -13px color-mix(in srgb, var(--ink) 30%, transparent),
+              14px 14px 0 -4px var(--shadow);
 }
-.ig__card:hover .ig__img { filter: saturate(1.05); transform: scale(1.03); }
+.tome__cover img { width: 100%; height: 100%; object-fit: cover; }
 
-.ig__idx {
+.tome__label {
   position: absolute;
+  inset: auto .8rem .9rem 1.5rem;
   z-index: 2;
-  top: .55rem; left: .6rem;
-  color: var(--ink);
-  opacity: 0;
-  transition: opacity .35s ease;
 }
-.ig__card:hover .ig__idx { opacity: 1; }
-
-/* Halftone stand-in for a missing photo, varied by index. */
-[data-placeholder]::before {
-  content: "";
-  position: absolute; inset: 0;
-  background-image: radial-gradient(circle at center, var(--dotink) 1.1px, transparent 1.3px);
-  background-size: var(--dot, 7px) var(--dot, 7px);
-  /* Wide falloff — the plate should read across the whole cell, not as a blob. */
-  -webkit-mask-image: radial-gradient(var(--shape, 96% 88% at 50% 46%), #000 12%, transparent 100%);
-          mask-image: radial-gradient(var(--shape, 96% 88% at 50% 46%), #000 12%, transparent 100%);
+.tome__label h3 {
+  font-family: var(--f-inter);
+  font-size: clamp(.95rem, 1.3vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.1;
 }
-[data-placeholder="1"] { --dot: 6px;  --shape: 92% 80% at 44% 40%; }
-[data-placeholder="2"] { --dot: 9px;  --shape: 100% 92% at 58% 54%; }
-[data-placeholder="3"] { --dot: 5px;  --shape: 86% 100% at 40% 58%; }
-[data-placeholder="4"] { --dot: 8px;  --shape: 96% 84% at 54% 36%; }
-[data-placeholder="5"] { --dot: 7px;  --shape: 90% 96% at 50% 52%; }
-[data-placeholder="6"] { --dot: 11px; --shape: 104% 78% at 42% 46%; }
+.tome__meta { display: flex; justify-content: space-between; gap: .8rem; align-items: baseline; }
 
-/* --- HUD over the grid --- */
-.ig__hud {
+/* =========================================================
+   Reader — the opened book
+   ========================================================= */
+.reader {
   position: fixed;
-  left: var(--pad); right: var(--pad); bottom: var(--pad);
-  z-index: 500;
+  inset: 0;
+  z-index: 900;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  pointer-events: none;
-  color: var(--paper);
-  mix-blend-mode: difference;
-}
-.ig__hud-left { display: flex; gap: 1.2rem; align-items: baseline; }
-.ig__hud .is-dim { color: var(--dim); }
-
-/* --- draggable popup --- */
-.ig-popup {
-  position: fixed;
-  top: 50%; left: 50%;
-  z-index: 700;
-  width: min(90vw, 26rem);
-  margin: -13rem 0 0 -13rem;
-  display: none;
   flex-direction: column;
   background: var(--paper);
-  border: 1px solid var(--ink);
-  box-shadow: 12px 12px 0 var(--shadow);
 }
-.ig-popup__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .75rem;
-  padding: .5rem .6rem;
-  border-bottom: 1px solid var(--ink);
-  cursor: grab;
-  user-select: none;
-}
-.ig-popup__bar:active { cursor: grabbing; }
-.ig-popup__grab { letter-spacing: .18em; }
-.ig-popup__close { cursor: pointer; }
-.ig-popup__close:hover { color: var(--red); }
+.reader[hidden] { display: none; }
 
-.ig-popup__stage {
-  position: relative;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  background: var(--plate);
-}
-.ig-popup__stage img { width: 100%; height: 100%; object-fit: cover; }
-
-.ig-popup__meta {
+.reader__bar {
   display: flex;
   align-items: baseline;
+  gap: clamp(.8rem, 2vw, 2rem);
+  padding: var(--pad) var(--pad) 0;
+}
+.reader__bar [data-reader-count] { margin-left: auto; font-variant-numeric: tabular-nums; }
+.reader__close { cursor: pointer; }
+.reader__close:hover { color: var(--red); }
+
+.reader__stage {
+  flex: 1 1 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 3vh, 2.5rem) var(--pad);
+  min-height: 0;
+}
+/* Whole left / right halves are the page-turn hit areas. */
+.reader__side {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 42%;
+  z-index: 5;
+  cursor: pointer;
+  background: none;
+}
+.reader__side--prev { left: 0; }
+.reader__side--next { right: 0; }
+.reader__side:disabled { cursor: default; }
+
+.reader__hint { padding: 0 var(--pad) var(--pad); text-align: center; }
+
+/* --- the book itself --- */
+.book {
+  position: relative;
+  height: min(78vh, 62vw);
+  aspect-ratio: 3 / 2;         /* two pages side by side */
+  perspective: 2600px;
+  transform-style: preserve-3d;
+}
+
+.book__page {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  background: var(--plate);
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+  overflow: hidden;
+}
+.book__page--verso { left: 0; }
+.book__page--recto-end { left: 50%; }
+
+.book__leaves {
+  position: absolute;
+  top: 0; left: 50%;
+  width: 50%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+/* One leaf = two faces, hinged on the spine. */
+.leaf {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.leaf__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  background: var(--plate);
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+.leaf__face--back { transform: rotateY(180deg); }
+
+.leaf__art { position: relative; overflow: hidden; }
+.leaf__art img { width: 100%; height: 100%; object-fit: cover; }
+.leaf__foot {
+  display: flex;
   justify-content: space-between;
   gap: 1rem;
-  padding: .8rem .7rem .2rem;
+  align-items: baseline;
+  padding: .6rem .8rem;
 }
-.ig-popup__meta h2 {
+.leaf__face--blank { background: var(--plate); }
+
+/* Title page under the leaves, and the closing page behind them. */
+.book__page--verso .plate-title,
+.book__page--recto-end .plate-title {
+  position: absolute;
+  inset: auto 1.4rem 1.4rem;
+  display: grid;
+  gap: .5rem;
+}
+.plate-title h2 {
   font-family: var(--f-inter);
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: -.02em;
+  font-size: clamp(1.3rem, 2.6vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1;
 }
-.ig-popup__body {
-  padding: .4rem .7rem .9rem;
-  font-size: .82rem;
+.plate-title p {
+  max-width: 34ch;
+  font-size: clamp(.8rem, .95vw, .95rem);
   line-height: 1.5;
   color: var(--muted);
 }
 
+/* The spread just scales down on narrow screens. An earlier single-page
+   variant broke the mechanic: a leaf hinged on the spine swung clean off
+   screen and its back face — half of every book — was never seen. */
 @media (max-width: 767px) {
-  .ig { --ig-cell: clamp(150px, 44vw, 220px); }
-  .ig-popup { width: min(92vw, 22rem); margin-left: -11rem; }
+  .book { height: min(58vh, 58vw); }
+  .reader__side { width: 48%; }
+  .leaf__foot { padding: .4rem .5rem; }
 }
 
 /* =========================================================

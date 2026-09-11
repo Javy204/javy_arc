@@ -1,346 +1,246 @@
 /* =========================================================
-   VRgD — infinite draggable gallery
-   4 tiled clones of the list + wrapped x/y on the collection,
-   driven by Observer, with an ambient drift that never stops.
+   VRgD — gallery as a shelf of books
+   Shelf of covers -> click zooms one cover into a fullscreen
+   spread -> each further click turns a leaf.
+   Cursor, scramble, menu and clock live in shared.js.
    ========================================================= */
 (() => {
   'use strict';
 
-  gsap.registerPlugin(Observer, Draggable, InertiaPlugin);
-
   const { REDUCED, $, $$ } = window.VRGD;
 
-  const wrapper    = $('[data-ig-init]');
-  const collection = $('[data-ig-collection]');
-  const sourceList = $('[data-ig-list]');
-  if (!wrapper || !collection || !sourceList) return;
+  const shelf   = $('[data-shelf]');
+  const reader  = $('[data-reader]');
+  const bookEl  = $('[data-book]');
+  const leavesEl = $('[data-book-leaves]');
+  const versoEl = $('[data-book-verso]');
+  const endEl   = $('[data-book-end]');
+  if (!shelf || !reader || !bookEl) return;
 
-  /* --- tuning ------------------------------------------- */
-  const WHEEL_SPEED   = 0.75;
-  const DRAG_SPEED    = 1.25;
-  const DRIFT_X       = 0.30;   // px per 60fps frame
-  const DRIFT_Y       = 0.15;
-  const MAX_DRIFT     = 1.20;   // cap after a throw
-  const DRIFT_DECAY   = 0.995;  // closer to 1 = coasts longer
-  const CLICK_SLOP    = 5;      // px of movement still counted as a click
-  const TILE_COPIES   = 4;      // 2 x 2
+  /* Smooth scroll for the shelf, same feel as the rest of the site. */
+  if (window.Lenis) {
+    const lenis = new Lenis({ anchors: false, lerp: 0.09 });
+    gsap.ticker.add((t) => lenis.raf(t * 1000));
+    gsap.ticker.lagSmoothing(0);
+    window.VRGD.lenis = lenis;
+  }
 
-  let items = [];
-  let tileW = 0, tileH = 0;
-  let currentX = 0, currentY = 0;
-  let xTo, yTo, observer, driftTicker, resizeTimer;
-  let driftVX = DRIFT_X, driftVY = DRIFT_Y;
-  let interacting = false, popupOpen = false;
+  let books = [];
+  let openIndex = -1;      // which book is open
+  let leaves = [];         // leaf elements of the open book
+  let turned = 0;          // how many leaves are turned
+  let busy = false;        // one turn at a time
 
-  const setStatus = (s) => wrapper.setAttribute('data-ig-status', s);
+  /* -------------------------------------------------------
+     Page faces. A missing photo falls back to the halftone
+     plate, so a book reads fine before any stills exist.
+     ------------------------------------------------------- */
+  function faceMarkup(page, pageNo, variant) {
+    if (!page) return '<div class="leaf__face leaf__face--blank"></div>';
+    const art = page.src
+      ? `<div class="leaf__art"><img src="${page.src}" alt="${page.caption || ''}" loading="lazy"></div>`
+      : `<div class="leaf__art" data-placeholder="${variant}"></div>`;
+    return `${art}
+      <div class="leaf__foot">
+        <span class="mono is-dim">${page.caption || ''}</span>
+        <span class="mono is-dim">${String(pageNo).padStart(2, '0')}</span>
+      </div>`;
+  }
 
-  /* =======================================================
-     1. Content — from assets/gallery.json
-     ======================================================= */
-  function makeItem(entry, index) {
-    const item = document.createElement('div');
-    item.className = 'ig__item';
-    item.setAttribute('data-ig-item', '');
-    item.setAttribute('role', 'listitem');
+  /* -------------------------------------------------------
+     Shelf
+     ------------------------------------------------------- */
+  function buildShelf() {
+    shelf.innerHTML = '';
+    books.forEach((book, i) => {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'tome';
+      el.setAttribute('role', 'listitem');
+      el.setAttribute('data-tome', String(i));
+      el.setAttribute('data-cursor-hover', '');
+      el.setAttribute('data-cursor-text', 'open');
+      el.innerHTML = `
+        <span class="tome__cover" data-placeholder="${(i % 6) + 1}">
+          ${book.cover ? `<img src="${book.cover}" alt="">` : ''}
+          <span class="tome__label"><h3>${book.title}</h3></span>
+        </span>
+        <span class="tome__meta">
+          <span class="mono is-dim">${book.meta || ''}</span>
+          <span class="mono is-dim">${String(book.pages.length).padStart(2, '0')} PP</span>
+        </span>`;
+      el.addEventListener('click', () => open(i, el));
+      shelf.appendChild(el);
+    });
 
-    const card = document.createElement('div');
-    card.className = 'ig__card';
-    card.setAttribute('data-ig-card', '');
-    card.setAttribute('data-index', String(index));
-    card.setAttribute('data-cursor-hover', '');
-    card.setAttribute('data-cursor-text', 'more info');
+    const count = $('[data-shelf-count]');
+    if (count) count.textContent = `[${String(books.length).padStart(2, '0')}]`;
+  }
 
-    if (entry.src) {
-      const img = document.createElement('img');
-      img.className = 'ig__img';
-      img.src = entry.src;
-      img.alt = entry.title || '';
-      img.loading = index < 8 ? 'eager' : 'lazy';
-      // A missing file falls back to the halftone plate rather than a broken icon.
-      img.addEventListener('error', () => {
-        img.remove();
-        card.setAttribute('data-placeholder', String((index % 6) + 1));
-      }, { once: true });
-      card.appendChild(img);
-    } else {
-      card.setAttribute('data-placeholder', String((index % 6) + 1));
+  /* -------------------------------------------------------
+     Build the opened book
+     ------------------------------------------------------- */
+  function buildBook(book) {
+    const pages = book.pages || [];
+    const n = Math.ceil(pages.length / 2);
+
+    versoEl.innerHTML = `<div class="plate-title">
+        <span class="mono is-dim">${book.meta || ''}</span>
+        <h2>${book.title}</h2>
+        ${book.blurb ? `<p>${book.blurb}</p>` : ''}
+      </div>`;
+    endEl.innerHTML = `<div class="plate-title">
+        <span class="mono is-dim">END</span>
+        <h2>${book.title}</h2>
+      </div>`;
+
+    leavesEl.innerHTML = '';
+    leaves = [];
+    for (let i = 0; i < n; i++) {
+      const leaf = document.createElement('div');
+      leaf.className = 'leaf';
+      leaf.innerHTML =
+        `<div class="leaf__face leaf__face--front">${faceMarkup(pages[2 * i], 2 * i + 1, (2 * i) % 6 + 1)}</div>
+         <div class="leaf__face leaf__face--back">${faceMarkup(pages[2 * i + 1], 2 * i + 2, (2 * i + 1) % 6 + 1)}</div>`;
+      leavesEl.appendChild(leaf);
+      leaves.push(leaf);
     }
-
-    const idx = document.createElement('span');
-    idx.className = 'ig__idx mono';
-    idx.textContent = `[${String(index + 1).padStart(2, '0')}]`;
-    card.appendChild(idx);
-
-    item.appendChild(card);
-    return item;
+    // Leaf 0 sits on top of the unturned pile.
+    leaves.forEach((leaf, i) => gsap.set(leaf, { rotateY: 0, zIndex: n - i }));
+    turned = 0;
+    paint();
   }
 
-  /* =======================================================
-     2. Popups — built once, keyed by index, parked on <body>
-     so the grid clones never duplicate them.
-     ======================================================= */
-  const popups = new Map();
-  let activePopup = null;
-
-  function buildPopup(entry, index) {
-    const pop = document.createElement('div');
-    pop.className = 'ig-popup';
-    pop.setAttribute('data-ig-popup', String(index));
-
-    pop.innerHTML = `
-      <div class="ig-popup__bar">
-        <span class="mono">[${String(index + 1).padStart(2, '0')}]</span>
-        <span class="mono is-dim ig-popup__grab">DRAG ME</span>
-        <button class="ig-popup__close mono" data-ig-popup-close aria-label="Close">CLOSE</button>
-      </div>
-      <div class="ig-popup__stage" data-placeholder="${(index % 6) + 1}"></div>
-      <div class="ig-popup__meta">
-        <h2>${entry.title || 'Untitled'}</h2>
-        <span class="mono is-dim">${entry.meta || ''}</span>
-      </div>
-      ${entry.body ? `<p class="ig-popup__body">${entry.body}</p>` : ''}
-    `;
-
-    if (entry.src) {
-      const stage = pop.querySelector('.ig-popup__stage');
-      const img = document.createElement('img');
-      img.src = entry.src;
-      img.alt = entry.title || '';
-      img.loading = 'lazy';
-      img.addEventListener('error', () => img.remove(), { once: true });
-      stage.appendChild(img);
-      stage.removeAttribute('data-placeholder');
-    }
-
-    document.body.appendChild(pop);
-    popups.set(index, pop);
-
-    Draggable.create(pop, {
-      bounds: document.body,
-      inertia: true,
-      trigger: pop.querySelector('.ig-popup__bar'),
-      cursor: 'grab',
-      activeCursor: 'grabbing'
-    });
-    return pop;
+  function paint() {
+    const total = leaves.length + 1;
+    const c = $('[data-reader-count]');
+    if (c) c.textContent = `${String(turned + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+    $('[data-turn="-1"]').disabled = turned === 0;
+    $('[data-turn="1"]').disabled = turned >= leaves.length;
   }
 
-  function openPopup(index) {
-    const pop = popups.get(index);
-    if (!pop) return;
-    if (activePopup && activePopup !== pop) closePopup();
+  /* -------------------------------------------------------
+     Turning. z-index is lifted for the flight and settled on
+     landing, so the turned pile stacks the right way round.
+     ------------------------------------------------------- */
+  function turn(dir) {
+    if (busy) return;
+    const n = leaves.length;
+    const i = dir > 0 ? turned : turned - 1;
+    if (i < 0 || i >= n) return;
 
-    activePopup = pop;
-    popupOpen = true;
-    setStatus('paused');
+    const leaf = leaves[i];
+    busy = true;
+    gsap.set(leaf, { zIndex: n + 1 + i });
 
-    // Land it near the middle, slightly offset per item so repeats feel placed.
-    const jitter = ((index % 5) - 2) * 26;
-    gsap.set(pop, {
-      x: jitter, y: jitter * 0.6, scale: 0.92, autoAlpha: 0,
-      zIndex: 700, display: 'flex'
-    });
-    gsap.to(pop, { scale: 1, autoAlpha: 1, duration: 0.45, ease: 'expo.out' });
-  }
-
-  function closePopup() {
-    if (!activePopup) return;
-    const pop = activePopup;
-    activePopup = null;
-    popupOpen = false;
-    setStatus('idle');
-    gsap.to(pop, {
-      scale: 0.94, autoAlpha: 0, duration: 0.25, ease: 'power2.in',
-      onComplete: () => gsap.set(pop, { display: 'none' })
-    });
-  }
-
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-ig-popup-close]')) closePopup();
-  });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePopup(); });
-
-  /* =======================================================
-     3. Build the tiled grid
-     ======================================================= */
-  function buildGrid() {
-    if (observer) observer.kill();
-    if (driftTicker) { gsap.ticker.remove(driftTicker); driftTicker = null; }
-    setStatus('loading');
-
-    collection.innerHTML = '';
-
-    // Measure one cell off-screen.
-    const probe = items[0].cloneNode(true);
-    probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none';
-    wrapper.appendChild(probe);
-    const { width: cellW, height: cellH } = probe.getBoundingClientRect();
-    probe.remove();
-    if (!cellW || !cellH) return;
-
-    const columns = Math.max(1, Math.ceil(wrapper.clientWidth / cellW) + 1);
-    const rows    = Math.max(1, Math.ceil(wrapper.clientHeight / cellH) + 1);
-    const perList = columns * rows;
-
-    const frag = document.createDocumentFragment();
-    for (let copy = 0; copy < TILE_COPIES; copy++) {
-      const list = document.createElement('div');
-      list.className = 'ig__list';
-      list.setAttribute('data-ig-list', '');
-      list.style.setProperty('--ig-columns', columns);
-      if (copy > 0) list.setAttribute('aria-hidden', 'true');
-
-      for (let i = 0; i < perList; i++) {
-        const clone = items[i % items.length].cloneNode(true);
-        if (copy > 0) clone.setAttribute('aria-hidden', 'true');
-        list.appendChild(clone);
+    gsap.to(leaf, {
+      rotateY: dir > 0 ? -180 : 0,
+      duration: REDUCED ? 0.01 : 0.85,
+      ease: 'power2.inOut',
+      onComplete() {
+        gsap.set(leaf, { zIndex: dir > 0 ? i + 1 : n - i });
+        turned += dir;
+        busy = false;
+        paint();
       }
-      frag.appendChild(list);
-    }
-    collection.appendChild(frag);
-    requestAnimationFrame(placeTiles);
+    });
   }
 
-  function placeTiles() {
-    const lists = $$('[data-ig-list]', collection);
-    if (lists.length < TILE_COPIES) return;
+  /* -------------------------------------------------------
+     Open / close. The cover morphs into the right-hand page:
+     a book page is 3/4, exactly the cover's ratio, so the
+     zoom lines up geometrically.
+     ------------------------------------------------------- */
+  function open(index, tomeEl) {
+    if (openIndex !== -1) return;
+    openIndex = index;
+    buildBook(books[index]);
 
-    const listRect = lists[0].getBoundingClientRect();
-    const cellRect = lists[0].firstElementChild.getBoundingClientRect();
-    tileW = listRect.width;
-    tileH = listRect.height;
+    reader.hidden = false;
+    window.VRGD.lenis?.stop();
+    document.body.style.overflow = 'hidden';
 
-    // 2 x 2 so any wrap direction always has a neighbour ready.
-    gsap.set(lists[0], { xPercent: 0,   yPercent: 0 });
-    gsap.set(lists[1], { xPercent: 100, yPercent: 0 });
-    gsap.set(lists[2], { xPercent: 0,   yPercent: 100 });
-    gsap.set(lists[3], { xPercent: 100, yPercent: 100 });
+    const cover = $('.tome__cover', tomeEl).getBoundingClientRect();
+    const rect = bookEl.getBoundingClientRect();
+    const scale = cover.width / (rect.width / 2);
+    // 75%/50% is the centre of the right-hand page.
+    const rx = rect.left + rect.width * 0.75;
+    const ry = rect.top + rect.height / 2;
 
-    const wrapX = gsap.utils.wrap(-tileW, 0);
-    const wrapY = gsap.utils.wrap(-tileH, 0);
+    gsap.set(reader, { autoAlpha: 0 });
+    gsap.to(reader, { autoAlpha: 1, duration: 0.25, ease: 'power2.out' });
+    gsap.fromTo(bookEl,
+      { transformOrigin: '75% 50%', scale, x: cover.left + cover.width / 2 - rx, y: cover.top + cover.height / 2 - ry },
+      { scale: 1, x: 0, y: 0, duration: REDUCED ? 0.01 : 0.9, ease: 'expo.out' });
 
-    currentX = wrapX((wrapper.clientWidth - tileW) * 0.5);
-    currentY = wrapY((wrapper.clientHeight - cellRect.height) * 0.5);
-
-    // The wrap lives in modifiers, so the tween never sees a jump.
-    xTo = gsap.quickTo(collection, 'x', {
-      duration: 1.2, ease: 'expo.out',
-      modifiers: { x: gsap.utils.unitize(wrapX) }
-    });
-    yTo = gsap.quickTo(collection, 'y', {
-      duration: 1.2, ease: 'expo.out',
-      modifiers: { y: gsap.utils.unitize(wrapY) }
-    });
-
-    gsap.set(collection, { x: currentX, y: currentY });
-    requestAnimationFrame(() => setStatus('idle'));
-
-    observer = Observer.create({
-      target: wrapper,
-      type: 'wheel,touch,pointer',
-      preventDefault: true,
-      dragMinimum: 3,
-      onPress()   { interacting = true; setStatus('dragging'); },
-      onRelease() { interacting = false; setStatus(popupOpen ? 'paused' : 'idle'); },
-      onStop()    { interacting = false; setStatus(popupOpen ? 'paused' : 'idle'); },
-      onChangeX(self) { move(self, 'x'); },
-      onChangeY(self) { move(self, 'y'); }
-    });
-
-    startDrift();
+    $('[data-reader-title]').textContent = books[index].title;
+    $('[data-reader-meta]').textContent = books[index].meta || '';
+    $('[data-reader-close]').focus();
   }
 
-  function move(self, axis) {
-    const isWheel = self.event?.type === 'wheel';
-    const speed = isWheel ? WHEEL_SPEED : DRAG_SPEED;
-    const delta = (axis === 'x' ? self.deltaX : self.deltaY) * speed * (isWheel ? -1 : 1);
-
-    if (axis === 'x') { currentX += delta; xTo(currentX); }
-    else              { currentY += delta; yTo(currentY); }
-
-    // A throw hands its momentum to the drift, capped so it stays calm.
-    const v = gsap.utils.clamp(-MAX_DRIFT, MAX_DRIFT, delta * 0.05);
-    if (axis === 'x') driftVX = v || driftVX;
-    else              driftVY = v || driftVY;
-  }
-
-  /* =======================================================
-     4. Ambient drift — the grid is never quite still
-     ======================================================= */
-  function startDrift() {
-    if (REDUCED) return;
-    if (driftTicker) gsap.ticker.remove(driftTicker);
-
-    driftTicker = () => {
-      if (interacting || popupOpen) return;
-      const dr = gsap.ticker.deltaRatio(); // normalise to 60fps
-
-      currentX += driftVX * dr;
-      currentY += driftVY * dr;
-      xTo(currentX);
-      yTo(currentY);
-
-      // Ease back toward the gentle baseline instead of stopping dead.
-      driftVX += (DRIFT_X - driftVX) * (1 - DRIFT_DECAY);
-      driftVY += (DRIFT_Y - driftVY) * (1 - DRIFT_DECAY);
+  function close() {
+    if (openIndex === -1 || busy) return;
+    const tomeEl = $(`[data-tome="${openIndex}"]`);
+    const done = () => {
+      reader.hidden = true;
+      openIndex = -1;
+      document.body.style.overflow = '';
+      window.VRGD.lenis?.start();
+      tomeEl?.focus();
     };
-    gsap.ticker.add(driftTicker);
+
+    if (REDUCED || !tomeEl) { done(); return; }
+
+    const cover = $('.tome__cover', tomeEl).getBoundingClientRect();
+    const rect = bookEl.getBoundingClientRect();
+    const scale = cover.width / (rect.width / 2);
+    const rx = rect.left + rect.width * 0.75;
+    const ry = rect.top + rect.height / 2;
+
+    gsap.to(bookEl, {
+      transformOrigin: '75% 50%', scale,
+      x: cover.left + cover.width / 2 - rx,
+      y: cover.top + cover.height / 2 - ry,
+      duration: 0.6, ease: 'expo.inOut'
+    });
+    gsap.to(reader, { autoAlpha: 0, duration: 0.3, delay: 0.2, ease: 'power2.in', onComplete: done });
   }
 
-  /* =======================================================
-     5. Click vs drag — without this every throw opens a popup
-     ======================================================= */
-  let pressX = 0, pressY = 0, dragged = false, pressed = false;
+  /* -------------------------------------------------------
+     Controls
+     ------------------------------------------------------- */
+  $$('[data-turn]').forEach((b) =>
+    b.addEventListener('click', () => turn(Number(b.getAttribute('data-turn')))));
+  $('[data-reader-close]').addEventListener('click', close);
 
-  wrapper.addEventListener('pointerdown', (e) => {
-    if (!e.target.closest('[data-ig-card]')) return;
-    pressX = e.clientX; pressY = e.clientY;
-    dragged = false; pressed = true;
+  document.addEventListener('keydown', (e) => {
+    if (openIndex === -1) return;
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'ArrowRight') { e.preventDefault(); turn(1); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); turn(-1); }
   });
 
-  wrapper.addEventListener('pointermove', (e) => {
-    if (!pressed) return;
-    if (Math.abs(e.clientX - pressX) > CLICK_SLOP ||
-        Math.abs(e.clientY - pressY) > CLICK_SLOP) dragged = true;
-  });
-
-  wrapper.addEventListener('pointerup', (e) => {
-    if (!pressed) return;
-    pressed = false;
-    const card = e.target.closest('[data-ig-card]');
-    if (!card || dragged) return;
-    openPopup(Number(card.getAttribute('data-index')));
-  });
-
-  /* =======================================================
-     6. Boot
-     ======================================================= */
+  /* -------------------------------------------------------
+     Boot
+     ------------------------------------------------------- */
   async function init() {
-    let entries = [];
     try {
       const res = await fetch('assets/gallery.json');
-      if (res.ok) entries = (await res.json()).items || [];
-    } catch { /* falls through to the placeholder set below */ }
+      if (res.ok) books = (await res.json()).books || [];
+    } catch { /* falls through to the stand-in below */ }
 
-    // Never render an empty grid — the mechanic should still be visible.
-    if (!entries.length) {
-      entries = Array.from({ length: 12 }, (_, i) => ({ title: `Untitled ${i + 1}`, meta: '—' }));
+    // Never render an empty shelf — the mechanic should still be visible.
+    if (!books.length) {
+      books = Array.from({ length: 4 }, (_, i) => ({
+        title: `Untitled ${i + 1}`, meta: '—',
+        pages: Array.from({ length: 6 }, (_, p) => ({ src: null, caption: `Page ${p + 1}` }))
+      }));
     }
 
-    items = entries.map(makeItem);
-    entries.forEach(buildPopup);
-    gsap.set('.ig-popup', { display: 'none', autoAlpha: 0 });
+    buildShelf();
 
-    const count = $('[data-ig-count]');
-    if (count) count.textContent = `[${String(entries.length).padStart(2, '0')}]`;
-
-    sourceList.remove();
-    buildGrid();
-
-    window.addEventListener('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(buildGrid, 200);
-    });
+    // Section head meta scrambles in, as elsewhere on the site.
+    $$('.section__head .mono').forEach((el) => window.VRGD.scramble(el, el.textContent, 0.7));
   }
 
   if (document.fonts?.ready) document.fonts.ready.then(init);

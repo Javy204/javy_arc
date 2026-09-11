@@ -242,7 +242,7 @@ const URLQ = new URLSearchParams(location.search);
 const URLV = VERSIONS.find((v) => v.id === URLQ.get("v"));
 let wfLayout = URLV ? URLV.layout
              : LAYOUTS[new URLSearchParams(location.search).get("wl")] ? new URLSearchParams(location.search).get("wl")
-             : (LAYOUTS[localStorage.getItem("javy-wflayout")] ? localStorage.getItem("javy-wflayout") : "B");
+             : (LAYOUTS[localStorage.getItem("javy-wflayout2")] ? localStorage.getItem("javy-wflayout2") : "R");
 if (URLV) workMode = URLV.mode;   // ?v=… přebíjí i uložený režim WORKu
 // stabilní pseudonáhoda: stejný akt + stejná fotka = vždy stejné rozložení (nepřeskakuje mezi rendery)
 function seeded(a, k) {
@@ -539,7 +539,7 @@ function renderWorkFilm() {
     // stálá legenda + velký živý náhled (lokasasmita.com/work)
     const side = document.createElement("aside"); side.className = "ar-side";
     side.innerHTML =
-      `<div class="ar-prev"><div class="ar-prev-l"></div><div class="ar-prev-l"></div></div>` +
+      `<div class="ar-prev"><img class="ar-prev-l" alt=""><img class="ar-prev-l" alt=""></div>` +
       `<ol class="ar-legend">${arActs.map((a, k) => `<li data-k="${k}">${a.title}</li>`).join("")}</ol>` +
       `<div class="ar-note"></div>`;
     workFilm.insertBefore(side, workFilm.firstChild);
@@ -652,7 +652,7 @@ function showArchivePreview(src) {
   if (!arPrevLayers.length || !src) return;
   const next = (arPrevI + 1) % arPrevLayers.length;
   if (arPrevLayers[next].dataset.src === src) return;
-  arPrevLayers[next].style.backgroundImage = `url("${src}")`;
+  arPrevLayers[next].src = src;
   arPrevLayers[next].dataset.src = src;
   arPrevLayers[next].classList.add("on");
   if (arPrevI >= 0) arPrevLayers[arPrevI].classList.remove("on");
@@ -825,7 +825,7 @@ function applyVersion(id) {
   const v = VERSIONS.find((x) => x.id === id); if (!v) return;
   workMode = v.mode; wfLayout = v.layout;
   localStorage.setItem("javy-workmode", workMode);
-  localStorage.setItem("javy-wflayout", wfLayout);
+  localStorage.setItem("javy-wflayout2", wfLayout);
   renderWorkFilm();
   applyWorkMode();
   const j = journey; if (j) j.scrollTop = Math.max(0, sWork.offsetTop - window.innerHeight * 0.2);
@@ -834,7 +834,7 @@ function applyVersion(id) {
 function cycleWorkLayout() {
   const i = LAYOUT_ORDER.indexOf(wfLayout);
   wfLayout = LAYOUT_ORDER[(i + 1) % LAYOUT_ORDER.length];
-  localStorage.setItem("javy-wflayout", wfLayout);
+  localStorage.setItem("javy-wflayout2", wfLayout);
   renderWorkFilm();
   applyWorkMode();
   setTimeout(() => { sizeCollage(); updateFilm(window.innerHeight); }, 40);

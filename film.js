@@ -30,6 +30,10 @@ const whTrack = $("#whTrack");
 const workFilm = $("#workFilm");
 let wfActs = [], vHint = null;
 let whEls = [], whDist = 0, whTargetX = 0, whCurX = 0, whActive = -1;
+let whMeta = [], whBase = 0;   // předpočítané středy panelů (ať se v každém snímku nečte layout)
+/* dojezd nezávislý na Hz: `base` je krok při 60 FPS, tady se přepočítá na
+   skutečný delta čas — na 120Hz displeji pak animace neběží dvakrát rychleji */
+function ease(base, dt) { return 1 - Math.pow(1 - base, dt / 16.667); }
 const sWork = $("#sWork");
 const workMeta = $("#workMeta");
 const journalList = $("#journalList");
@@ -299,10 +303,20 @@ function renderWorkH() {
     if (img.complete && img.naturalWidth) applyW();
   });
 }
+/* výška fotky v pásu = jediný zdroj pravdy je CSS proměnná --stripF
+   (desktop .66, telefon míň) — dřív byla hodnota na dvou místech a rozjížděla se */
+function stripF() {
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--stripF"));
+  return (isFinite(v) && v > 0) ? v : 0.66;
+}
 function sizeWhItem(it, img) {
-  const H = 0.66 * (window.innerHeight || 860);   // MUSÍ sedět s .wh-ph height v CSS
+  const vh = window.innerHeight || 860, vw = window.innerWidth || 1280;
   const a = (img.naturalWidth && img.naturalHeight) ? img.naturalWidth / img.naturalHeight : 0.72;
-  it.style.width = Math.round(H * a) + "px";
+  let h = stripF() * vh;
+  const maxW = 0.92 * vw;          // fotka naležato se nesmí vejít mimo obrazovku (na telefonu byla širší)
+  if (h * a > maxW) h = maxW / a;
+  it.style.width = Math.round(h * a) + "px";
+  img.style.height = Math.round(h) + "px";   // výška inline, ať `cover` nikdy neořízne
 }
 function layoutWork() {
   if (workMode !== "C") { sWork.style.height = "auto"; return; }   // film módy: výška z obsahu
@@ -316,7 +330,8 @@ function layoutWork() {
   }
   whDist = Math.max(0, whTrack.scrollWidth - vw);
   sWork.style.height = (window.innerHeight + whDist) + "px";
-  if (whEls.length) applyPanelDepth();
+  cacheWhMeta();
+  paintStrip();
 }
 // mapuje pozici sekce ve svislém scrollu na posun pásu do strany (1:1, bez driftu)
 function updateWorkH(vh) {
@@ -324,6 +339,35 @@ function updateWorkH(vh) {
   const r = sWork.getBoundingClientRect();
   const p = whDist > 0 ? clampN(-r.top / whDist, 0, 1) : 0;
   whTargetX = -p * whDist;
+}
+// středy panelů se změří jednou po přeskládání, ne v každém snímku
+function cacheWhMeta() {
+  if (!whEls.length) { whMeta = []; return; }
+  whBase = whTrack.getBoundingClientRect().left - whCurX;
+  whMeta = whEls.map((el) => ({ el, frame: el.firstElementChild, c: el.offsetLeft + el.offsetWidth / 2 }));
+}
+/* jeden průchod: hloubka panelů + určení aktivního. Čte se jen z cache,
+   takže se v animaci nevynucuje přepočet layoutu (to dělalo sekání na mobilu). */
+function paintStrip() {
+  if (!whMeta.length) return;
+  const cx = (window.innerWidth || 1280) / 2;
+  let best = -1, bd = Infinity;
+  for (let i = 0; i < whMeta.length; i++) {
+    const m = whMeta[i];
+    const center = whBase + whCurX + m.c;
+    const d = Math.abs(center - cx);
+    if (d < bd) { bd = d; best = i; }
+    const n = clampN((center - cx) / cx, -1.4, 1.4);
+    const t = Math.min(Math.abs(n), 1);
+    const e = t * t * (3 - 2 * t);                     // smoothstep – měkký náběh
+    if (m.frame) m.frame.style.transform = `scale(${(1.10 - e * 0.28).toFixed(3)})`;
+  }
+  if (best >= 0 && best !== whActive) {
+    whActive = best;
+    for (let i = 0; i < whMeta.length; i++) whMeta[i].el.classList.toggle("active", i === best);
+    const pinned = sWork.getBoundingClientRect().top <= 1;
+    if (pinned && stage.hidden && groupEl.hidden) crumb.textContent = `WORK / ${SETS[best].title.toUpperCase()}`;
+  }
 }
 // aktivní = panel nejblíž středu obrazovky (počítá se i během dojíždění)
 function updateWhActive() {
@@ -354,14 +398,13 @@ function applyPanelDepth() {
     if (frame) frame.style.transform = `scale(${(1.10 - e * 0.28).toFixed(3)})`;   // menší zvětšení, ať se vyšší fotka vejde
   });
 }
-function stepWorkH() {
+function stepWorkH(dt) {
   if (workMode !== "C" || !whEls.length) return;
-  if (whCurX === whTargetX) { if (whActive < 0) { updateWhActive(); applyPanelDepth(); } return; }
-  whCurX += (whTargetX - whCurX) * 0.16;
+  if (whCurX === whTargetX) { if (whActive < 0) paintStrip(); return; }
+  whCurX += (whTargetX - whCurX) * ease(0.16, dt);
   if (Math.abs(whTargetX - whCurX) < 0.2) whCurX = whTargetX;
-  whTrack.style.transform = `translate3d(${whCurX.toFixed(1)}px,0,0)`;
-  updateWhActive();
-  applyPanelDepth();
+  whTrack.style.transform = `translate3d(${whCurX.toFixed(2)}px,0,0)`;
+  paintStrip();
 }
 const arCache = {};
 let revealAR = 0;   // poměr stran (š/v) aktivní fotky; 0 = zatím neznámé → panuj svisle
@@ -794,8 +837,26 @@ function applyWorkMode() {
    Zavřené = jen malý štítek „BETA"; klik/ťuk rozbalí seznam verzí.
    Volba se pamatuje (localStorage) a jde předat i URL (?v=v3).
    ============================================================ */
+function betaOn() { return document.body.classList.contains("beta-on"); }
+function toggleBeta() {
+  document.body.classList.toggle("beta-on");
+  const p = document.getElementById("betaPanel");
+  if (p && !betaOn()) { p.hidden = true; document.getElementById("beta").classList.remove("open"); }
+}
 function buildBetaMenu() {
   if (document.getElementById("beta")) return;
+  if (new URLSearchParams(location.search).has("beta")) document.body.classList.add("beta-on");
+  // trojklik/trojťuk na značku ℗ v HUD = zapnout/vypnout přepínač (funguje i na telefonu)
+  const mark = document.querySelector(".hud .mark");
+  if (mark) {
+    let n = 0, t0 = 0;
+    mark.style.cursor = "default";
+    mark.addEventListener("click", () => {
+      const now = Date.now();
+      n = (now - t0 < 700) ? n + 1 : 1; t0 = now;
+      if (n >= 3) { n = 0; toggleBeta(); }
+    });
+  }
   const el = document.createElement("div"); el.className = "beta"; el.id = "beta";
   el.innerHTML =
     `<button class="beta-tag" id="betaTag" aria-expanded="false">BETA <span class="beta-cur" id="betaCur"></span></button>` +
@@ -1014,9 +1075,9 @@ function setGroupActive(i) {
   counter.textContent = `${pad2(i + 1)} / ${pad2(coverEls.length)}`;
 }
 // plynulé otáčení válce + hloubka (mizení, rozostření, zmenšení dozadu)
-function stepDrum() {
+function stepDrum(dt) {
   if (!itemEls.length || !drum) return;
-  gCurrentAngle += (gTargetAngle - gCurrentAngle) * 0.12;
+  gCurrentAngle += (gTargetAngle - gCurrentAngle) * ease(0.12, dt);
   drum.style.transform = `rotateX(${gCurrentAngle.toFixed(2)}deg)`;
   itemEls.forEach((it, i) => {
     const c = Math.cos((gCurrentAngle - i * STEP) * Math.PI / 180);
@@ -1122,8 +1183,10 @@ viewport.addEventListener("pointerup", endDrag);
 viewport.addEventListener("pointercancel", endDrag);
 
 document.addEventListener("keydown", (e) => {
-  if ((e.key === "v" || e.key === "V") && light.hidden && stage.hidden && groupEl.hidden && journalEntry.hidden) { cycleWorkMode(); return; }
-  if ((e.key === "l" || e.key === "L") && light.hidden && stage.hidden && groupEl.hidden && journalEntry.hidden) { cycleWorkLayout(); return; }
+  const devKeys = light.hidden && stage.hidden && groupEl.hidden && journalEntry.hidden;
+  if ((e.key === "b" || e.key === "B") && devKeys) { toggleBeta(); return; }
+  if ((e.key === "v" || e.key === "V") && devKeys && betaOn()) { cycleWorkMode(); return; }
+  if ((e.key === "l" || e.key === "L") && devKeys && betaOn()) { cycleWorkLayout(); return; }
   if (!light.hidden) { if (e.key === "Escape") closeLight(); else if (e.key === "ArrowRight") stepLight(1); else if (e.key === "ArrowLeft") stepLight(-1); return; }
   if (!journalEntry.hidden) { if (e.key === "Escape") { journalEntry.hidden = true; if (stage.hidden && groupEl.hidden) back.hidden = true; } return; }
   if (!groupEl.hidden) {
@@ -1143,12 +1206,12 @@ document.addEventListener("keydown", (e) => {
 
 /* ---- strip render loop ---- */
 let curNearest = -1;
-function step() {
-  stepWorkH();
-  if (!groupEl.hidden) { stepDrum(); return; }
+function step(dt) {
+  stepWorkH(dt);
+  if (!groupEl.hidden) { stepDrum(dt); return; }
   if (stage.hidden || !ITEMS.length) return;
   vw = window.innerWidth || document.documentElement.clientWidth;
-  currentX += (targetX - currentX) * 0.18;
+  currentX += (targetX - currentX) * ease(0.18, dt);
   if (Math.abs(targetX - currentX) < 0.1) currentX = targetX;
   reel.style.transform = `translate3d(${currentX}px,0,0)`;
   stripBg.style.transform = `translate(${(currentX * 0.4).toFixed(1)}px, -50%)`;   // type-parallax (pomaleji)
@@ -1208,6 +1271,27 @@ function initLoader() {
   return api;
 }
 
+/* ---- animační smyčka ----
+   rAF jede na obnovovací frekvenci displeje (120 Hz na ProMotion telefonech),
+   krok se počítá z delta času, takže rychlost je všude stejná.
+   Když rAF neběží (headless náhled), naskočí po 400 ms setInterval. */
+let loopStarted = false, rafSeen = false, lastT = 0;
+function startLoop() {
+  if (loopStarted) return; loopStarted = true;
+  const frame = (t) => {
+    const dt = lastT ? Math.min(64, t - lastT) : 16.667;
+    lastT = t; rafSeen = true;
+    step(dt);
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+  setTimeout(() => {
+    if (rafSeen) return;
+    let prev = performance.now();
+    setInterval(() => { const n = performance.now(); const dt = Math.min(64, n - prev); prev = n; step(dt); }, 16);
+  }, 400);
+}
+
 /* ---- go ---- */
 const loader = initLoader();
 journey.addEventListener("scroll", updateJourney, { passive: true });
@@ -1226,7 +1310,7 @@ window.addEventListener("resize", () => { if (wfPhone !== null && wfPhone !== is
   fitText();
   updateJourney();
   setTimeout(fitText, 120);   // po dosednutí fontů
-  setInterval(step, 16);
+  startLoop();
 
   // využij čas loaderu: přednačti VŠECHNY preview fotky (progres = reálný postup)
   const previews = collectPreviewURLs();

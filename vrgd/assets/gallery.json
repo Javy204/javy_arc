@@ -1,5 +1,5 @@
 {
-  "_comment": "Galerie = police knih. Kazdy projekt je jedna kniha, kazda polozka v 'pages' je jedna strana. 'cover' = obalka na polici (nahled + nazev projektu). 'backCover' = volitelny obrazek zadni strany desek, zobrazi se na miste posledni stranky misto generickeho 'END' plaketu. Fotky dej do assets/gallery/ a doplň cestu do 'src'. Kdyz 'src' chybi nebo soubor neexistuje, vykresli se halftone placeholder, takze kniha funguje i prazdna. Doporuceno 1600px na delsi strane, jpg/webp.",
+  "_comment": "Galerie = police knih. Kazdy projekt je jedna kniha, kazda polozka v 'pages' je jedna strana. 'cover' = obalka na polici I verso strana uvnitr knihy (prvni, co uvidis po otevreni). 'backCover' = volitelny obrazek zadnich desek, zobrazi se jako posledni strana. 'caption' u stranky NENI videt na webu - jde jen do alt textu obrazku (pristupnost), kniha uvnitr nema zadne popisky ani cisla stran, jen fotky. Fotky dej do assets/gallery/ a doplň cestu do 'src'. Kdyz 'src' chybi nebo soubor neexistuje, vykresli se halftone placeholder, takze kniha funguje i prazdna. Doporuceno 1600px na delsi strane, jpg/webp.",
   "books": [
     {
       "title": "Mattoni Young Fashion Stars",

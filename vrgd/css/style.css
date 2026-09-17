@@ -1302,6 +1302,18 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 .reader__close { cursor: pointer; }
 .reader__close:hover { color: var(--red); }
 
+/* The text that used to live on the book's title page (see gallery.js) —
+   still shown, just above the spread instead of inside it. Collapses to
+   nothing when a book has no blurb, no empty gap left behind. */
+.reader__blurb {
+  max-width: 56ch;
+  padding: .6rem var(--pad) 0;
+  font-size: clamp(.82rem, .95vw, .95rem);
+  line-height: 1.5;
+  color: var(--muted);
+}
+.reader__blurb:empty { display: none; }
+
 .reader__stage {
   flex: 1 1 auto;
   position: relative;
@@ -1379,45 +1391,15 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
   outline: 1px solid var(--line);
   outline-offset: -1px;
   overflow: hidden;
-  display: grid;
-  grid-template-rows: 1fr auto;
 }
 .leaf__face--back { transform: rotateY(180deg); }
-
-.leaf__art { position: relative; overflow: hidden; }
-.leaf__art img { width: 100%; height: 100%; object-fit: contain; }
-/* Fills the closing plate directly (no leaf__face grid parent involved). */
-.leaf__art--full { position: absolute; inset: 0; }
-.leaf__foot {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: baseline;
-  padding: .6rem .8rem;
-}
 .leaf__face--blank { background: var(--plate); }
 
-/* Title page under the leaves, and the closing page behind them. */
-.book__page--verso .plate-title,
-.book__page--recto-end .plate-title {
-  position: absolute;
-  inset: auto 1.4rem 1.4rem;
-  display: grid;
-  gap: .5rem;
-}
-.plate-title h2 {
-  font-family: var(--f-inter);
-  font-size: clamp(1.3rem, 2.6vw, 2.2rem);
-  font-weight: 800;
-  letter-spacing: -.03em;
-  line-height: 1;
-}
-.plate-title p {
-  max-width: 34ch;
-  font-size: clamp(.8rem, .95vw, .95rem);
-  line-height: 1.5;
-  color: var(--muted);
-}
+/* The page itself — full bleed, no caption, no page number. Used for every
+   page including the verso (front cover) and end cap (back cover): opening
+   the book should show pages, not UI. */
+.leaf__art { position: absolute; inset: 0; overflow: hidden; }
+.leaf__art img { width: 100%; height: 100%; object-fit: contain; }
 
 /* The spread just scales down on narrow screens. An earlier single-page
    variant broke the mechanic: a leaf hinged on the spine swung clean off
@@ -1425,7 +1407,6 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 @media (max-width: 767px) {
   .book { width: min(87vw, calc(58vh * var(--book-ratio-num, 1.5))); }
   .reader__side { width: 48%; }
-  .leaf__foot { padding: .4rem .5rem; }
 }
 
 /* =========================================================

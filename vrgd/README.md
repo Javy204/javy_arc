@@ -317,8 +317,14 @@ nebo soubor neexistuje, vykreslí se **halftone placeholder** — kniha funguje
 i úplně prázdná, takže se dá plnit postupně.
 
 `cover` je nepovinný — bez něj se na polici ukáže jen halftone plát s
-názvem. `backCover` je taky nepovinný: když je zadaný, nahradí generickou
-plaketu „END" na poslední straně skutečnou zadní obálkou.
+názvem, a uvnitř knihy stejný placeholder na pravé straně otevírací
+dvojstrany (tam, kde jinak sedí přední obálka). `backCover` je taky
+nepovinný: bez něj dostane placeholder levá strana otevírací dvojstrany
+(žádný text „END", ten tu už není).
+
+**`caption` u stránky se nikde nezobrazuje** — jde jen do `alt` textu
+obrázku, pro čtečky obrazovky. Kniha uvnitř nemá žádné popisky ani čísla
+stran, jen fotky; title/meta/blurb žijí nad knihou (viz níž).
 
 **Reálný příklad:** `assets/gallery/myfs/` — kniha „Mattoni Young Fashion
 Stars" (`cover.webp` + `01`–`14.webp` + `back.webp`), první skutečná kniha
@@ -355,6 +361,16 @@ si drží normální barvu textu podle tématu.
 
 ### Jak je to udělané
 
+**Uvnitř knihy je jen obsah** — žádný titulní plakát, žádné popisky, žádná
+čísla stran. Stránkování kopíruje skutečný tisk: **obálka tvoří vlastní
+otevírací dvojstranu** — zadní obálka vlevo (statické `verso`), přední
+obálka vpravo (`front` prvního listu) — přesně jako plochý přebal, se kterým
+pracuje tiskárna. Teprve **potom** začíná číslovaný obsah a párování jede
+nastavo od první stránky: (1,2) (3,4) (5,6)… až po poslední stránku na
+statickém konci (`endEl`). Skutečné title/meta/blurb žijí v `.reader__bar` /
+`.reader__blurb` **nad** knihou, ne jako stránka uvnitř — proto to čte jako
+knihu, ne jako UI se stránkami navíc.
+
 Kniha je **stoh listů** (`.leaf`), každý s přední a zadní stranou
 (`backface-visibility: hidden`, zadní předotočená o 180°). Listy sedí na
 pravé polovině a jsou zavěšené na hřbetu (`transform-origin: left center`);
@@ -366,7 +382,8 @@ odspodu.
 
 Otevření není Flip — je to ruční FLIP výpočet: strana knihy má poměr 3/4,
 tedy **přesně poměr obálky**, takže se obálka geometricky přesně zvětší do
-pravé strany.
+**pravé** strany otevírací dvojstrany — tam, kde leží `front` prvního listu,
+tedy přední obálka. Kotva zoomu je na 75 % šířky knihy.
 
 > **Dvě pasti:**
 >

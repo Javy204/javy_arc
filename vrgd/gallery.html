@@ -18,7 +18,7 @@ document.documentElement.classList.add('js');
 </script>
 <link rel="icon" href="assets/VRgD.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/fonts.css">
-<link rel="stylesheet" href="css/style.css?v=27">
+<link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body data-page="gallery">
 
@@ -76,6 +76,9 @@ document.documentElement.classList.add('js');
     <span class="mono is-dim" data-reader-count></span>
     <button class="reader__close mono" data-reader-close aria-label="Close book">CLOSE</button>
   </div>
+  <!-- The book itself is just pages now — title/meta/blurb live up here,
+       outside the spread. Empty when a book has no blurb. -->
+  <p class="reader__blurb" data-reader-blurb></p>
 
   <div class="reader__stage">
     <button class="reader__side reader__side--prev" data-turn="-1" aria-label="Previous page"></button>
@@ -116,6 +119,6 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/gsap.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=3"></script>
-<script src="js/gallery.js?v=4"></script>
+<script src="js/gallery.js?v=6"></script>
 </body>
 </html>

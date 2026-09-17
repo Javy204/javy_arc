@@ -32,19 +32,18 @@
   let busy = false;        // one turn at a time
 
   /* -------------------------------------------------------
-     Page faces. A missing photo falls back to the halftone
+     Page art. No caption, no page number, no cropping — just the
+     page, full bleed, so an open spread reads as an actual book
+     and not a UI. A missing photo falls back to the halftone
      plate, so a book reads fine before any stills exist.
      ------------------------------------------------------- */
-  function faceMarkup(page, pageNo, variant) {
+  function pageArt(src, alt, variant) {
+    if (!src) return `<div class="leaf__art" data-placeholder="${variant}"></div>`;
+    return `<div class="leaf__art"><img src="${src}" alt="${alt || ''}" loading="lazy"></div>`;
+  }
+  function faceMarkup(page, variant) {
     if (!page) return '<div class="leaf__face leaf__face--blank"></div>';
-    const art = page.src
-      ? `<div class="leaf__art"><img src="${page.src}" alt="${page.caption || ''}" loading="lazy"></div>`
-      : `<div class="leaf__art" data-placeholder="${variant}"></div>`;
-    return `${art}
-      <div class="leaf__foot">
-        <span class="mono is-dim">${page.caption || ''}</span>
-        <span class="mono is-dim">${String(pageNo).padStart(2, '0')}</span>
-      </div>`;
+    return pageArt(page.src, page.caption, variant);
   }
 
   /* -------------------------------------------------------
@@ -94,33 +93,37 @@
     bookEl.style.setProperty('--book-ratio', `${spreadRatio} / 1`);
     bookEl.style.setProperty('--book-ratio-num', String(spreadRatio));
 
-    versoEl.innerHTML = `<div class="plate-title">
-        <span class="mono is-dim">${book.meta || ''}</span>
-        <h2>${book.title}</h2>
-        ${book.blurb ? `<p>${book.blurb}</p>` : ''}
-      </div>`;
-    // A real back cover replaces the generic "END" plate outright.
-    endEl.innerHTML = book.backCover
-      ? `<div class="leaf__art leaf__art--full"><img src="${book.backCover}" alt="${book.title} — back cover" loading="lazy"></div>`
-      : `<div class="plate-title">
-          <span class="mono is-dim">END</span>
-          <h2>${book.title}</h2>
-        </div>`;
+    // Real print pagination (matched against the actual book proof): the
+    // covers form their own opening spread — back cover left, front cover
+    // right, exactly like the flat cover sheet a printer works from — and
+    // ONLY THEN does content start, pairing flush from page one: (1,2)
+    // (3,4) (5,6)… An earlier version let the cover eat page 1's spot on
+    // the hinge, which quietly shifted every pair off by one.
+    versoEl.innerHTML = pageArt(book.backCover, `${book.title} — back cover`, 6);
 
     leavesEl.innerHTML = '';
     leaves = [];
     for (let i = 0; i < n; i++) {
+      // Leaf 0 is the cover leaf: front = front cover, back = page 1. Every
+      // leaf after it carries two content pages, shifted by that one page.
+      const front = i === 0 ? { src: book.cover, caption: book.title } : pages[2 * i - 1];
+      const back  = i === 0 ? pages[0] : pages[2 * i];
       const leaf = document.createElement('div');
       leaf.className = 'leaf';
       leaf.innerHTML =
-        `<div class="leaf__face leaf__face--front">${faceMarkup(pages[2 * i], 2 * i + 1, (2 * i) % 6 + 1)}</div>
-         <div class="leaf__face leaf__face--back">${faceMarkup(pages[2 * i + 1], 2 * i + 2, (2 * i + 1) % 6 + 1)}</div>`;
+        `<div class="leaf__face leaf__face--front">${faceMarkup(front, (2 * i) % 6 + 1)}</div>
+         <div class="leaf__face leaf__face--back">${faceMarkup(back, (2 * i + 1) % 6 + 1)}</div>`;
       leavesEl.appendChild(leaf);
       leaves.push(leaf);
     }
     // Leaf 0 sits on top of the unturned pile.
     leaves.forEach((leaf, i) => gsap.set(leaf, { rotateY: 0, zIndex: n - i }));
     turned = 0;
+
+    // Whatever page didn't fit into a leaf pair lands here — for an even
+    // page count (the normal case) that's simply the last page.
+    const lastPage = pages[2 * n - 1];
+    endEl.innerHTML = pageArt(lastPage?.src, lastPage?.caption, 1);
     paint();
   }
 
@@ -160,9 +163,11 @@
   }
 
   /* -------------------------------------------------------
-     Open / close. The cover morphs into the right-hand page:
-     a book page is 3/4, exactly the cover's ratio, so the
-     zoom lines up geometrically.
+     Open / close. The cover morphs into the RIGHT-hand page of
+     the opening spread — leaf 0's front IS the front cover (see
+     buildBook), paired with the back cover on the left. A book
+     page is 3/4, exactly the cover's ratio, so the zoom lines
+     up geometrically.
      ------------------------------------------------------- */
   function open(index, tomeEl) {
     if (openIndex !== -1) return;
@@ -176,7 +181,7 @@
     const cover = $('.tome__cover', tomeEl).getBoundingClientRect();
     const rect = bookEl.getBoundingClientRect();
     const scale = cover.width / (rect.width / 2);
-    // 75%/50% is the centre of the right-hand page.
+    // 75%/50% is the centre of the right-hand page — where the front cover is.
     const rx = rect.left + rect.width * 0.75;
     const ry = rect.top + rect.height / 2;
 
@@ -188,6 +193,8 @@
 
     $('[data-reader-title]').textContent = books[index].title;
     $('[data-reader-meta]').textContent = books[index].meta || '';
+    const blurb = $('[data-reader-blurb]');
+    if (blurb) blurb.textContent = books[index].blurb || '';
     $('[data-reader-close]').focus();
   }
 

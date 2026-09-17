@@ -89,10 +89,13 @@
         <h2>${book.title}</h2>
         ${book.blurb ? `<p>${book.blurb}</p>` : ''}
       </div>`;
-    endEl.innerHTML = `<div class="plate-title">
-        <span class="mono is-dim">END</span>
-        <h2>${book.title}</h2>
-      </div>`;
+    // A real back cover replaces the generic "END" plate outright.
+    endEl.innerHTML = book.backCover
+      ? `<div class="leaf__art leaf__art--full"><img src="${book.backCover}" alt="${book.title} — back cover" loading="lazy"></div>`
+      : `<div class="plate-title">
+          <span class="mono is-dim">END</span>
+          <h2>${book.title}</h2>
+        </div>`;
 
     leavesEl.innerHTML = '';
     leaves = [];

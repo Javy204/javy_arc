@@ -1,17 +1,100 @@
 {
-  "_comment": "Galerie = police knih. Kazdy projekt je jedna kniha, kazda polozka v 'pages' je jedna strana. Fotky dej do assets/gallery/ a doplň cestu do 'src'. Kdyz 'src' chybi nebo soubor neexistuje, vykresli se halftone placeholder, takze kniha funguje i prazdna. Doporuceno 1600px na delsi strane, jpg/webp.",
+  "_comment": "Galerie = police knih. Kazdy projekt je jedna kniha, kazda polozka v 'pages' je jedna strana. 'cover' = obalka na polici (nahled + nazev projektu). 'backCover' = volitelny obrazek zadni strany desek, zobrazi se na miste posledni stranky misto generickeho 'END' plaketu. Fotky dej do assets/gallery/ a doplň cestu do 'src'. Kdyz 'src' chybi nebo soubor neexistuje, vykresli se halftone placeholder, takze kniha funguje i prazdna. Doporuceno 1600px na delsi strane, jpg/webp.",
   "books": [
+    {
+      "title": "Mattoni Young Fashion Stars",
+      "meta": "FASHION FILM / MYFS",
+      "blurb": "Six young designers turn secondhand jackets into runway pieces for Mercedes-Benz Prague Fashion Week — one design ends up on the red carpet at KVIFF. Made with Mattoni.",
+      "cover": "assets/gallery/myfs/cover.webp",
+      "backCover": "assets/gallery/myfs/back.webp",
+      "pages": [
+        {
+          "src": "assets/gallery/myfs/01.webp",
+          "caption": ""
+        },
+        {
+          "src": "assets/gallery/myfs/02.webp",
+          "caption": "Průběh"
+        },
+        {
+          "src": "assets/gallery/myfs/03.webp",
+          "caption": "The six designers"
+        },
+        {
+          "src": "assets/gallery/myfs/04.webp",
+          "caption": "MYFS"
+        },
+        {
+          "src": "assets/gallery/myfs/05.webp",
+          "caption": "Sako"
+        },
+        {
+          "src": "assets/gallery/myfs/06.webp",
+          "caption": "Night shift, atelier"
+        },
+        {
+          "src": "assets/gallery/myfs/07.webp",
+          "caption": "Backstage & interviews"
+        },
+        {
+          "src": "assets/gallery/myfs/08.webp",
+          "caption": "From secondhand to red carpet"
+        },
+        {
+          "src": "assets/gallery/myfs/09.webp",
+          "caption": "The collection"
+        },
+        {
+          "src": "assets/gallery/myfs/10.webp",
+          "caption": "Designer & design"
+        },
+        {
+          "src": "assets/gallery/myfs/11.webp",
+          "caption": "Runway"
+        },
+        {
+          "src": "assets/gallery/myfs/12.webp",
+          "caption": "Press wall"
+        },
+        {
+          "src": "assets/gallery/myfs/13.webp",
+          "caption": "On the partnership"
+        },
+        {
+          "src": "assets/gallery/myfs/14.webp",
+          "caption": "Closing note"
+        }
+      ]
+    },
     {
       "title": "Night Shift",
       "meta": "FILM / 2025",
       "blurb": "Handheld takes from a single night. Shot muted, cut to the sound of the room.",
       "pages": [
-        { "src": null, "caption": "Call sheet, 21:40" },
-        { "src": null, "caption": "First setup" },
-        { "src": null, "caption": "Gaffer, second unit" },
-        { "src": null, "caption": "Rain machine" },
-        { "src": null, "caption": "Take 14" },
-        { "src": null, "caption": "Wrap, 05:12" }
+        {
+          "src": null,
+          "caption": "Call sheet, 21:40"
+        },
+        {
+          "src": null,
+          "caption": "First setup"
+        },
+        {
+          "src": null,
+          "caption": "Gaffer, second unit"
+        },
+        {
+          "src": null,
+          "caption": "Rain machine"
+        },
+        {
+          "src": null,
+          "caption": "Take 14"
+        },
+        {
+          "src": null,
+          "caption": "Wrap, 05:12"
+        }
       ]
     },
     {
@@ -19,12 +102,30 @@
       "meta": "IDENTITY / 2025",
       "blurb": "Logotype pulled apart until the counters break, then printed badly on purpose.",
       "pages": [
-        { "src": null, "caption": "Sketch wall" },
-        { "src": null, "caption": "Counter tests" },
-        { "src": null, "caption": "Proof, pass one" },
-        { "src": null, "caption": "Proof, pass four" },
-        { "src": null, "caption": "Applied" },
-        { "src": null, "caption": "Street, week two" }
+        {
+          "src": null,
+          "caption": "Sketch wall"
+        },
+        {
+          "src": null,
+          "caption": "Counter tests"
+        },
+        {
+          "src": null,
+          "caption": "Proof, pass one"
+        },
+        {
+          "src": null,
+          "caption": "Proof, pass four"
+        },
+        {
+          "src": null,
+          "caption": "Applied"
+        },
+        {
+          "src": null,
+          "caption": "Street, week two"
+        }
       ]
     },
     {
@@ -32,12 +133,30 @@
       "meta": "PRINT / 2024",
       "blurb": "A hundred plates at increasing dot density. The point is the moment it stops reading.",
       "pages": [
-        { "src": null, "caption": "Plate 04" },
-        { "src": null, "caption": "Plate 27" },
-        { "src": null, "caption": "Plate 51" },
-        { "src": null, "caption": "Plate 68" },
-        { "src": null, "caption": "Plate 92" },
-        { "src": null, "caption": "Binding" }
+        {
+          "src": null,
+          "caption": "Plate 04"
+        },
+        {
+          "src": null,
+          "caption": "Plate 27"
+        },
+        {
+          "src": null,
+          "caption": "Plate 51"
+        },
+        {
+          "src": null,
+          "caption": "Plate 68"
+        },
+        {
+          "src": null,
+          "caption": "Plate 92"
+        },
+        {
+          "src": null,
+          "caption": "Binding"
+        }
       ]
     },
     {
@@ -45,12 +164,30 @@
       "meta": "FILM / 2024",
       "blurb": "Fashion film shot on the edge of the city, mostly at dusk.",
       "pages": [
-        { "src": null, "caption": "Location scout" },
-        { "src": null, "caption": "Fitting" },
-        { "src": null, "caption": "Golden hour" },
-        { "src": null, "caption": "Handheld, run" },
-        { "src": null, "caption": "Last light" },
-        { "src": null, "caption": "Crew" }
+        {
+          "src": null,
+          "caption": "Location scout"
+        },
+        {
+          "src": null,
+          "caption": "Fitting"
+        },
+        {
+          "src": null,
+          "caption": "Golden hour"
+        },
+        {
+          "src": null,
+          "caption": "Handheld, run"
+        },
+        {
+          "src": null,
+          "caption": "Last light"
+        },
+        {
+          "src": null,
+          "caption": "Crew"
+        }
       ]
     },
     {
@@ -58,12 +195,30 @@
       "meta": "CAMPAIGN / 2024",
       "blurb": "Campaign built entirely from archive material and a scanner.",
       "pages": [
-        { "src": null, "caption": "Archive boxes" },
-        { "src": null, "caption": "Scanner rig" },
-        { "src": null, "caption": "Contact sheet" },
-        { "src": null, "caption": "Selects" },
-        { "src": null, "caption": "Layout" },
-        { "src": null, "caption": "Press check" }
+        {
+          "src": null,
+          "caption": "Archive boxes"
+        },
+        {
+          "src": null,
+          "caption": "Scanner rig"
+        },
+        {
+          "src": null,
+          "caption": "Contact sheet"
+        },
+        {
+          "src": null,
+          "caption": "Selects"
+        },
+        {
+          "src": null,
+          "caption": "Layout"
+        },
+        {
+          "src": null,
+          "caption": "Press check"
+        }
       ]
     },
     {
@@ -71,12 +226,30 @@
       "meta": "WEB / 2023",
       "blurb": "An index that refuses to explain itself. Scroll is the only interface.",
       "pages": [
-        { "src": null, "caption": "Paper prototype" },
-        { "src": null, "caption": "Grid study" },
-        { "src": null, "caption": "Type in situ" },
-        { "src": null, "caption": "Build, day 3" },
-        { "src": null, "caption": "Launch" },
-        { "src": null, "caption": "Postmortem" }
+        {
+          "src": null,
+          "caption": "Paper prototype"
+        },
+        {
+          "src": null,
+          "caption": "Grid study"
+        },
+        {
+          "src": null,
+          "caption": "Type in situ"
+        },
+        {
+          "src": null,
+          "caption": "Build, day 3"
+        },
+        {
+          "src": null,
+          "caption": "Launch"
+        },
+        {
+          "src": null,
+          "caption": "Postmortem"
+        }
       ]
     }
   ]

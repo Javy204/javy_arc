@@ -305,6 +305,7 @@ fotka = jedna položka v `pages`:
   "title": "Night Shift", "meta": "FILM / 2025",
   "blurb": "Text na titulní stranu.",
   "cover": "assets/gallery/night-cover.jpg",
+  "backCover": "assets/gallery/night-back.jpg",
   "pages": [
     { "src": "assets/gallery/night-01.jpg", "caption": "První setup" }
   ]
@@ -314,6 +315,26 @@ fotka = jedna položka v `pages`:
 Fotky dej do `assets/gallery/`, ~1600 px na delší straně. Když `src` chybí
 nebo soubor neexistuje, vykreslí se **halftone placeholder** — kniha funguje
 i úplně prázdná, takže se dá plnit postupně.
+
+`cover` je nepovinný — bez něj se na polici ukáže jen halftone plát s
+názvem. `backCover` je taky nepovinný: když je zadaný, nahradí generickou
+plaketu „END" na poslední straně skutečnou zadní obálkou.
+
+**Reálný příklad:** `assets/gallery/myfs/` — kniha „Mattoni Young Fashion
+Stars" (`cover.webp` + `01`–`14.webp` + `back.webp`), první skutečná kniha
+v galerii, zbytek jsou zatím placeholdery.
+
+**Stránky uvnitř knihy jedou na `object-fit: contain`, ne `cover`.** Tohle
+jsou často hotové grafické rozvržení (text u okraje, mřížky fotek těsně u
+sebe) — ořez by je mohl uříznout. `contain` vždy ukáže celou stránku,
+doplněnou barvou plátu tam, kde nesedí poměr stran; čte se to jako paspartu,
+ne jako chyba.
+
+**Obálka na polici naopak jede na `cover`** (jako přebal knihy má být
+plnokrevná), a když má skutečnou fotku, dostane spodní scrim + vynucený
+světlý text popisku — aby název projektu zůstal čitelný nad jakoukoli
+fotkou, v obou tématech. Placeholdery bez fotky (`:has(img)` je nezasáhne)
+si drží normální barvu textu podle tématu.
 
 ### Jak je to udělané
 

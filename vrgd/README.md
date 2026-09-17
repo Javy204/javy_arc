@@ -324,11 +324,28 @@ plaketu „END" na poslední straně skutečnou zadní obálkou.
 Stars" (`cover.webp` + `01`–`14.webp` + `back.webp`), první skutečná kniha
 v galerii, zbytek jsou zatím placeholdery.
 
+**`pageAspect`** — nepovinné, `"W / H"` pro *jednu* stránku (default
+`"3 / 4"`, jako dřív). Zdrojové stránky MYFS jsou čtvercové screenshoty
+(2348×2348), takže má `"pageAspect": "1 / 1"` — bez toho by se čtverec
+natlačil do portrétového rámu 3:4 a nahoře/dole by zbyly velké šedé pruhy
+(prázdný plát tam, kde stránka nesahá). Rám knihy teď sedí na skutečný
+obsah, ne obráceně.
+
 **Stránky uvnitř knihy jedou na `object-fit: contain`, ne `cover`.** Tohle
 jsou často hotové grafické rozvržení (text u okraje, mřížky fotek těsně u
 sebe) — ořez by je mohl uříznout. `contain` vždy ukáže celou stránku,
 doplněnou barvou plátu tam, kde nesedí poměr stran; čte se to jako paspartu,
-ne jako chyba.
+ne jako chyba. `pageAspect` (viz výš) drží tenhle zbytkový lem malý —
+`contain` je pojistka pro drobné odchylky, ne omluva pro špatně nastavený
+poměr stran.
+
+**Rozměr `.book` počítá obecný vzorec `šířka = min(maxŠířka, maxVýška ×
+poměr)`** — stejný princip jako „vejde se do rámečku" u obrázku, jen ručně
+v CSS, protože `aspect-ratio` samo o sobě neumí kombinovat limit šířky i
+výšky najednou. `gallery.js` při otevření knihy nastaví `--book-ratio` a
+`--book-ratio-num` (spread = `pageAspect × 2`) jako inline styl na `.book`;
+bez nich (placeholder knihy) platí výchozí `1.5` = původní 3:4 stránka,
+takže je to nulová změna pro cokoliv, co `pageAspect` nemá.
 
 **Obálka na polici naopak jede na `cover`** (jako přebal knihy má být
 plnokrevná), a když má skutečnou fotku, dostane spodní scrim + vynucený

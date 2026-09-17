@@ -84,6 +84,16 @@
     const pages = book.pages || [];
     const n = Math.ceil(pages.length / 2);
 
+    // The page frame matches the actual source images instead of forcing
+    // every book into the same portrait mould. book.pageAspect is "W / H" for
+    // ONE page (default 3 / 4); doubled it becomes the two-page spread ratio
+    // that .book actually renders at (see the width formula in style.css).
+    const [pw, ph] = String(book.pageAspect || '3 / 4').split('/').map((x) => parseFloat(x));
+    const pageRatio = (pw > 0 && ph > 0) ? pw / ph : 0.75;
+    const spreadRatio = pageRatio * 2;
+    bookEl.style.setProperty('--book-ratio', `${spreadRatio} / 1`);
+    bookEl.style.setProperty('--book-ratio-num', String(spreadRatio));
+
     versoEl.innerHTML = `<div class="plate-title">
         <span class="mono is-dim">${book.meta || ''}</span>
         <h2>${book.title}</h2>

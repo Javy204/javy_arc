@@ -1329,8 +1329,15 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 /* --- the book itself --- */
 .book {
   position: relative;
-  height: min(78vh, 62vw);
-  aspect-ratio: 3 / 2;         /* two pages side by side */
+  /* Spread ratio + a bare number version of it, set per book from gallery.js
+     (buildBook reads book.pageAspect). Defaults reproduce a 3:4 page exactly.
+     width = min(max width, max height * ratio) is the general "fit inside a
+     box, keep the aspect ratio" formula — it works for ANY --book-ratio-num,
+     not just the 1.5 default, so a book of square pages (ratio-num 2) fits
+     its own frame instead of being forced into a portrait one and letterboxed. */
+  --book-ratio-num: 1.5;
+  aspect-ratio: var(--book-ratio, 3 / 2);
+  width: min(93vw, calc(78vh * var(--book-ratio-num)));
   perspective: 2600px;
   transform-style: preserve-3d;
 }
@@ -1416,7 +1423,7 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
    variant broke the mechanic: a leaf hinged on the spine swung clean off
    screen and its back face — half of every book — was never seen. */
 @media (max-width: 767px) {
-  .book { height: min(58vh, 58vw); }
+  .book { width: min(87vw, calc(58vh * var(--book-ratio-num, 1.5))); }
   .reader__side { width: 48%; }
   .leaf__foot { padding: .4rem .5rem; }
 }

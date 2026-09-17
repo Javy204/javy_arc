@@ -70,7 +70,7 @@
       el.setAttribute('data-cursor-text', 'open');
       el.style.setProperty('--cover-ratio', String(pageRatioOf(book)));
       el.innerHTML = `
-        <span class="tome__cover" data-placeholder="${(i % 6) + 1}">
+        <span class="tome__cover"${book.cover ? '' : ` data-placeholder="${(i % 6) + 1}"`}>
           ${book.cover ? `<img src="${book.cover}" alt="">` : ''}
           <span class="tome__label"><h3>${book.title}</h3></span>
         </span>

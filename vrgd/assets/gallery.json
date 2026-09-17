@@ -68,6 +68,63 @@
       "pageAspect": "1 / 1"
     },
     {
+      "title": "Bolt Food",
+      "meta": "RECRUITMENT FILM / BOLT FOOD",
+      "cover": "assets/gallery/boltfood/cover.webp",
+      "backCover": "assets/gallery/boltfood/back.webp",
+      "pages": [
+        {
+          "src": "assets/gallery/boltfood/01.webp",
+          "caption": ""
+        },
+        {
+          "src": "assets/gallery/boltfood/02.webp",
+          "caption": "Spojení Bolt Food a VRgD"
+        },
+        {
+          "src": "assets/gallery/boltfood/03.webp",
+          "caption": "Z kuchyně na kolo"
+        },
+        {
+          "src": "assets/gallery/boltfood/04.webp",
+          "caption": "Casting & lokace, Bowlers Karlín"
+        },
+        {
+          "src": "assets/gallery/boltfood/05.webp",
+          "caption": "Kurýrky v akci"
+        },
+        {
+          "src": "assets/gallery/boltfood/06.webp",
+          "caption": "Kurýři v akci"
+        },
+        {
+          "src": "assets/gallery/boltfood/07.webp",
+          "caption": "Natáčení, kamera a masky"
+        },
+        {
+          "src": "assets/gallery/boltfood/08.webp",
+          "caption": "Za kamerou v ulicích"
+        },
+        {
+          "src": "assets/gallery/boltfood/09.webp",
+          "caption": "Štáb"
+        },
+        {
+          "src": "assets/gallery/boltfood/10.webp",
+          "caption": "Poslední úpravy před klapkou"
+        },
+        {
+          "src": "assets/gallery/boltfood/11.webp",
+          "caption": "Uzavírací poznámka"
+        },
+        {
+          "src": "assets/gallery/boltfood/12.webp",
+          "caption": "Štáb na cestě"
+        }
+      ],
+      "pageAspect": "1188 / 1127"
+    },
+    {
       "title": "Night Shift",
       "meta": "FILM / 2025",
       "blurb": "Handheld takes from a single night. Shot muted, cut to the sound of the room.",

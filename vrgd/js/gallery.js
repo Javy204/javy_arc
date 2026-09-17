@@ -46,6 +46,15 @@
     return pageArt(page.src, page.caption, variant);
   }
 
+  // book.pageAspect is "W / H" for ONE page (default 3 / 4) — the same ratio
+  // a single open page renders at, so the shelf thumbnail (the book's title
+  // screen before you've even opened it) can match it instead of forcing
+  // every cover into one fixed mould.
+  function pageRatioOf(book) {
+    const [pw, ph] = String(book.pageAspect || '3 / 4').split('/').map((x) => parseFloat(x));
+    return (pw > 0 && ph > 0) ? pw / ph : 0.75;
+  }
+
   /* -------------------------------------------------------
      Shelf
      ------------------------------------------------------- */
@@ -59,6 +68,7 @@
       el.setAttribute('data-tome', String(i));
       el.setAttribute('data-cursor-hover', '');
       el.setAttribute('data-cursor-text', 'open');
+      el.style.setProperty('--cover-ratio', String(pageRatioOf(book)));
       el.innerHTML = `
         <span class="tome__cover" data-placeholder="${(i % 6) + 1}">
           ${book.cover ? `<img src="${book.cover}" alt="">` : ''}
@@ -84,12 +94,10 @@
     const n = Math.ceil(pages.length / 2);
 
     // The page frame matches the actual source images instead of forcing
-    // every book into the same portrait mould. book.pageAspect is "W / H" for
-    // ONE page (default 3 / 4); doubled it becomes the two-page spread ratio
-    // that .book actually renders at (see the width formula in style.css).
-    const [pw, ph] = String(book.pageAspect || '3 / 4').split('/').map((x) => parseFloat(x));
-    const pageRatio = (pw > 0 && ph > 0) ? pw / ph : 0.75;
-    const spreadRatio = pageRatio * 2;
+    // every book into the same portrait mould. Doubling a single page's
+    // ratio gives the two-page spread ratio that .book actually renders at
+    // (see the width formula in style.css).
+    const spreadRatio = pageRatioOf(book) * 2;
     bookEl.style.setProperty('--book-ratio', `${spreadRatio} / 1`);
     bookEl.style.setProperty('--book-ratio-num', String(spreadRatio));
 

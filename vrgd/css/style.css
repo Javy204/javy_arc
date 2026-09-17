@@ -1236,7 +1236,10 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 
 .tome__cover {
   position: relative;
-  aspect-ratio: 3 / 4;
+  /* Matches the book's own title screen (pageAspect) instead of a fixed
+     mould — set per-book as --cover-ratio in gallery.js, so a square book
+     gets a square shelf preview instead of a cropped portrait one. */
+  aspect-ratio: var(--cover-ratio, 3 / 4);
   background: var(--plate2);
   outline: 1px solid var(--line);
   outline-offset: -1px;

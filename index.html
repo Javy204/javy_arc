@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=81" />
+  <link rel="stylesheet" href="film.css?v=84" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -64,56 +64,48 @@
     </section>
 
 
-    <section class="scene s-lab" data-name="lab">
+    <section class="scene s-lab" data-name="fotomat">
       <div class="scene-inner poster">
         <div class="p-row par" data-rise="14" data-exit="40">
-          <span>03 — LAB</span>
-          <span class="r lab-tabs" id="labTabs">
-            <button type="button" data-lab="blesk" class="on">BLESK</button>
-            <button type="button" data-lab="komora">TEMNÁ KOMORA</button>
-            <button type="button" data-lab="fotomat">FOTOMAT</button>
+          <span>03 — FOTOMAT</span>
+          <span class="r" id="fmLooks"></span>
+        </div>
+
+        <div class="fm" id="fm">
+          <!-- WebGL: nejdřív model foťáku, po kliknutí hledáček s obrazem z kamery -->
+          <canvas class="fm-gl" id="fmGL"></canvas>
+
+          <div class="fm-veil" id="fmVeil">
+            <button type="button" class="fm-enter" id="fmEnter">
+              <span class="fm-enter-l">FOTOMAT</span>
+              <span class="fm-enter-s">klikni na foťák</span>
+            </button>
+          </div>
+
+          <div class="fm-vf" id="fmVf" hidden>
+            <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+            <span class="fm-rec" id="fmRec">● REC</span>
+          </div>
+
+          <img class="fm-print" id="fmPrint" alt="" hidden />
+          <div class="fm-flash" id="fmFlash"></div>
+          <div class="fm-fade" id="fmFade"></div>
+        </div>
+
+        <div class="fm-bar">
+          <span id="fmNote">nic se nikam neodesílá — běží to jen u tebe v prohlížeči</span>
+          <span class="fm-btns">
+            <button type="button" id="fmShoot" hidden>SPOUŠŤ</button>
+            <a id="fmSave" hidden download="javy-fotomat.jpg">ULOŽIT ↓</a>
+            <button type="button" id="fmAgain" hidden>ZNOVU</button>
           </span>
         </div>
 
-        <div class="lab" id="lab">
-          <!-- 1) BLESK: fotky schované ve tmě, kurzor/prst je kužel světla -->
-          <div class="lab-panel on" data-panel="blesk">
-            <div class="bl-wrap" id="blWrap"><div class="bl-imgs" id="blImgs"></div></div>
-          </div>
-
-          <!-- 2) TEMNÁ KOMORA: fotka se vyvolává pod rukou -->
-          <div class="lab-panel" data-panel="komora">
-            <div class="km-tray" id="kmTray">
-              <img class="km-photo" id="kmPhoto" alt="" />
-              <canvas class="km-mask" id="kmMask"></canvas>
-              <div class="km-safelight"></div>
-            </div>
-            <div class="km-bar">
-              <span id="kmTime">0.0 S</span>
-              <span id="kmPct">0 %</span>
-              <button type="button" id="kmNext">DALŠÍ LIST</button>
-            </div>
-          </div>
-
-          <!-- 3) FOTOMAT: kamera návštěvníka v mém gradingu -->
-          <div class="lab-panel" data-panel="fotomat">
-            <div class="fm-stage" id="fmStage">
-              <canvas class="fm-canvas" id="fmCanvas"></canvas>
-              <img class="fm-shot" id="fmShot" alt="" hidden />
-              <button type="button" class="fm-start" id="fmStart">SPUSTIT KAMERU</button>
-            </div>
-            <div class="fm-bar">
-              <span id="fmNote">KAMERA BĚŽÍ JEN U TEBE — NIC SE NIKAM NEODESÍLÁ</span>
-              <span class="fm-btns">
-                <button type="button" id="fmShoot" hidden>SPOUŠŤ</button>
-                <a id="fmSave" hidden download="javy-fotomat.jpg">ULOŽIT ↓</a>
-                <button type="button" id="fmAgain" hidden>ZNOVU</button>
-              </span>
-            </div>
-          </div>
+        <!-- tajný panel: klávesa G nebo trojklik na "03 — FOTOMAT" -->
+        <div class="grade" id="grade" hidden>
+          <div class="grade-head"><span>GRADING</span><span class="r"><button type="button" id="gradeCopy">KOPÍROVAT</button><button type="button" id="gradeReset">RESET</button><button type="button" id="gradeClose">✕</button></span></div>
+          <div class="grade-body" id="gradeBody"></div>
         </div>
-
-        <div class="p-row par" data-rise="66" data-exit="120"><span id="labHint">POHNI MYŠÍ NEBO PRSTEM — VE TMĚ SE NĚCO SKRÝVÁ</span></div>
       </div>
     </section>
 
@@ -179,7 +171,23 @@
   </section>
 
   <script src="film.js?v=80"></script>
-  <script src="lab.js?v=1"></script>
+  <script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  } }
+  </script>
+  <script type="module">
+    /* three.js + model (cca 400 kB) se stahuje až když se doscrolluje k sekci,
+       ať to nezdržuje první načtení portfolia */
+    const labEl = document.querySelector(".s-lab");
+    if (labEl) {
+      const io = new IntersectionObserver((es) => {
+        if (es.some((e) => e.isIntersecting)) { io.disconnect(); import("./lab/fotomat.js?v=6"); }
+      }, { rootMargin: "400px" });
+      io.observe(labEl);
+    }
+  </script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

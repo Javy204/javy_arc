@@ -6,7 +6,7 @@
   <title>JAVY.ARC — _personal_archive</title>
   <meta name="description" content="javy.arc — osobní archiv. Černobílé experimenty, termotisk, beton, zrno. Připravuje se." />
   <meta name="theme-color" content="#060605" />
-  <link rel="stylesheet" href="arc.css?v=8" />
+  <link rel="stylesheet" href="arc.css?v=9" />
 </head>
 <body>
 
@@ -60,22 +60,19 @@
     document.fonts && document.fonts.ready.then(fit);
     setTimeout(fit, 120);
 
-    /* proužek snímků — bere se z manifestu portfolia, ne z natvrdo psaných
-       cest: čísla složek se ve správě portfolia přerovnávají a odkazy by pak
-       přestaly platit. Když se manifest nenačte, proužek prostě nebude. */
+    /* proužek snímků = vlastní archiv javy.arc (photos.json vedle stránky).
+       Vybírá se rovnoměrně napříč archivem, nejnovější příspěvky první. */
     (async () => {
       try {
-        const m = await fetch("../photos/manifest.json", { cache: "no-cache" }).then((r) => r.json());
-        const sets = (m.sets || []).filter((s) => (s.images || []).length);
-        if (sets.length < 2) return;
-        const pick = [];
-        for (let i = 0; i < 4 && i < sets.length; i++) {
-          const s = sets[Math.round((i * (sets.length - 1)) / 3)];
-          const imgs = s.images;
-          pick.push("../" + imgs[Math.floor(imgs.length / 2)]);
-        }
-        document.getElementById("sheet").innerHTML =
-          pick.map((src) => `<figure class="fr"><img alt="" loading="lazy" src="${src}"></figure>`).join("");
+        const d = await fetch("photos.json", { cache: "no-cache" }).then((r) => r.json());
+        const all = d.photos || [];
+        if (!all.length) return;
+        const n = Math.min(6, all.length);
+        const pick = Array.from({ length: n }, (_, i) =>
+          all[Math.round((i * (all.length - 1)) / (n - 1))]);
+        document.getElementById("sheet").innerHTML = pick
+          .map((f) => `<figure class="fr"><img alt="" loading="lazy" src="photos/${f}"></figure>`)
+          .join("");
       } catch (e) { /* bez proužku */ }
     })();
   </script>

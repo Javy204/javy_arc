@@ -126,10 +126,12 @@ a { color: inherit; text-decoration: none; }
   overflow: hidden; flex: none; position: relative;
   opacity: 0; animation: frIn .9s ease forwards;
 }
-.fr:nth-child(1) { animation-delay: 1.5s; }
+.fr:nth-child(1) { animation-delay: 1.50s; }
 .fr:nth-child(2) { animation-delay: 1.62s; }
 .fr:nth-child(3) { animation-delay: 1.74s; }
 .fr:nth-child(4) { animation-delay: 1.86s; }
+.fr:nth-child(5) { animation-delay: 1.98s; }
+.fr:nth-child(6) { animation-delay: 2.10s; }
 @keyframes frIn { from { opacity: 0; } to { opacity: .78; } }
 .fr:hover { opacity: 1; }
 .fr img {
@@ -159,7 +161,7 @@ a { color: inherit; text-decoration: none; }
   .fit { font-size: 23vw; }
   .hd .dim { display: none; }
   .sheet { gap: 7px; }
-  .fr:nth-child(4) { display: none; }
+  .fr:nth-child(n+4) { display: none; }   /* na telefonu jen tři */
   .ft { flex-direction: column; gap: 8px; }
   .lede { font-size: 12px; }
 }

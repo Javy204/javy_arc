@@ -713,53 +713,76 @@ body.beta-on .beta { display: block; }
 }
 
 /* ============================================================
-   FOTOMAT (scéna 03) — aparát nakreslený ve stejném jazyce jako web
-   (tvrdé černé plochy a vlasové linky na papíře, ℗ jako objektiv).
-   Klik = clona se rozevře a z objektivu vyteče živý obraz.
-   Kód: lab/fotomat.js (GSAP choreografie + WebGL grading).
+   FOTOMAT (scéna 03) — dvě podoby, přepínají se v popiskovém řádku:
+     PROUŽEK — fotobudka: odpočet a čtyři snímky do proužku
+     POLÍČKO — jedno filmové políčko, spoušť ručně
+   Před kliknutím je v ploše jen tvar a věta; efekt přijde až potom.
+   Kód: lab/fotomat.js (WebGL grading + GSAP).
    ============================================================ */
 .fm { position: relative; margin-top: 2.4vh; height: 64vh; background: var(--bg); overflow: hidden; }
 
-/* živý obraz — odkrývá se kruhem z místa objektivu */
+/* živý obraz — ořez podle zvolené podoby */
 .fm-gl {
   position: absolute; inset: 0; width: 100%; height: 100%; display: block;
-  clip-path: circle(0% at 50% 55%);
+  opacity: 0; transition: opacity .5s ease;
 }
+.fm.live .fm-gl { opacity: 1; }
+.fm[data-mode="strip"] .fm-gl { clip-path: inset(0 34% 0 0); }
+.fm[data-mode="neg"] .fm-gl { clip-path: inset(22% 14% 22% 14%); }
 
-/* kresba aparátu */
-.fm-art { position: absolute; inset: 0; width: 100%; height: 100%; }
-.fm-art .ink { fill: var(--ink); }
-.fm-art .paper { fill: var(--bg); }
-.fm-art .ring { fill: none; stroke: var(--bg); stroke-width: 3; }
-.fm-art .hair path { fill: none; stroke: var(--ink); stroke-width: 1; opacity: .16; }
-.fm-art .blade { fill: var(--bg); }
-.fm-art .lbl { font: 700 20px/1 var(--sans); letter-spacing: .22em; }
-.fm-art .mk { font: 700 26px/1 var(--sans); }
+.fm-mode { position: absolute; inset: 0; display: none; }
+.fm[data-mode="strip"] .m-strip, .fm[data-mode="neg"] .m-neg { display: block; }
 
-.fm-enter {
-  position: absolute; left: 0; right: 0; bottom: 6%; z-index: 3;
-  appearance: none; background: none; border: 0; cursor: pointer; color: var(--ink);
+/* věta — jediné, co v ploše na začátku mluví */
+.fm-say { position: absolute; left: 0; bottom: 8%; width: 62%; padding-left: 4%; }
+.fm-say b { display: block; font-size: clamp(16px, 2vw, 28px); letter-spacing: -.01em; }
+.fm-say span { display: block; margin-top: 8px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .45; }
+.fm.live .fm-say { opacity: 0; transition: opacity .4s ease; pointer-events: none; }
+
+/* ---------- PROUŽEK ---------- */
+.strip {
+  position: absolute; right: 4%; top: 50%; transform: translateY(-50%);
+  width: 26%; max-width: 230px; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 6px;
 }
-.fm-enter-s { font: 700 10px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase; opacity: .45; transition: opacity .3s ease; }
-.fm-enter:hover .fm-enter-s { opacity: 1; }
-
-/* rámeček hledáčku */
-.fm-vf { position: absolute; inset: 0; pointer-events: none; }
-.fm-vf[hidden] { display: none; }
-.fm-vf .c { position: absolute; width: 22px; height: 22px; border: 2px solid rgba(243,241,234,.75); }
-.fm-vf .tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; }
-.fm-vf .tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; }
-.fm-vf .bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; }
-.fm-vf .br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; }
-.fm-rec {
-  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-  font: 700 10px/1 var(--sans); letter-spacing: .2em; color: rgba(243,241,234,.8);
-  animation: fmBlink 2s steps(1) infinite;
+.strip li {
+  position: relative; display: block; width: 100%; flex: none;   /* bez šířky se políčko scvrkne na obsah */
+  aspect-ratio: 4 / 3; border: 1.5px solid var(--ink);
+  overflow: hidden; background: transparent;
 }
-@keyframes fmBlink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .25; } }
+.strip li i {
+  position: absolute; left: 6px; top: 4px; font-style: normal;
+  font-size: 10px; letter-spacing: .1em; opacity: .35;
+}
+.strip li img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.strip li.on { background: var(--ink); }
 
-.fm-print { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #070706; }
-.fm-print[hidden] { display: none; }
+/* ---------- POLÍČKO NEGATIVU ---------- */
+.neg {
+  position: absolute; left: 14%; right: 14%; top: 22%; bottom: 22%;
+  border: 1.5px solid var(--ink);
+}
+.neg .perf {
+  position: absolute; left: -1.5px; right: -1.5px; height: 12px;
+  background-image: repeating-linear-gradient(to right, var(--ink) 0 9px, transparent 9px 22px);
+  opacity: .8;
+}
+.neg .perf.t { top: -20px; } .neg .perf.b { bottom: -20px; }
+.neg-id {
+  position: absolute; left: 0; top: -40px; font-size: 10px; letter-spacing: .18em;   /* nad perforací, ne přes ni */
+  text-transform: uppercase; opacity: .5;
+}
+.m-neg .fm-say { left: 14%; bottom: 8%; width: 70%; padding-left: 0; }
+
+/* odpočet */
+.fm-count {
+  position: absolute; left: 0; right: 34%; top: 50%; transform: translateY(-50%);
+  text-align: center; font: 900 clamp(60px, 12vw, 160px)/1 var(--sans);
+  color: #f3f1ea; mix-blend-mode: difference; pointer-events: none;
+}
+.fm-count[hidden] { display: none; }
+.fm[data-mode="neg"] .fm-count { right: 0; }
+
 .fm-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
 
 .fm-bar {
@@ -774,14 +797,32 @@ body.beta-on .beta { display: block; }
 .fm-bar button:hover, .fm-bar a:hover { background: var(--ink); color: var(--bg); }
 .fm-btns { display: flex; gap: 8px; align-items: center; }
 
-#fmLooks { display: flex; gap: 12px; pointer-events: auto; }
-#fmLooks button {
+/* přepínače v popiskovém řádku */
+.fm-modes, #fmLooks { display: flex; gap: 12px; pointer-events: auto; }
+.fm-modes { margin-left: 18px; }
+.fm-modes button, #fmLooks button {
   appearance: none; border: 0; background: none; padding: 0; cursor: pointer; color: inherit;
   font: 700 12px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; opacity: .3;
   transition: opacity .25s ease;
 }
-#fmLooks button:hover { opacity: .65; }
-#fmLooks button.on { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
+.fm-modes button:hover, #fmLooks button:hover { opacity: .65; }
+.fm-modes button.on, #fmLooks button.on { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
+
+@media (max-width: 720px) {
+  .fm { height: 56vh; margin-top: 1.6vh; }
+  .fm[data-mode="strip"] .fm-gl { clip-path: inset(0 0 34% 0); }
+  .strip {
+    right: 0; left: 0; top: auto; bottom: 3%; transform: none; width: auto; max-width: none;
+    flex-direction: row; padding: 0 4%;
+  }
+  .strip li { flex: 1 1 0; width: auto; }
+  .fm-say { width: 92%; bottom: 40%; }
+  .m-neg .fm-say { bottom: 6%; }
+  .fm-count { right: 0; top: 32%; }
+  .fm-modes { margin-left: 10px; gap: 8px; }
+  .fm-modes button, #fmLooks button { font-size: 10px; letter-spacing: .02em; }
+  .fm-bar { font-size: 9px; letter-spacing: .06em; }
+}
 
 /* ---------- tajný grading panel ---------- */
 .grade {

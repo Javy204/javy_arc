@@ -116,89 +116,151 @@
   /* ---- stav ---- */
   let G = { ...DEFAULTS, ...LOOKS["KLUB"] };
   try { Object.assign(G, JSON.parse(localStorage.getItem("javy-grade") || "{}")); } catch (e) {}
-  let video = null, stream = null, live = false, phase = "idle", visible = false;
+  let video = null, stream = null, live = false, busy = false, shots = [];
+  let mode = "strip", visible = false;
 
-  const host = $("#fm"), art = $("#fmArt"), enter = $("#fmEnter"), vf = $("#fmVf");
-  const print = $("#fmPrint"), flash = $("#fmFlash"), note = $("#fmNote");
+  const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
   const shootB = $("#fmShoot"), saveA = $("#fmSave"), againB = $("#fmAgain");
-
-  /* ---- lamely clony ---- */
-  const bladesG = $("#fmBlades");
-  const R = 104, N = 7;
-  for (let i = 0; i < N; i++) {
-    const a = (i / N) * 360;
-    const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    el.setAttribute("class", "blade");
-    el.setAttribute("d", `M600 410 L${600 + R * Math.cos((a - 26) * Math.PI / 180)} ${410 + R * Math.sin((a - 26) * Math.PI / 180)}
-                          A${R} ${R} 0 0 1 ${600 + R * Math.cos((a + 26) * Math.PI / 180)} ${410 + R * Math.sin((a + 26) * Math.PI / 180)} Z`);
-    el.style.transformOrigin = "600px 410px";
-    bladesG.appendChild(el);
-  }
+  const stripEl = $("#fmStrip");
+  const g = () => window.gsap;
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /* ---- kamera ---- */
   async function openCam() {
+    if (live) return true;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 } }, audio: false });
     } catch (e) { note.textContent = "kameru se nepodařilo spustit — povol přístup v prohlížeči"; return false; }
     video = document.createElement("video");
     video.playsInline = true; video.muted = true; video.srcObject = stream;
     await video.play().catch(() => {});
-    live = true; return true;
+    live = true; host.classList.add("live");
+    return true;
   }
   function closeCam() {
-    live = false;
+    live = false; host.classList.remove("live");
     if (stream) stream.getTracks().forEach((t) => t.stop());
     stream = null; video = null;
   }
-
-  /* ---- choreografie (GSAP) ---- */
-  const g = () => window.gsap;
-  function openSequence() {
-    if (phase !== "idle" || !g()) return;
-    phase = "zoom";
-    const camPromise = openCam();
-    const tl = g().timeline({
-      defaults: { ease: "power3.inOut" },
-      onComplete: () => camPromise.then((ok) => {
-        if (ok) { phase = "live"; vf.hidden = false; shootB.hidden = false; }
-        else closeSequence();
-      }),
-    });
-    tl.to("#fmBtn", { attr: { r: 14 }, duration: .12, ease: "power2.out" }, 0)
-      .to("#fmMeta, #fmHair, .fm-enter", { opacity: 0, duration: .35 }, 0)
-      .to("#fmMark", { opacity: 0, scale: .4, transformOrigin: "600px 410px", duration: .35 }, .05)
-      .to(".fm-art .blade", { rotate: 62, scale: .05, transformOrigin: "600px 410px", duration: .75, stagger: .028 }, .1)
-      .to(cv, { clipPath: "circle(9% at 50% 55%)", duration: .5 }, .35)
-      .to("#fmRig", { scale: 3.4, transformOrigin: "600px 410px", duration: 1.15, ease: "power3.in" }, .55)
-      .to("#fmBody, #fmLens", { opacity: 0, duration: .5 }, .95)
-      .to(cv, { clipPath: "circle(78% at 50% 55%)", duration: .9, ease: "power2.inOut" }, .75);
+  function reset() {
+    busy = false; shots = [];
+    closeCam();
+    [...stripEl.children].forEach((li, i) => { li.classList.remove("on"); li.innerHTML = `<i>${i + 1}</i>`; });
+    $("#fmNeg").querySelectorAll("img").forEach((im) => im.remove());
+    shootB.hidden = true; saveA.hidden = true; againB.hidden = true;
+    count.hidden = true;
+    note.textContent = "klikni do plochy";
   }
-  function closeSequence() {
-    phase = "idle"; closeCam();
-    vf.hidden = true; shootB.hidden = true; againB.hidden = true; saveA.hidden = true; print.hidden = true;
-    if (!g()) return;
-    g().set(cv, { clipPath: "circle(0% at 50% 55%)" });
-    g().set("#fmRig", { scale: 1 });
-    g().set("#fmBody, #fmLens, #fmMark, #fmMeta, #fmHair, .fm-enter", { opacity: 1, scale: 1 });
-    g().set("#fmBtn", { attr: { r: 20 } });
-    g().set(".fm-art .blade", { rotate: 0, scale: 1 });
-  }
-  enter.addEventListener("click", openSequence);
-  art.addEventListener("click", openSequence);
 
-  /* ---- spoušť ---- */
-  shootB.addEventListener("click", () => {
-    if (phase !== "live") return;
+  /* ---- jeden snímek ---- */
+  function grab() {
     draw();
-    const url = cv.toDataURL("image/jpeg", .93);
-    if (g()) g().fromTo(flash, { opacity: .95 }, { opacity: 0, duration: .45, ease: "power2.out" });
-    print.src = url; print.hidden = false;
-    saveA.href = url; saveA.hidden = false; againB.hidden = false; shootB.hidden = true;
-    phase = "shot";
+    if (g()) g().fromTo(flash, { opacity: .9 }, { opacity: 0, duration: .4, ease: "power2.out" });
+    return cv.toDataURL("image/jpeg", .93);
+  }
+
+  /* ---- odpočet ---- */
+  async function countdown(n) {
+    count.hidden = false;
+    for (let i = n; i > 0; i--) {
+      count.textContent = String(i);
+      if (g()) g().fromTo(count, { scale: .7, opacity: 0 }, { scale: 1, opacity: 1, duration: .3, ease: "back.out(2)" });
+      await wait(900);
+    }
+    count.hidden = true;
+  }
+
+  /* ---- 1) PROUŽEK: čtyři snímky za sebou ---- */
+  async function runStrip() {
+    if (busy) return; busy = true;
+    if (!(await openCam())) { busy = false; return; }
+    note.textContent = "dívej se do kamery";
+    await countdown(3);
+    for (let i = 0; i < 4; i++) {
+      const url = grab();
+      shots.push(url);
+      const li = stripEl.children[i];
+      li.innerHTML = "";
+      const im = new Image(); im.src = url; li.appendChild(im);
+      if (g()) g().fromTo(im, { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1, duration: .45, ease: "power2.out" });
+      if (i < 3) { note.textContent = `snímek ${i + 1} / 4`; await wait(1500); }
+    }
+    note.textContent = "hotovo — proužek je tvůj";
+    saveA.href = await composeStrip(shots);
+    saveA.download = "javy-fotomat-prouzek.jpg";
+    saveA.textContent = "ULOŽIT PROUŽEK ↓";
+    saveA.hidden = false; againB.hidden = false;
+    closeCam();
+    busy = false;
+  }
+
+  /* složení proužku: papír, čtyři políčka pod sebou, patička */
+  function composeStrip(list) {
+    return new Promise((res) => {
+      const W = 620, pad = 26, gap = 14, fw = W - pad * 2, fh = Math.round(fw * 0.75);
+      const H = pad + (fh + gap) * 4 + 64;
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      const x = c.getContext("2d");
+      x.fillStyle = "#f3f1ea"; x.fillRect(0, 0, W, H);
+      let done = 0;
+      list.forEach((src, i) => {
+        const im = new Image();
+        im.onload = () => {
+          x.drawImage(im, pad, pad + i * (fh + gap), fw, fh);
+          if (++done === list.length) {
+            x.fillStyle = "#0c0b09";
+            x.font = "700 15px Arial, Helvetica, sans-serif";
+            x.fillText("JAVY · FOTOMAT", pad, H - 26);
+            const d = new Date();
+            const s2 = `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+            x.textAlign = "right"; x.fillText(s2, W - pad, H - 26);
+            res(c.toDataURL("image/jpeg", .92));
+          }
+        };
+        im.src = src;
+      });
+    });
+  }
+
+  /* ---- 2) POLÍČKO: živý náhled a spoušť ručně ---- */
+  async function runNeg() {
+    if (busy) return; busy = true;
+    if (!(await openCam())) { busy = false; return; }
+    note.textContent = "zmáčkni spoušť";
+    shootB.hidden = false;
+    busy = false;
+  }
+  shootB.addEventListener("click", async () => {
+    if (!live) return;
+    await countdown(3);
+    const url = grab();
+    const im = new Image(); im.src = url;
+    im.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover";
+    $("#fmNeg").appendChild(im);
+    host.classList.remove("live");
+    saveA.href = url; saveA.download = "javy-fotomat.jpg"; saveA.textContent = "ULOŽIT ↓";
+    saveA.hidden = false; againB.hidden = false; shootB.hidden = true;
+    note.textContent = "hotovo";
+    closeCam();
   });
-  againB.addEventListener("click", () => {
-    print.hidden = true; saveA.hidden = true; againB.hidden = true;
-    if (live) { shootB.hidden = false; phase = "live"; } else closeSequence();
+
+  againB.addEventListener("click", () => { reset(); });
+
+  /* ---- spuštění kliknutím do plochy ---- */
+  host.addEventListener("click", (e) => {
+    if (busy || live || e.target.closest(".fm-bar")) return;
+    if (shots.length || $("#fmNeg").querySelector("img")) return;
+    mode === "strip" ? runStrip() : runNeg();
+  });
+
+  /* ---- přepínač podoby ---- */
+  const modes = $("#fmModes");
+  modes.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-mode]"); if (!b) return;
+    mode = b.dataset.mode;
+    host.dataset.mode = mode;
+    [...modes.children].forEach((x) => x.classList.toggle("on", x === b));
+    reset();
   });
 
   /* ---- presety + tajný panel ---- */
@@ -255,13 +317,13 @@
   }
   function loop() {
     t += 1 / 60;
-    if (visible && (phase === "live" || phase === "zoom")) draw();
+    if (visible && live) draw();
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
 
   new IntersectionObserver((es) => es.forEach((e) => {
     visible = e.isIntersecting;
-    if (!visible && phase !== "idle") closeSequence();
+    if (!visible && (live || shots.length)) reset();   // při odchodu ze scény vypni kameru
   }), { threshold: .15 }).observe(scene);
 })();

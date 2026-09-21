@@ -224,7 +224,7 @@
   function ejectStrip(url, data) {
     physics();
     const ph = pile.clientHeight, pw = pile.clientWidth;
-    const h = Math.round(ph * .52), w = Math.round(h * 0.195);
+    const sz = pieceSize(4), h = sz.h, w = sz.w;
     const sx = pw / 2, sy = ph - 6;
     const el = document.createElement("div");
     el.className = "pc"; el.style.width = w + "px"; el.style.height = h + "px";
@@ -348,57 +348,147 @@
   });
 
   /* ============================================================
-     DETAIL PROUŽKU — listování snímky, uložení, rozstřihnutí
+     DETAIL PROUŽKU — páska: svisle se posouvá tahem,
+     vodorovným tahem se v místě prstu rozstřihne
      ============================================================ */
-  let vItem = null, vIdx = -1;
-  function paintView() {
-    const d = vItem.data;
-    viewImg.src = vIdx < 0 ? d.url : d.shots[vIdx];
-    viewIdx.textContent = vIdx < 0 ? "CELÝ PROUŽEK" : `SNÍMEK ${vIdx + 1} / 4`;
-    viewSave.href = viewImg.src;
-    viewSave.download = vIdx < 0 ? "javy-fotomat-prouzek.jpg" : `javy-fotomat-${vIdx + 1}.jpg`;
-    if (g()) g().fromTo(viewImg, { opacity: 0, scale: .96 }, { opacity: 1, scale: 1, duration: .35, ease: "power2.out" });
+  const tape = $("#fmTape"), tapeIn = $("#fmTapeIn"), cutline = $("#fmCutline");
+  const viewHint = $("#fmViewHint");
+  let vItem = null, vShots = [], scrollY = 0, vel = 0;
+
+  function buildTape() {
+    const d = new Date();
+    tapeIn.innerHTML = vShots.map((src) => `<figure class="tf"><img alt="" src="${src}"></figure>`).join("") +
+      `<div class="tape-foot"><span>JAVY · FOTOMAT</span><span>${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}</span></div>`;
+    scrollY = 0; vel = 0; applyScroll();
+    viewHint.textContent = vShots.length > 1
+      ? "tahej nahoru a dolů · vodorovným tahem rozstřihneš"
+      : "jeden snímek — dál už to nejde rozstřihnout";
   }
+  function maxScroll() { return Math.max(0, tapeIn.offsetHeight - tape.clientHeight); }
+  function applyScroll() {
+    scrollY = Math.max(-40, Math.min(maxScroll() + 40, scrollY));
+    tapeIn.style.transform = `translateX(-50%) translateY(${-scrollY}px)`;
+  }
+  /* švy mezi políčky v souřadnicích pásky */
+  function seams() {
+    const fr = [...tapeIn.querySelectorAll(".tf")];
+    const out = [];
+    for (let i = 0; i < fr.length - 1; i++) out.push({ i, y: (fr[i].offsetTop + fr[i].offsetHeight + fr[i + 1].offsetTop) / 2 });
+    return out;
+  }
+  function nearestSeam(clientY) {
+    const r = tape.getBoundingClientRect();
+    const y = clientY - r.top + scrollY;
+    let best = null, bd = Infinity;
+    for (const s of seams()) { const d = Math.abs(s.y - y); if (d < bd) { bd = d; best = s; } }
+    return best;
+  }
+  function showCut(seam) {
+    if (!seam) { cutline.hidden = true; return; }
+    cutline.hidden = false;
+    cutline.style.top = (seam.y - scrollY) + "px";
+  }
+
+  async function doCut(seam) {
+    if (!seam || vShots.length < 2) return;
+    const keep = vShots.slice(0, seam.i + 1);
+    const away = vShots.slice(seam.i + 1);
+    // spodní část se oddělí a odletí do hromady
+    const fr = [...tapeIn.querySelectorAll(".tf")];
+    const moving = fr.slice(seam.i + 1).concat([tapeIn.querySelector(".tape-foot")]).filter(Boolean);
+    if (g()) await g().to(moving, { x: 90, y: 60, rotate: 7, opacity: 0, duration: .45, ease: "power2.in", stagger: .03 });
+    const made = await composeStrip(away);
+    dropPiece(made, away);
+    vShots = keep;
+    buildTape();
+    const rest = await composeStrip(vShots);
+    $("#fmViewSave").href = rest;
+    $("#fmViewSave").download = vShots.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
+    if (vItem) refreshItem(vItem, rest, vShots);
+    note.textContent = "rozstřiženo";
+  }
+
+  /* ---- tažení: svisle posun, vodorovně střih ---- */
+  {
+    let down = false, sx = 0, sy = 0, lastY = 0, axis = null, seam = null, moved = 0;
+    tape.addEventListener("pointerdown", (e) => {
+      down = true; axis = null; seam = null; moved = 0;
+      sx = e.clientX; sy = e.clientY; lastY = e.clientY; vel = 0;
+      tape.setPointerCapture(e.pointerId);
+    });
+    tape.addEventListener("pointermove", (e) => {
+      if (!down) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      moved = Math.hypot(dx, dy);
+      if (!axis && moved > 8) axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if (axis === "y") {
+        scrollY -= e.clientY - lastY;
+        vel = -(e.clientY - lastY);
+        applyScroll();
+      } else if (axis === "x") {
+        seam = nearestSeam(e.clientY);
+        showCut(seam);
+        if (seam) cutline.querySelector("span").textContent = Math.abs(dx) > 90 ? "PUSŤ = STŘIH" : "STŘIH";
+      }
+      lastY = e.clientY;
+    });
+    const end = (e) => {
+      if (!down) return; down = false;
+      const dx = e.clientX - sx;
+      cutline.hidden = true;
+      if (axis === "x" && Math.abs(dx) > 90) doCut(seam);
+      axis = null; seam = null;
+    };
+    tape.addEventListener("pointerup", end);
+    tape.addEventListener("pointercancel", end);
+  }
+  /* dojezd po pustnutí */
+  function tapeInertia() {
+    if (view.hidden || Math.abs(vel) < .2) return;
+    scrollY += vel; vel *= .92;
+    if (scrollY < 0) { scrollY += (0 - scrollY) * .2; vel = 0; }
+    const m = maxScroll();
+    if (scrollY > m) { scrollY += (m - scrollY) * .2; vel = 0; }
+    applyScroll();
+  }
+
   function openView(it) {
-    vItem = it; vIdx = -1; view.hidden = false; paintView();
+    vItem = it; vShots = it.data.shots.slice();
+    view.hidden = false;
+    buildTape();
+    $("#fmViewSave").href = it.data.url;
+    $("#fmViewSave").download = vShots.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
     if (g()) g().fromTo(view, { opacity: 0 }, { opacity: 1, duration: .3 });
+    setTimeout(applyScroll, 60);
   }
   function closeView() { view.hidden = true; vItem = null; }
-  const step = (d) => { if (!vItem) return; vIdx = vIdx + d; if (vIdx > 3) vIdx = -1; if (vIdx < -1) vIdx = 3; paintView(); };
-  $("#fmViewNext").addEventListener("click", () => step(1));
-  $("#fmViewPrev").addEventListener("click", () => step(-1));
   $("#fmViewClose").addEventListener("click", closeView);
-  $("#fmViewCut").addEventListener("click", async () => {
-    if (!vItem) return;
-    const d = vItem.data, it = vItem;
-    closeView();
-    // proužek zmizí a místo něj spadnou čtyři jednotlivé snímky
-    const M = window.Matter;
-    if (M) M.Composite.remove(engine.world, it.body);
-    it.el.remove();
-    const i = items.indexOf(it); if (i >= 0) items.splice(i, 1);
-    const ph = pile.clientHeight, pw = pile.clientWidth;
-    const h = Math.round(ph * .22), w = Math.round(h * 0.78);
-    for (let k = 0; k < d.shots.length; k++) {
-      const url = await composePhoto(d.shots[k]);
-      addPiece(url, { url, shots: [d.shots[k]] }, pw / 2 + (k - 1.5) * (w * .8), ph * .25,
-               w, h, (Math.random() - .5) * 3, -2 - Math.random(), (Math.random() - .5) * .6);
-      await wait(90);
-    }
-    note.textContent = "rozstřiženo — snímky si můžeš rozebrat";
-  });
-  // swipe mezi snímky
-  {
-    const st = $("#fmViewStage"); let sx = 0, on = false;
-    st.addEventListener("pointerdown", (e) => { sx = e.clientX; on = true; });
-    st.addEventListener("pointerup", (e) => { if (!on) return; on = false; const dx = e.clientX - sx; if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1); });
+  addEventListener("keydown", (e) => { if (!view.hidden && e.key === "Escape") closeView(); });
+
+  /* ---- kousky v hromadě ---- */
+  function pieceSize(n) {
+    const ph = pile.clientHeight;
+    const h = Math.max(60, Math.round(ph * .13 * n + ph * .06));
+    return { w: Math.round(h * (520 / (22 + (476 * 4 / 3 + 12) * n + 64))), h };
   }
-  addEventListener("keydown", (e) => {
-    if (view.hidden) return;
-    if (e.key === "Escape") closeView();
-    else if (e.key === "ArrowRight") step(1);
-    else if (e.key === "ArrowLeft") step(-1);
-  });
+  function dropPiece(url, shotsArr) {
+    const { w, h } = pieceSize(shotsArr.length);
+    addPiece(url, { url, shots: shotsArr }, pile.clientWidth / 2 + (Math.random() - .5) * 80, pile.clientHeight * .2,
+             w, h, (Math.random() - .5) * 3, -1.5, (Math.random() - .5) * .4);
+  }
+  function refreshItem(it, url, shotsArr) {
+    const M = window.Matter;
+    it.data = { url, shots: shotsArr };
+    it.el.querySelector("img").src = url;
+    const { w, h } = pieceSize(shotsArr.length);
+    it.el.style.width = w + "px"; it.el.style.height = h + "px";
+    if (M && engine) {
+      const pos = it.body.position, ang = it.body.angle;
+      M.Composite.remove(engine.world, it.body);
+      it.body = M.Bodies.rectangle(pos.x, pos.y, w, h, { restitution: .18, friction: .55, frictionAir: .012, angle: ang });
+      M.Composite.add(engine.world, it.body);
+    }
+  }
 
   /* ---- přepínač podoby ---- */
   const modes = $("#fmModes");
@@ -480,6 +570,7 @@
       if (!visible) return;
       if (live || testImg) draw();
       if (engine) syncPhysics(dt);
+      tapeInertia();
     } catch (err) { console.warn("fotomat:", err); }
   }
   requestAnimationFrame(loop);

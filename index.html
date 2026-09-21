@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=92" />
+  <link rel="stylesheet" href="film.css?v=93" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -106,15 +106,15 @@
           <!-- vypadlé proužky: fyzika, dají se chytat a rozkliknout -->
           <div class="fm-pile" id="fmPile"></div>
 
-          <!-- detail proužku -->
+          <!-- detail proužku: svisle se posouvá tahem, vodorovným tahem se stříhá -->
           <div class="fm-view" id="fmView" hidden>
-            <div class="fm-view-stage" id="fmViewStage"><img id="fmViewImg" alt="" /></div>
+            <div class="fm-tape" id="fmTape">
+              <div class="tape-in" id="fmTapeIn"></div>
+              <div class="cutline" id="fmCutline" hidden><span>STŘIH</span></div>
+            </div>
             <div class="fm-view-bar">
-              <button type="button" id="fmViewPrev">←</button>
-              <span id="fmViewIdx">CELÝ PROUŽEK</span>
-              <button type="button" id="fmViewNext">→</button>
-              <a id="fmViewSave" download="javy-fotomat.jpg">ULOŽIT ↓</a>
-              <button type="button" id="fmViewCut">ROZSTŘIHNOUT</button>
+              <span id="fmViewHint">tahej nahoru a dolů · vodorovným tahem rozstřihneš</span>
+              <a id="fmViewSave" download="javy-fotomat-prouzek.jpg">ULOŽIT ↓</a>
               <button type="button" id="fmViewClose">ZAVŘÍT ✕</button>
             </div>
           </div>
@@ -201,7 +201,7 @@
   <script src="film.js?v=80"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=18" defer></script>
+  <script src="lab/fotomat.js?v=19" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

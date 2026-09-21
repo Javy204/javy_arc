@@ -36,13 +36,16 @@
     { k: "vignette", t: "VINĚTACE", min: 0, max: 1.6, step: .01, v: .75 },
     { k: "vigSoft", t: "MĚKKOST VINĚTY", min: .2, max: 1.2, step: .01, v: .6 },
     { k: "barrel", t: "SOUDKOVITOST", min: -.4, max: .6, step: .005, v: .12 },
+    { k: "dither", t: "DITHER (TERMOTISK)", min: 0, max: 1, step: .01, v: .9 },
+    { k: "ditherSize", t: "VELIKOST BODU", min: 1, max: 6, step: .1, v: 2 },
   ];
   const DEFAULTS = Object.fromEntries(PARAMS.map((p) => [p.k, p.v]));
   const LOOKS = {
-    "KLUB": { exposure: .35, contrast: 1.7, sat: 0, grain: .22, halation: .5, vignette: 1, scurve: .5 },
-    "BLESK": { exposure: .7, contrast: 1.5, sat: 0, grain: .12, halation: .9, vignette: .5, white: 1, gain: 1.2 },
-    "FILM": { exposure: .1, contrast: 1.25, sat: .25, grain: .34, grainSize: 2.1, halation: .3, vignette: .8, temp: .06 },
-    "SYROVÝ": { exposure: 0, contrast: 1, sat: 1, grain: .05, halation: 0, vignette: .25, scurve: 0, barrel: 0 },
+    "TERMO": { dither: 1, ditherSize: 2, exposure: .3, contrast: 1.5, sat: 0, grain: .05, halation: .15, vignette: .5 },
+    "KLUB": { dither: 0, exposure: .35, contrast: 1.7, sat: 0, grain: .22, halation: .5, vignette: 1, scurve: .5 },
+    "BLESK": { dither: 0, exposure: .7, contrast: 1.5, sat: 0, grain: .12, halation: .9, vignette: .5, white: 1, gain: 1.2 },
+    "FILM": { dither: 0, exposure: .1, contrast: 1.25, sat: .25, grain: .34, grainSize: 2.1, halation: .3, vignette: .8, temp: .06 },
+    "SYROVÝ": { dither: 0, exposure: 0, contrast: 1, sat: 1, grain: .05, halation: 0, vignette: .25, scurve: 0, barrel: 0 },
   };
 
   const VERT = `attribute vec2 p; varying vec2 vUv;
@@ -52,6 +55,9 @@
     ${PARAMS.map((p) => `uniform float u_${p.k};`).join(" ")}
     varying vec2 vUv;
     float hash(vec2 q){ return fract(sin(dot(q, vec2(127.1, 311.7))) * 43758.5453); }
+    float bayer2(vec2 a){ a = floor(a); return fract(a.x / 2.0 + a.y * a.y * .75); }
+    float bayer4(vec2 a){ return bayer2(.5 * a) * .25 + bayer2(a); }
+    float bayer8(vec2 a){ return bayer4(.5 * a) * .25 + bayer2(a); }
     vec3 tap(vec2 q){ return texture2D(tVid, q).rgb; }
     void main(){
       vec2 uv = vUv - .5;
@@ -83,7 +89,13 @@
       }
       col += (hash(floor(gl_FragCoord.xy / max(.5, u_grainSize)) + fract(uTime) * 97.13) - .5) * u_grain;
       col *= mix(1.0, 1.0 - smoothstep(u_vigSoft * .35, 1.05, length(vUv - .5) * 1.42), clamp(u_vignette, 0., 1.6));
-      gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+      col = clamp(col, 0.0, 1.0);
+      if (u_dither > .001) {                        // rastr jako na termotisku: jen body, žádné půltóny
+        float th = clamp(bayer8(gl_FragCoord.xy / max(1.0, u_ditherSize)) / 1.3125, 0.0, 1.0);
+        float bw = step(th, dot(col, vec3(.2126, .7152, .0722)));
+        col = mix(col, vec3(bw), u_dither);
+      }
+      gl_FragColor = vec4(col, 1.0);
     }`;
 
   /* ---- WebGL ---- */
@@ -114,9 +126,12 @@
   }
 
   /* ---- stav ---- */
-  let G = { ...DEFAULTS, ...LOOKS["KLUB"] };
+  let G = { ...DEFAULTS, ...LOOKS["TERMO"] };
   try { Object.assign(G, JSON.parse(localStorage.getItem("javy-grade") || "{}")); } catch (e) {}
   let video = null, stream = null, live = false, busy = false, shots = [];
+  let testImg = null;                      // testovací snímek pro ladění gradingu bez kamery
+  const srcEl = () => testImg || video;
+  const srcReady = () => { const e = srcEl(); return !!e && (e.tagName === "IMG" ? e.complete && e.naturalWidth : e.readyState >= 2); };
   let mode = "strip", visible = false;
 
   const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
@@ -197,7 +212,7 @@
   /* složení proužku: papír, čtyři políčka pod sebou, patička */
   function composeStrip(list) {
     return new Promise((res) => {
-      const W = 620, pad = 26, gap = 14, fw = W - pad * 2, fh = Math.round(fw * 0.75);
+      const W = 520, pad = 22, gap = 12, fw = W - pad * 2, fh = Math.round(fw * 4 / 3);   // políčka na výšku
       const H = pad + (fh + gap) * 4 + 64;
       const c = document.createElement("canvas"); c.width = W; c.height = H;
       const x = c.getContext("2d");
@@ -206,7 +221,12 @@
       list.forEach((src, i) => {
         const im = new Image();
         im.onload = () => {
-          x.drawImage(im, pad, pad + i * (fh + gap), fw, fh);
+          // ořez na střed do formátu na výšku (jinak by se obraz zmáčkl)
+          const sr = im.width / im.height, dr = fw / fh;
+          let sw = im.width, sh = im.height, sx = 0, sy = 0;
+          if (sr > dr) { sw = im.height * dr; sx = (im.width - sw) / 2; }
+          else { sh = im.width / dr; sy = (im.height - sh) / 2; }
+          x.drawImage(im, sx, sy, sw, sh, pad, pad + i * (fh + gap), fw, fh);
           if (++done === list.length) {
             x.fillStyle = "#0c0b09";
             x.font = "700 15px Arial, Helvetica, sans-serif";
@@ -281,6 +301,16 @@
   }));
   function syncPanel() { PARAMS.forEach((p) => { const el = $("#g_" + p.k); if (el) { el.value = G[p.k]; $("#v_" + p.k).textContent = String(G[p.k]); } }); }
   function save() { try { localStorage.setItem("javy-grade", JSON.stringify(G)); } catch (e) {} }
+  $("#gradeTest").addEventListener("click", async () => {
+    if (testImg) { testImg = null; host.classList.remove("live"); $("#gradeTest").textContent = "TEST"; return; }
+    try {
+      const m = await fetch("photos/manifest.json", { cache: "no-cache" }).then((r) => r.json());
+      const all = (m.sets || []).flatMap((x) => x.images || []);
+      const im = new Image(); im.crossOrigin = "anonymous";
+      im.onload = () => { testImg = im; host.classList.add("live"); $("#gradeTest").textContent = "TEST ✕"; };
+      im.src = all[Math.floor(Math.random() * all.length)];
+    } catch (e) {}
+  });
   $("#gradeClose").addEventListener("click", () => (panel.hidden = true));
   $("#gradeReset").addEventListener("click", () => { G = { ...DEFAULTS }; syncPanel(); save(); });
   $("#gradeCopy").addEventListener("click", async () => {
@@ -304,11 +334,13 @@
     const w = Math.round(host.clientWidth * dpr), h = Math.round(host.clientHeight * dpr);
     if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
     gl.viewport(0, 0, w, h);
-    if (live && video && video.readyState >= 2) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+    if (srcReady()) {
+      const e = srcEl();
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, e);
       gl.uniform1f(U.uHasVid, 1);
-      gl.uniform2f(U.uVidRes, video.videoWidth || 1280, video.videoHeight || 720);
-      const vr = (video.videoWidth || 16) / (video.videoHeight || 9), sr = w / h;
+      const ew = e.videoWidth || e.naturalWidth || 1280, eh = e.videoHeight || e.naturalHeight || 720;
+      gl.uniform2f(U.uVidRes, ew, eh);
+      const vr = ew / eh, sr = w / h;
       if (vr > sr) gl.uniform2f(U.uCover, sr / vr, 1); else gl.uniform2f(U.uCover, 1, vr / sr);
     } else gl.uniform1f(U.uHasVid, 0);
     gl.uniform1f(U.uTime, t);
@@ -317,7 +349,7 @@
   }
   function loop() {
     t += 1 / 60;
-    if (visible && live) draw();
+    if (visible && (live || testImg)) draw();
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);

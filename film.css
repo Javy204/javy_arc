@@ -740,14 +740,15 @@ body.beta-on .beta { display: block; }
 .fm.live .fm-say { opacity: 0; transition: opacity .4s ease; pointer-events: none; }
 
 /* ---------- PROUŽEK ---------- */
+/* proužek se měří na VÝŠKU plochy — jinak mu čtyři políčka na výšku přerostou rám */
 .strip {
   position: absolute; right: 4%; top: 50%; transform: translateY(-50%);
-  width: 26%; max-width: 230px; margin: 0; padding: 0; list-style: none;
-  display: flex; flex-direction: column; gap: 6px;
+  height: 88%; width: max-content; margin: 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
 }
 .strip li {
-  position: relative; display: block; width: 100%; flex: none;   /* bez šířky se políčko scvrkne na obsah */
-  aspect-ratio: 4 / 3; border: 1.5px solid var(--ink);
+  position: relative; display: block; flex: 1 1 0; width: auto; height: auto;
+  aspect-ratio: 3 / 4; border: 1.5px solid var(--ink);   /* formát fotobudky = na výšku */
   overflow: hidden; background: transparent;
 }
 .strip li i {
@@ -815,7 +816,8 @@ body.beta-on .beta { display: block; }
     right: 0; left: 0; top: auto; bottom: 3%; transform: none; width: auto; max-width: none;
     flex-direction: row; padding: 0 4%;
   }
-  .strip li { flex: 1 1 0; width: auto; }
+  .strip { height: auto; width: auto; }
+  .strip li { flex: 1 1 0; height: auto; }
   .fm-say { width: 92%; bottom: 40%; }
   .m-neg .fm-say { bottom: 6%; }
   .fm-count { right: 0; top: 32%; }

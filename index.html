@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=84" />
+  <link rel="stylesheet" href="film.css?v=85" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -72,15 +72,55 @@
         </div>
 
         <div class="fm" id="fm">
-          <!-- WebGL: nejdřív model foťáku, po kliknutí hledáček s obrazem z kamery -->
+          <!-- živý obraz (WebGL grading) — odkrývá se z objektivu -->
           <canvas class="fm-gl" id="fmGL"></canvas>
 
-          <div class="fm-veil" id="fmVeil">
-            <button type="button" class="fm-enter" id="fmEnter">
-              <span class="fm-enter-l">FOTOMAT</span>
-              <span class="fm-enter-s">klikni na foťák</span>
-            </button>
-          </div>
+          <!-- aparát nakreslený ve stejném jazyce jako zbytek webu -->
+          <svg class="fm-art" id="fmArt" viewBox="0 0 1200 720" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <g id="fmRig">
+              <!-- konstrukční linky -->
+              <g class="hair" id="fmHair">
+                <path d="M60 360 H1140" /><path d="M600 60 V660" />
+                <path d="M300 120 H900 V600 H300 Z" />
+              </g>
+
+              <!-- tělo -->
+              <g id="fmBody">
+                <path class="ink" d="M330 250 H870 V570 H330 Z" />
+                <path class="ink" d="M470 196 H700 V250 H470 Z" />
+                <path class="paper" d="M556 214 H620 V236 H556 Z" />   <!-- sáňky -->
+                <circle class="ink" cx="836" cy="228" r="20" id="fmBtn" />
+                <path class="paper" d="M360 286 H430 V300 H360 Z" />   <!-- hledáček -->
+                <text class="lbl paper" x="360" y="545">JAVY</text>
+                <text class="lbl paper" x="800" y="545" text-anchor="end">FOTOMAT</text>
+              </g>
+
+              <!-- objektiv -->
+              <g id="fmLens">
+                <circle class="ink" cx="600" cy="410" r="150" />
+                <circle class="ring" cx="600" cy="410" r="150" />
+                <circle class="ring" cx="600" cy="410" r="126" />
+                <circle class="ring" cx="600" cy="410" r="104" />
+                <g id="fmBlades"></g>
+                <g id="fmMark">
+                  <circle class="ring" cx="600" cy="410" r="26" />
+                  <text class="mk paper" x="600" y="419" text-anchor="middle">P</text>
+                </g>
+              </g>
+
+              <!-- popisky kolem -->
+              <g id="fmMeta">
+                <text class="lbl ink" x="330" y="180">14 MM</text>
+                <text class="lbl ink" x="870" y="180" text-anchor="end">F/2.8</text>
+                <text class="lbl ink" x="330" y="620">ISO 6400</text>
+                <text class="lbl ink" x="870" y="620" text-anchor="end">1/125</text>
+              </g>
+            </g>
+          </svg>
+
+          <button type="button" class="fm-enter" id="fmEnter">
+            <span class="fm-enter-s">klikni na objektiv</span>
+          </button>
 
           <div class="fm-vf" id="fmVf" hidden>
             <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
@@ -89,7 +129,6 @@
 
           <img class="fm-print" id="fmPrint" alt="" hidden />
           <div class="fm-flash" id="fmFlash"></div>
-          <div class="fm-fade" id="fmFade"></div>
         </div>
 
         <div class="fm-bar">
@@ -171,23 +210,8 @@
   </section>
 
   <script src="film.js?v=80"></script>
-  <script type="importmap">
-  { "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-  } }
-  </script>
-  <script type="module">
-    /* three.js + model (cca 400 kB) se stahuje až když se doscrolluje k sekci,
-       ať to nezdržuje první načtení portfolia */
-    const labEl = document.querySelector(".s-lab");
-    if (labEl) {
-      const io = new IntersectionObserver((es) => {
-        if (es.some((e) => e.isIntersecting)) { io.disconnect(); import("./lab/fotomat.js?v=6"); }
-      }, { rootMargin: "400px" });
-      io.observe(labEl);
-    }
-  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="lab/fotomat.js?v=11" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

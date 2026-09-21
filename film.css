@@ -713,21 +713,34 @@ body.beta-on .beta { display: block; }
 }
 
 /* ============================================================
-   FOTOMAT (scéna 03) — 3D foťák → hledáček s obrazem z kamery.
-   Kód je v lab/fotomat.js (three.js + vlastní grading shader).
+   FOTOMAT (scéna 03) — aparát nakreslený ve stejném jazyce jako web
+   (tvrdé černé plochy a vlasové linky na papíře, ℗ jako objektiv).
+   Klik = clona se rozevře a z objektivu vyteče živý obraz.
+   Kód: lab/fotomat.js (GSAP choreografie + WebGL grading).
    ============================================================ */
-.fm { position: relative; margin-top: 2.4vh; height: 64vh; background: #070706; overflow: hidden; }
-.fm-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.fm { position: relative; margin-top: 2.4vh; height: 64vh; background: var(--bg); overflow: hidden; }
 
-/* uvítací vrstva přes model */
-.fm-veil { position: absolute; inset: 0; display: grid; place-items: end center; padding-bottom: 7%; transition: opacity .6s ease; }
-.fm-veil.gone { opacity: 0; pointer-events: none; }
-.fm-enter {
-  appearance: none; background: none; border: 0; color: #f3f1ea; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 18px;
+/* živý obraz — odkrývá se kruhem z místa objektivu */
+.fm-gl {
+  position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+  clip-path: circle(0% at 50% 55%);
 }
-.fm-enter-l { font: 900 clamp(22px, 3.4vw, 46px)/1 var(--sans); letter-spacing: -.02em; text-transform: uppercase; }
-.fm-enter-s { font: 700 10px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase; opacity: .5; transition: opacity .3s ease; }
+
+/* kresba aparátu */
+.fm-art { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fm-art .ink { fill: var(--ink); }
+.fm-art .paper { fill: var(--bg); }
+.fm-art .ring { fill: none; stroke: var(--bg); stroke-width: 3; }
+.fm-art .hair path { fill: none; stroke: var(--ink); stroke-width: 1; opacity: .16; }
+.fm-art .blade { fill: var(--bg); }
+.fm-art .lbl { font: 700 20px/1 var(--sans); letter-spacing: .22em; }
+.fm-art .mk { font: 700 26px/1 var(--sans); }
+
+.fm-enter {
+  position: absolute; left: 0; right: 0; bottom: 6%; z-index: 3;
+  appearance: none; background: none; border: 0; cursor: pointer; color: var(--ink);
+}
+.fm-enter-s { font: 700 10px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase; opacity: .45; transition: opacity .3s ease; }
 .fm-enter:hover .fm-enter-s { opacity: 1; }
 
 /* rámeček hledáčku */
@@ -748,11 +761,6 @@ body.beta-on .beta { display: block; }
 .fm-print { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #070706; }
 .fm-print[hidden] { display: none; }
 .fm-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
-/* krátké zatmění na konci nájezdu, než se přepne na obraz z hledáčku */
-.fm-fade { position: absolute; inset: 0; background: #070706; opacity: 0; pointer-events: none; transition: opacity .32s ease; }
-.fm-fade.on { opacity: 1; }
-.fm-flash.go { animation: fmFlash .42s ease-out; }
-@keyframes fmFlash { 0% { opacity: .95; } 100% { opacity: 0; } }
 
 .fm-bar {
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
@@ -766,7 +774,6 @@ body.beta-on .beta { display: block; }
 .fm-bar button:hover, .fm-bar a:hover { background: var(--ink); color: var(--bg); }
 .fm-btns { display: flex; gap: 8px; align-items: center; }
 
-/* volba vzhledu (presety) v popiskovém řádku */
 #fmLooks { display: flex; gap: 12px; pointer-events: auto; }
 #fmLooks button {
   appearance: none; border: 0; background: none; padding: 0; cursor: pointer; color: inherit;
@@ -796,7 +803,8 @@ body.beta-on .beta { display: block; }
 .grade-row input[type=range] { width: 100%; margin: 4px 0 0; accent-color: #f3f1ea; }
 
 @media (max-width: 720px) {
-  .fm { height: 56vh; margin-top: 1.6vh; }
+  .fm { height: 52vh; margin-top: 1.6vh; }
+  .fm-art .lbl { font-size: 26px; }
   .fm-bar { font-size: 9px; letter-spacing: .06em; }
   #fmLooks { gap: 9px; }
   #fmLooks button { font-size: 10px; letter-spacing: .02em; }

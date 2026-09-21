@@ -36,9 +36,6 @@ let whMeta = [], whBase = 0;   // předpočítané středy panelů (ať se v ka�
 function ease(base, dt) { return 1 - Math.pow(1 - base, dt / 16.667); }
 const sWork = $("#sWork");
 const workMeta = $("#workMeta");
-const journalList = $("#journalList");
-const journalEntry = $("#journalEntry");
-const journalBack = $("#journalBack");
 const light = $("#light");
 const lightImg = $("#lightImg");
 const lightId = $("#lightId");
@@ -46,8 +43,6 @@ const lightClose = $("#lightClose");
 
 const pad2 = (n) => String(n).padStart(2, "0");
 const clampN = (x, a, b) => Math.max(a, Math.min(b, x));
-
-let JOURNAL = [];   // načte se z journal.json
 
 let SETS = [];
 let wiEls = [], wiSlots = [], workActive = -1;
@@ -69,10 +64,6 @@ async function loadData() {
       return { ...s, images: s.images || [], count: (s.images || []).length };
     });
   } catch (e) { console.warn("manifest se nenačetl", e); SETS = []; }
-  try {
-    const jd = await (await fetch("journal.json", { cache: "no-store" })).json();
-    JOURNAL = jd.entries || [];
-  } catch (e) { console.warn("journal se nenačetl", e); JOURNAL = []; }
 }
 
 /* ---- přednačtení fotek ----
@@ -933,26 +924,6 @@ function updateWorkFocus(vh) {
   if (best >= 0) setWorkActive(best);
 }
 
-/* ---- journal ---- */
-function renderJournal() {
-  journalList.innerHTML = "";
-  JOURNAL.forEach((e, i) => {
-    const li = document.createElement("li");
-    li.innerHTML = `<span class="jl-date">${e.date}</span><span class="jl-title">${e.title}</span><span class="jl-arrow">↗</span>`;
-    li.addEventListener("click", () => openEntry(i));
-    journalList.appendChild(li);
-  });
-}
-function openEntry(i) {
-  const e = JOURNAL[i];
-  $("#jeDate").textContent = e.date;
-  $("#jeTitle").textContent = e.title;
-  const paras = Array.isArray(e.body) ? e.body : String(e.body || "").split(/\n\n+/);
-  $("#jeBody").innerHTML = paras.map((p) => `<p>${p}</p>`).join("");
-  journalEntry.hidden = false; back.hidden = false;
-}
-journalBack.addEventListener("click", () => { journalEntry.hidden = true; if (stage.hidden) back.hidden = true; });
-
 /* ---- dots ---- */
 function buildDots() {
   SCENES = [...journey.querySelectorAll(".scene")];
@@ -1116,7 +1087,6 @@ groupEl.addEventListener("wheel", (e) => {
 
 back.addEventListener("click", () => {
   if (!light.hidden) { closeLight(); return; }
-  if (!journalEntry.hidden) { journalEntry.hidden = true; if (stage.hidden && groupEl.hidden) back.hidden = true; return; }
   if (!stage.hidden) { backFromStrip(); return; }
   if (!groupEl.hidden) { backFromGroup(); return; }
 });
@@ -1184,12 +1154,11 @@ viewport.addEventListener("pointerup", endDrag);
 viewport.addEventListener("pointercancel", endDrag);
 
 document.addEventListener("keydown", (e) => {
-  const devKeys = light.hidden && stage.hidden && groupEl.hidden && journalEntry.hidden;
+  const devKeys = light.hidden && stage.hidden && groupEl.hidden;
   if ((e.key === "b" || e.key === "B") && devKeys) { toggleBeta(); return; }
   if ((e.key === "v" || e.key === "V") && devKeys && betaOn()) { cycleWorkMode(); return; }
   if ((e.key === "l" || e.key === "L") && devKeys && betaOn()) { cycleWorkLayout(); return; }
   if (!light.hidden) { if (e.key === "Escape") closeLight(); else if (e.key === "ArrowRight") stepLight(1); else if (e.key === "ArrowLeft") stepLight(-1); return; }
-  if (!journalEntry.hidden) { if (e.key === "Escape") { journalEntry.hidden = true; if (stage.hidden && groupEl.hidden) back.hidden = true; } return; }
   if (!groupEl.hidden) {
     if (e.key === "Escape") backFromGroup();
     else if (e.key === "ArrowRight") gMove(1);
@@ -1299,11 +1268,10 @@ journey.addEventListener("scroll", updateJourney, { passive: true });
 window.addEventListener("resize", () => { if (wfPhone !== null && wfPhone !== isPhone()) renderWorkFilm(); sizeCollage(); updateFilm(window.innerHeight); fitText(); layoutWork(); if (!groupEl.hidden) positionDrum(); else if (!stage.hidden) measure(); else updateJourney(); });
 (async () => {
   loader.set(4);
-  await loadData();                       // manifest + journal
+  await loadData();                       // manifest
   loader.set(12);
   renderWorkIndex();
   renderWorkFilm();
-  renderJournal();
   buildDots();
   // dočasný přepínač variant WORK (na porovnání) — klávesa V
   buildBetaMenu();

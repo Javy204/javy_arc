@@ -101,10 +101,23 @@ a { color: inherit; text-decoration: none; }
 @keyframes blink { 0%, 62% { opacity: 1; } 63%, 72% { opacity: .25; } 73% { opacity: 1; } }
 
 .lede {
-  margin: 0; max-width: 46ch;
+  margin: 0;
   font-size: clamp(12px, 1.15vw, 14px); font-weight: 700;
-  text-transform: none; letter-spacing: .01em; line-height: 1.5; color: var(--dim);
+  text-transform: none; letter-spacing: .02em; color: var(--dim);
 }
+
+/* odkaz na instagram — hlavní rozcestí, dokud je web „připravuje se" */
+.ig {
+  align-self: flex-start; margin-top: .4vh;
+  font-size: clamp(13px, 1.4vw, 17px); letter-spacing: .04em; color: var(--ink);
+  text-transform: none;            /* handle má být malými, jak se doopravdy jmenuje */
+  border-bottom: 2px solid currentColor; padding-bottom: 2px;
+  transition: opacity .25s ease;
+}
+.ig:hover { opacity: .6; }
+/* plocha pro prst ~45 px, aniž by se změnil vzhled odkazu */
+.ig { position: relative; }
+.ig::after { content: ""; position: absolute; left: 0; right: 0; top: -11px; bottom: -11px; }
 
 /* ---------- kontaktní proužek (dither / termotisk) ---------- */
 .sheet { display: flex; gap: 10px; margin-top: 1.4vh; }

@@ -123,20 +123,23 @@
      [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR]]
       .forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v));
     gl.uniform1i(U.tVid, 0);
+    // BEZ TOHOHLE JE CELÝ OBRAZ VZHŮRU NOHAMA: WebGL má počátek textury vlevo
+    // dole, kdežto video i obrázek ho mají vlevo nahoře.
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   }
 
   /* ---- stav ---- */
   let G = { ...DEFAULTS, ...LOOKS["TERMO"] };
   try { Object.assign(G, JSON.parse(localStorage.getItem("javy-grade") || "{}")); } catch (e) {}
   let video = null, stream = null, live = false, busy = false, shots = [];
-  let testImg = null;                      // testovací snímek pro ladění gradingu bez kamery
-  const srcEl = () => testImg || video;
-  const srcReady = () => { const e = srcEl(); return !!e && (e.tagName === "IMG" ? e.complete && e.naturalWidth : e.readyState >= 2); };
-  let mode = "strip", visible = false;
+  let testImg = null, mode = "strip", visible = false;
 
   const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
   const shootB = $("#fmShoot"), saveA = $("#fmSave"), againB = $("#fmAgain");
-  const stripEl = $("#fmStrip");
+  const pile = $("#fmPile"), slot = $("#fmSlot"), prog = $("#fmProg");
+  const view = $("#fmView"), viewImg = $("#fmViewImg"), viewIdx = $("#fmViewIdx"), viewSave = $("#fmViewSave");
+  const srcEl = () => testImg || video;
+  const srcReady = () => { const e = srcEl(); return !!e && (e.tagName === "IMG" ? e.complete && e.naturalWidth : e.readyState >= 2); };
   const g = () => window.gsap;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -153,102 +156,174 @@
     return true;
   }
   function closeCam() {
-    live = false; host.classList.remove("live");
+    live = false; if (!testImg) host.classList.remove("live");
     if (stream) stream.getTracks().forEach((t) => t.stop());
     stream = null; video = null;
   }
-  function reset() {
-    busy = false; shots = [];
-    closeCam();
-    [...stripEl.children].forEach((li, i) => { li.classList.remove("on"); li.innerHTML = `<i>${i + 1}</i>`; });
-    $("#fmNeg").querySelectorAll("img").forEach((im) => im.remove());
-    shootB.hidden = true; saveA.hidden = true; againB.hidden = true;
-    count.hidden = true;
-    note.textContent = "klikni do plochy";
+
+  /* ============================================================
+     FYZIKA — vypadlé proužky leží na hromadě, dají se chytit
+     ============================================================ */
+  const items = [];           // {el, body, data:{url, shots}}
+  let engine = null, walls = [];
+  function physics() {
+    const M = window.Matter; if (!M || engine) return;
+    engine = M.Engine.create(); engine.gravity.y = 1.15;
+    buildWalls();
+    // tahat myší jen na desktopu — na telefonu by to sebralo scrollování
+    if (matchMedia("(pointer: fine)").matches) {
+      const mouse = M.Mouse.create(pile);
+      mouse.element.removeEventListener("wheel", mouse.mousewheel);
+      mouse.element.removeEventListener("DOMMouseScroll", mouse.mousewheel);
+      M.Composite.add(engine.world, M.MouseConstraint.create(engine, { mouse, constraint: { stiffness: .16, render: { visible: false } } }));
+    }
+  }
+  function buildWalls() {
+    const M = window.Matter; if (!M || !engine) return;
+    M.Composite.remove(engine.world, walls);
+    const w = pile.clientWidth, h = pile.clientHeight, t = 200;
+    walls = [
+      M.Bodies.rectangle(w / 2, h + t / 2 - 2, w * 3, t, { isStatic: true }),
+      M.Bodies.rectangle(-t / 2 + 2, h / 2, t, h * 3, { isStatic: true }),
+      M.Bodies.rectangle(w + t / 2 - 2, h / 2, t, h * 3, { isStatic: true }),
+    ];
+    M.Composite.add(engine.world, walls);
+  }
+  function addPiece(url, data, x, y, w, h, vx, vy, ang) {
+    const M = window.Matter; if (!M) return null;
+    const el = document.createElement("div");
+    el.className = "pc";
+    el.style.width = w + "px"; el.style.height = h + "px";
+    el.innerHTML = `<img alt="" src="${url}">`;
+    pile.appendChild(el);
+    const body = M.Bodies.rectangle(x, y, w, h, { restitution: .18, friction: .55, frictionAir: .012, angle: ang || 0 });
+    M.Body.setVelocity(body, { x: vx || 0, y: vy || 0 });
+    M.Body.setAngularVelocity(body, (Math.random() - .5) * .22);   // ať dopadají nakřivo, ne jako vojáci
+    M.Composite.add(engine.world, body);
+    const it = { el, body, data };
+    items.push(it);
+    // klik (ne tažení) otevře detail
+    let dx = 0, dy = 0, sx = 0, sy = 0;
+    el.addEventListener("pointerdown", (e) => { sx = e.clientX; sy = e.clientY; dx = dy = 0; });
+    el.addEventListener("pointerup", (e) => {
+      dx = Math.abs(e.clientX - sx); dy = Math.abs(e.clientY - sy);
+      if (dx < 6 && dy < 6) openView(it);
+    });
+    return it;
+  }
+  function syncPhysics(dt) {
+    const M = window.Matter; if (!M || !engine) return;
+    M.Engine.update(engine, Math.min(32, dt));
+    for (const it of items) {
+      const { x, y } = it.body.position;
+      it.el.style.transform = `translate(${x - it.el.offsetWidth / 2}px, ${y - it.el.offsetHeight / 2}px) rotate(${it.body.angle}rad)`;
+    }
   }
 
-  /* ---- jeden snímek ---- */
+  /* ---- vyjetí proužku ze štěrbiny ---- */
+  function ejectStrip(url, data) {
+    physics();
+    const ph = pile.clientHeight, pw = pile.clientWidth;
+    const h = Math.round(ph * .52), w = Math.round(h * 0.195);
+    const sx = pw / 2, sy = ph - 6;
+    const el = document.createElement("div");
+    el.className = "pc"; el.style.width = w + "px"; el.style.height = h + "px";
+    el.innerHTML = `<img alt="" src="${url}">`;
+    el.style.transform = `translate(${sx - w / 2}px, ${sy}px)`;
+    pile.appendChild(el);
+    return new Promise((res) => {
+      const tl = g() ? g().timeline() : null;
+      if (!tl) { pile.removeChild(el); res(dropIt()); return; }
+      tl.to(el, { y: -h * 0.02, duration: 1.05, ease: "power2.out",
+                  onUpdate: () => { el.style.transform = `translate(${sx - w / 2}px, ${sy - h * (tl.progress())}px)`; } })
+        .to({}, { duration: .12 })
+        .add(() => { pile.removeChild(el); res(dropIt()); });
+      function dropIt() {
+        return addPiece(url, data, sx, sy - h / 2, w, h, (Math.random() - .5) * 2, -1.5, (Math.random() - .5) * .25);
+      }
+    });
+  }
+
+  /* ============================================================
+     SKLÁDÁNÍ OBRÁZKŮ
+     ============================================================ */
+  function cropTo(x, im, dx, dy, dw, dh) {          // ořez na střed do cílového poměru
+    const sr = im.width / im.height, dr = dw / dh;
+    let sw = im.width, sh = im.height, sx = 0, sy = 0;
+    if (sr > dr) { sw = im.height * dr; sx = (im.width - sw) / 2; }
+    else { sh = im.width / dr; sy = (im.height - sh) / 2; }
+    x.drawImage(im, sx, sy, sw, sh, dx, dy, dw, dh);
+  }
+  function loadAll(list) {
+    return Promise.all(list.map((src) => new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.src = src; })));
+  }
+  async function composeStrip(list) {
+    const W = 520, pad = 22, gap = 12, fw = W - pad * 2, fh = Math.round(fw * 4 / 3);
+    const H = pad + (fh + gap) * 4 + 64;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const x = c.getContext("2d");
+    x.fillStyle = "#f3f1ea"; x.fillRect(0, 0, W, H);
+    const ims = await loadAll(list);
+    ims.forEach((im, i) => cropTo(x, im, pad, pad + i * (fh + gap), fw, fh));
+    x.fillStyle = "#0c0b09"; x.font = "700 15px Arial, Helvetica, sans-serif";
+    x.fillText("JAVY · FOTOMAT", pad, H - 26);
+    const d = new Date();
+    x.textAlign = "right";
+    x.fillText(`${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`, W - pad, H - 26);
+    return c.toDataURL("image/jpeg", .92);
+  }
+  async function composePhoto(src) {                 // jedno políčko s papírovým okrajem
+    const W = 460, pad = 18, fw = W - pad * 2, fh = Math.round(fw * 4 / 3), H = fh + pad * 2 + 34;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const x = c.getContext("2d");
+    x.fillStyle = "#f3f1ea"; x.fillRect(0, 0, W, H);
+    const [im] = await loadAll([src]);
+    cropTo(x, im, pad, pad, fw, fh);
+    x.fillStyle = "#0c0b09"; x.font = "700 12px Arial, Helvetica, sans-serif";
+    x.fillText("JAVY · FOTOMAT", pad, H - 14);
+    return c.toDataURL("image/jpeg", .92);
+  }
+
+  /* ============================================================
+     FOCENÍ
+     ============================================================ */
   function grab() {
     draw();
     if (g()) g().fromTo(flash, { opacity: .9 }, { opacity: 0, duration: .4, ease: "power2.out" });
     return cv.toDataURL("image/jpeg", .93);
   }
-
-  /* ---- odpočet ---- */
   async function countdown(n) {
     count.hidden = false;
     for (let i = n; i > 0; i--) {
       count.textContent = String(i);
       if (g()) g().fromTo(count, { scale: .7, opacity: 0 }, { scale: 1, opacity: 1, duration: .3, ease: "back.out(2)" });
-      await wait(900);
+      await wait(850);
     }
     count.hidden = true;
   }
-
-  /* ---- 1) PROUŽEK: čtyři snímky za sebou ---- */
   async function runStrip() {
-    if (busy) return; busy = true;
+    if (busy || live) return; busy = true;
     if (!(await openCam())) { busy = false; return; }
+    [...prog.children].forEach((i) => i.classList.remove("on"));
     note.textContent = "dívej se do kamery";
     await countdown(3);
+    shots = [];
     for (let i = 0; i < 4; i++) {
-      const url = grab();
-      shots.push(url);
-      const li = stripEl.children[i];
-      li.innerHTML = "";
-      const im = new Image(); im.src = url; li.appendChild(im);
-      if (g()) g().fromTo(im, { opacity: 0, scale: 1.08 }, { opacity: 1, scale: 1, duration: .45, ease: "power2.out" });
-      if (i < 3) { note.textContent = `snímek ${i + 1} / 4`; await wait(1500); }
+      shots.push(grab());
+      prog.children[i].classList.add("on");
+      if (i < 3) { note.textContent = `snímek ${i + 1} / 4`; await wait(1400); }
     }
-    note.textContent = "hotovo — proužek je tvůj";
-    saveA.href = await composeStrip(shots);
-    saveA.download = "javy-fotomat-prouzek.jpg";
-    saveA.textContent = "ULOŽIT PROUŽEK ↓";
-    saveA.hidden = false; againB.hidden = false;
+    note.textContent = "proužek jede ven…";
+    const url = await composeStrip(shots);
     closeCam();
+    await ejectStrip(url, { url, shots: shots.slice() });
+    note.textContent = "chyť ho, nebo na něj klikni · další focení klikem do plochy";
     busy = false;
   }
-
-  /* složení proužku: papír, čtyři políčka pod sebou, patička */
-  function composeStrip(list) {
-    return new Promise((res) => {
-      const W = 520, pad = 22, gap = 12, fw = W - pad * 2, fh = Math.round(fw * 4 / 3);   // políčka na výšku
-      const H = pad + (fh + gap) * 4 + 64;
-      const c = document.createElement("canvas"); c.width = W; c.height = H;
-      const x = c.getContext("2d");
-      x.fillStyle = "#f3f1ea"; x.fillRect(0, 0, W, H);
-      let done = 0;
-      list.forEach((src, i) => {
-        const im = new Image();
-        im.onload = () => {
-          // ořez na střed do formátu na výšku (jinak by se obraz zmáčkl)
-          const sr = im.width / im.height, dr = fw / fh;
-          let sw = im.width, sh = im.height, sx = 0, sy = 0;
-          if (sr > dr) { sw = im.height * dr; sx = (im.width - sw) / 2; }
-          else { sh = im.width / dr; sy = (im.height - sh) / 2; }
-          x.drawImage(im, sx, sy, sw, sh, pad, pad + i * (fh + gap), fw, fh);
-          if (++done === list.length) {
-            x.fillStyle = "#0c0b09";
-            x.font = "700 15px Arial, Helvetica, sans-serif";
-            x.fillText("JAVY · FOTOMAT", pad, H - 26);
-            const d = new Date();
-            const s2 = `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
-            x.textAlign = "right"; x.fillText(s2, W - pad, H - 26);
-            res(c.toDataURL("image/jpeg", .92));
-          }
-        };
-        im.src = src;
-      });
-    });
-  }
-
-  /* ---- 2) POLÍČKO: živý náhled a spoušť ručně ---- */
   async function runNeg() {
-    if (busy) return; busy = true;
+    if (busy || live) return; busy = true;
     if (!(await openCam())) { busy = false; return; }
-    note.textContent = "zmáčkni spoušť";
-    shootB.hidden = false;
-    busy = false;
+    note.textContent = "zmáčkni spoušť"; shootB.hidden = false; busy = false;
   }
   shootB.addEventListener("click", async () => {
     if (!live) return;
@@ -258,29 +333,79 @@
     im.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover";
     $("#fmNeg").appendChild(im);
     host.classList.remove("live");
-    saveA.href = url; saveA.download = "javy-fotomat.jpg"; saveA.textContent = "ULOŽIT ↓";
-    saveA.hidden = false; againB.hidden = false; shootB.hidden = true;
-    note.textContent = "hotovo";
-    closeCam();
+    saveA.href = url; saveA.hidden = false; againB.hidden = false; shootB.hidden = true;
+    note.textContent = "hotovo"; closeCam();
+  });
+  againB.addEventListener("click", () => {
+    $("#fmNeg").querySelectorAll("img").forEach((i) => i.remove());
+    saveA.hidden = true; againB.hidden = true; shootB.hidden = true;
+    note.textContent = "klikni do plochy";
   });
 
-  againB.addEventListener("click", () => { reset(); });
-
-  /* ---- spuštění kliknutím do plochy ---- */
   host.addEventListener("click", (e) => {
-    if (busy || live || e.target.closest(".fm-bar")) return;
-    if (shots.length || $("#fmNeg").querySelector("img")) return;
+    if (busy || live || e.target.closest(".fm-bar, .fm-view, .pc")) return;
     mode === "strip" ? runStrip() : runNeg();
+  });
+
+  /* ============================================================
+     DETAIL PROUŽKU — listování snímky, uložení, rozstřihnutí
+     ============================================================ */
+  let vItem = null, vIdx = -1;
+  function paintView() {
+    const d = vItem.data;
+    viewImg.src = vIdx < 0 ? d.url : d.shots[vIdx];
+    viewIdx.textContent = vIdx < 0 ? "CELÝ PROUŽEK" : `SNÍMEK ${vIdx + 1} / 4`;
+    viewSave.href = viewImg.src;
+    viewSave.download = vIdx < 0 ? "javy-fotomat-prouzek.jpg" : `javy-fotomat-${vIdx + 1}.jpg`;
+    if (g()) g().fromTo(viewImg, { opacity: 0, scale: .96 }, { opacity: 1, scale: 1, duration: .35, ease: "power2.out" });
+  }
+  function openView(it) {
+    vItem = it; vIdx = -1; view.hidden = false; paintView();
+    if (g()) g().fromTo(view, { opacity: 0 }, { opacity: 1, duration: .3 });
+  }
+  function closeView() { view.hidden = true; vItem = null; }
+  const step = (d) => { if (!vItem) return; vIdx = vIdx + d; if (vIdx > 3) vIdx = -1; if (vIdx < -1) vIdx = 3; paintView(); };
+  $("#fmViewNext").addEventListener("click", () => step(1));
+  $("#fmViewPrev").addEventListener("click", () => step(-1));
+  $("#fmViewClose").addEventListener("click", closeView);
+  $("#fmViewCut").addEventListener("click", async () => {
+    if (!vItem) return;
+    const d = vItem.data, it = vItem;
+    closeView();
+    // proužek zmizí a místo něj spadnou čtyři jednotlivé snímky
+    const M = window.Matter;
+    if (M) M.Composite.remove(engine.world, it.body);
+    it.el.remove();
+    const i = items.indexOf(it); if (i >= 0) items.splice(i, 1);
+    const ph = pile.clientHeight, pw = pile.clientWidth;
+    const h = Math.round(ph * .22), w = Math.round(h * 0.78);
+    for (let k = 0; k < d.shots.length; k++) {
+      const url = await composePhoto(d.shots[k]);
+      addPiece(url, { url, shots: [d.shots[k]] }, pw / 2 + (k - 1.5) * (w * .8), ph * .25,
+               w, h, (Math.random() - .5) * 3, -2 - Math.random(), (Math.random() - .5) * .6);
+      await wait(90);
+    }
+    note.textContent = "rozstřiženo — snímky si můžeš rozebrat";
+  });
+  // swipe mezi snímky
+  {
+    const st = $("#fmViewStage"); let sx = 0, on = false;
+    st.addEventListener("pointerdown", (e) => { sx = e.clientX; on = true; });
+    st.addEventListener("pointerup", (e) => { if (!on) return; on = false; const dx = e.clientX - sx; if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1); });
+  }
+  addEventListener("keydown", (e) => {
+    if (view.hidden) return;
+    if (e.key === "Escape") closeView();
+    else if (e.key === "ArrowRight") step(1);
+    else if (e.key === "ArrowLeft") step(-1);
   });
 
   /* ---- přepínač podoby ---- */
   const modes = $("#fmModes");
   modes.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-mode]"); if (!b) return;
-    mode = b.dataset.mode;
-    host.dataset.mode = mode;
+    mode = b.dataset.mode; host.dataset.mode = mode;
     [...modes.children].forEach((x) => x.classList.toggle("on", x === b));
-    reset();
   });
 
   /* ---- presety + tajný panel ---- */
@@ -291,7 +416,6 @@
     G = { ...DEFAULTS, ...LOOKS[b.dataset.look] }; syncPanel(); save();
     [...looks.children].forEach((x) => x.classList.toggle("on", x === b));
   });
-
   const panel = $("#grade"), body = $("#gradeBody");
   body.innerHTML = PARAMS.map((p) =>
     `<div class="grade-row"><label for="g_${p.k}"><span>${p.t}</span><span id="v_${p.k}">${G[p.k]}</span></label>
@@ -302,12 +426,12 @@
   function syncPanel() { PARAMS.forEach((p) => { const el = $("#g_" + p.k); if (el) { el.value = G[p.k]; $("#v_" + p.k).textContent = String(G[p.k]); } }); }
   function save() { try { localStorage.setItem("javy-grade", JSON.stringify(G)); } catch (e) {} }
   $("#gradeTest").addEventListener("click", async () => {
-    if (testImg) { testImg = null; host.classList.remove("live"); $("#gradeTest").textContent = "TEST"; return; }
+    if (testImg) { testImg = null; if (!live) host.classList.remove("live"); $("#gradeTest").textContent = "TEST"; return; }
     try {
       const m = await fetch("photos/manifest.json", { cache: "no-cache" }).then((r) => r.json());
       const all = (m.sets || []).flatMap((x) => x.images || []);
-      const im = new Image(); im.crossOrigin = "anonymous";
-      im.onload = () => { testImg = im; host.classList.add("live"); $("#gradeTest").textContent = "TEST ✕"; };
+      const im = new Image();
+      im.onload = () => { testImg = im; host.classList.add("live"); $("#gradeTest").textContent = "TEST ✕"; draw(); };
       im.src = all[Math.floor(Math.random() * all.length)];
     } catch (e) {}
   });
@@ -347,15 +471,33 @@
     PARAMS.forEach((p) => gl.uniform1f(U[p.k], G[p.k]));
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
-  function loop() {
-    t += 1 / 60;
-    if (visible && (live || testImg)) draw();
-    requestAnimationFrame(loop);
+  let last = 0;
+  function loop(ts) {
+    requestAnimationFrame(loop);       // naplánovat DŘÍV než cokoli jiného:
+    const dt = last ? ts - last : 16.7; // jedna výjimka uvnitř by jinak smyčku zabila napořád
+    last = ts; t += dt / 1000;
+    try {
+      if (!visible) return;
+      if (live || testImg) draw();
+      if (engine) syncPhysics(dt);
+    } catch (err) { console.warn("fotomat:", err); }
   }
   requestAnimationFrame(loop);
+  // ladicí přístup (hodí se při doťukávání gradingu)
+  window.__fotomat = {
+    draw, get stav() { return { visible, live, test: !!testImg, kusu: items.length, G }; },
+    // zkouška proužku bez kamery (bere se, co je zrovna na plátně)
+    async zkouska() {
+      const sh = [grab(), grab(), grab(), grab()];
+      const url = await composeStrip(sh);
+      await ejectStrip(url, { url, shots: sh });
+      return items.length;
+    },
+  };
 
+  addEventListener("resize", () => { if (engine) buildWalls(); });
   new IntersectionObserver((es) => es.forEach((e) => {
     visible = e.isIntersecting;
-    if (!visible && (live || shots.length)) reset();   // při odchodu ze scény vypni kameru
+    if (!visible && live) { closeCam(); note.textContent = "klikni do plochy"; busy = false; }
   }), { threshold: .15 }).observe(scene);
 })();

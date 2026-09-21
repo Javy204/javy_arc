@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=91" />
+  <link rel="stylesheet" href="film.css?v=92" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -78,18 +78,17 @@
         <div class="fm" id="fm" data-mode="strip">
           <canvas class="fm-gl" id="fmGL"></canvas>
 
-          <!-- VARIANTA 1: fotobudka — proužek čtyř políček -->
+          <!-- 1) FOTOBUDKA -->
           <div class="fm-mode m-strip">
             <div class="fm-say" id="fmSayStrip">
               <b>Vyfoť se mým objektivem.</b>
               <span>čtyři snímky · tvoje kamera · nic se nikam neukládá</span>
             </div>
-            <ol class="strip" id="fmStrip">
-              <li><i>1</i></li><li><i>2</i></li><li><i>3</i></li><li><i>4</i></li>
-            </ol>
+            <div class="fm-prog" id="fmProg"><i></i><i></i><i></i><i></i></div>
+            <div class="fm-slot" id="fmSlot"><span class="lip"></span><span class="tag">JAVY · FOTOMAT</span></div>
           </div>
 
-          <!-- VARIANTA 2: jedno políčko negativu -->
+          <!-- 2) POLÍČKO NEGATIVU -->
           <div class="fm-mode m-neg">
             <div class="neg" id="fmNeg">
               <span class="perf t"></span><span class="perf b"></span>
@@ -103,6 +102,22 @@
 
           <div class="fm-count" id="fmCount" hidden></div>
           <div class="fm-flash" id="fmFlash"></div>
+
+          <!-- vypadlé proužky: fyzika, dají se chytat a rozkliknout -->
+          <div class="fm-pile" id="fmPile"></div>
+
+          <!-- detail proužku -->
+          <div class="fm-view" id="fmView" hidden>
+            <div class="fm-view-stage" id="fmViewStage"><img id="fmViewImg" alt="" /></div>
+            <div class="fm-view-bar">
+              <button type="button" id="fmViewPrev">←</button>
+              <span id="fmViewIdx">CELÝ PROUŽEK</span>
+              <button type="button" id="fmViewNext">→</button>
+              <a id="fmViewSave" download="javy-fotomat.jpg">ULOŽIT ↓</a>
+              <button type="button" id="fmViewCut">ROZSTŘIHNOUT</button>
+              <button type="button" id="fmViewClose">ZAVŘÍT ✕</button>
+            </div>
+          </div>
         </div>
 
         <div class="fm-bar">
@@ -185,7 +200,8 @@
 
   <script src="film.js?v=80"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
-  <script src="lab/fotomat.js?v=14" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
+  <script src="lab/fotomat.js?v=18" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

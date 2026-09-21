@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>JAVY.ARC — _personal_archive</title>
+  <meta name="description" content="javy.arc — osobní archiv. Černobílé experimenty, termotisk, beton, zrno. Připravuje se." />
+  <meta name="theme-color" content="#060605" />
+  <link rel="stylesheet" href="arc.css?v=4" />
+</head>
+<body>
+
+  <!-- textura: půltónový rastr + filmové zrno přes celou plochu -->
+  <div class="tex" aria-hidden="true"></div>
+  <div class="vig" aria-hidden="true"></div>
+
+  <header class="hd">
+    <span class="mark">P</span>
+    <span class="sys">JAVY.ARC</span>
+    <span class="dim">_personal_archive</span>
+  </header>
+
+  <main class="stage">
+    <div class="row">
+      <span>02 — VEDLEJŠÍ PROJEKT</span>
+      <span class="r">EST. 2026</span>
+    </div>
+
+    <div class="print">
+      <h1 class="word"><span class="fit">JAVY.ARC</span></h1>
+      <span class="head" aria-hidden="true"></span>
+    </div>
+
+    <div class="row">
+      <span class="status">[ PŘIPRAVUJE SE ]</span>
+      <span class="r">PRAHA</span>
+    </div>
+
+    <p class="lede">
+      Osobní archiv mimo zakázky. Černobílé experimenty, termotisk,
+      beton a zrno — věci, které nikam jinam nepatří.
+    </p>
+
+    <!-- kontaktní proužek: pár snímků přepálených do ditheru, jako termotisk -->
+    <div class="sheet" id="sheet" aria-hidden="true"></div>
+  </main>
+
+  <footer class="ft">
+    <a href="../">← JAVY / PORTFOLIO</a>
+    <a href="https://instagram.com/javy.arc" target="_blank" rel="noopener">@JAVY.ARC ↗</a>
+  </footer>
+
+  <script>
+    /* natažení názvu přes celou šířku — stejný princip jako na portfoliu */
+    function fit() {
+      document.querySelectorAll(".fit").forEach((el) => {
+        el.style.transform = "";
+        const pw = el.parentElement.clientWidth, tw = el.scrollWidth;
+        if (pw > 0 && tw > 0) el.style.transform = `scaleX(${(pw / tw).toFixed(4)})`;
+      });
+    }
+    fit();
+    addEventListener("resize", fit);
+    document.fonts && document.fonts.ready.then(fit);
+    setTimeout(fit, 120);
+
+    /* proužek snímků — bere se z manifestu portfolia, ne z natvrdo psaných
+       cest: čísla složek se ve správě portfolia přerovnávají a odkazy by pak
+       přestaly platit. Když se manifest nenačte, proužek prostě nebude. */
+    (async () => {
+      try {
+        const m = await fetch("../photos/manifest.json", { cache: "no-cache" }).then((r) => r.json());
+        const sets = (m.sets || []).filter((s) => (s.images || []).length);
+        if (sets.length < 2) return;
+        const pick = [];
+        for (let i = 0; i < 4 && i < sets.length; i++) {
+          const s = sets[Math.round((i * (sets.length - 1)) / 3)];
+          const imgs = s.images;
+          pick.push("../" + imgs[Math.floor(imgs.length / 2)]);
+        }
+        document.getElementById("sheet").innerHTML =
+          pick.map((src) => `<figure class="fr"><img alt="" loading="lazy" src="${src}"></figure>`).join("");
+      } catch (e) { /* bez proužku */ }
+    })();
+  </script>
+</body>
+</html>

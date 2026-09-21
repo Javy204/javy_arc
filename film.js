@@ -846,12 +846,13 @@ function toggleBeta() {
 function buildBetaMenu() {
   if (document.getElementById("beta")) return;
   if (new URLSearchParams(location.search).has("beta")) document.body.classList.add("beta-on");
-  // trojklik/trojťuk na značku ℗ v HUD = zapnout/vypnout přepínač (funguje i na telefonu)
-  const mark = document.querySelector(".hud .mark");
-  if (mark) {
+  // trojklik/trojťuk na nápis JAVY v HUD = zapnout/vypnout přepínač (funguje i na telefonu).
+  // POZOR: značka ℗ je obsazená — trojklik na ni otevírá bránu do Project Archivu (arc.js).
+  const sys = document.querySelector(".hud .sys");
+  if (sys) {
     let n = 0, t0 = 0;
-    mark.style.cursor = "default";
-    mark.addEventListener("click", () => {
+    sys.style.cursor = "default";
+    sys.addEventListener("click", () => {
       const now = Date.now();
       n = (now - t0 < 700) ? n + 1 : 1; t0 = now;
       if (n >= 3) { n = 0; toggleBeta(); }

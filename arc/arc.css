@@ -1,0 +1,160 @@
+/* ============================================================
+   JAVY.ARC — osobní archiv (vedlejší projekt), zatím „připravuje se"
+   Styl podle instagramu @javy.arc: tvrdá černobílá, vypálené světlo,
+   termotisk a dither. Vazba na hlavní portfolio je schválně jen
+   drobná — stejný Arial, značka ℗, stejné popiskové řádky a stejná
+   zrnitá textura. Jinak je to opak papírového webu: tady je čerň.
+   ============================================================ */
+
+:root {
+  --ink: #f2f0ea;            /* „papír", ale jako písmo na černé */
+  --bg: #060605;
+  --dim: #6f6b63;
+  --sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--sans); font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column;
+  padding: 22px clamp(16px, 4vw, 48px);
+  overflow: hidden;
+}
+a { color: inherit; text-decoration: none; }
+
+/* ---------- textura: půltón + zrno (termotisk) ---------- */
+.tex {
+  position: fixed; inset: 0; z-index: 3; pointer-events: none;
+  background-image:
+    radial-gradient(rgba(255,255,255,.5) .6px, transparent 1.1px),
+    var(--grain);
+  background-size: 4px 4px, 200px 200px;
+  mix-blend-mode: screen; opacity: .13;
+  animation: drift 5.5s steps(6) infinite;   /* jemné „šumění" tiskárny */
+}
+@keyframes drift {
+  0%   { background-position: 0 0, 0 0; }
+  100% { background-position: 0 0, 200px 140px; }
+}
+/* vinětace = vypálený střed, tmavé kraje, jako na těch fotkách */
+.vig {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 45%, transparent 40%, rgba(0,0,0,.72) 100%);
+}
+
+/* ---------- hlavička ---------- */
+.hd {
+  position: relative; z-index: 4;
+  display: flex; align-items: center; gap: 1.2ch;
+  font-size: 11px; letter-spacing: .18em;
+}
+.mark {
+  display: inline-grid; place-items: center; width: 21px; height: 21px;
+  border: 1.5px solid currentColor; border-radius: 50%;
+  font-size: 11px; letter-spacing: 0; flex: none;
+}
+.hd .dim { margin-left: auto; color: var(--dim); text-transform: none; letter-spacing: .04em; }
+
+/* ---------- střed ---------- */
+.stage {
+  position: relative; z-index: 4;
+  flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2.2vh;
+}
+.row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 11px; letter-spacing: .18em; color: var(--dim);
+}
+.row .r { text-align: right; }
+
+/* název: natažený přes celou šířku, „vytiskne se" po řádcích */
+.print { position: relative; }
+.word { margin: 0; line-height: .82; }
+.fit {
+  /* inline-block = rámeček prvku se drží textu; při `display:block` byl široký
+     jako rodič a doběhlá clip-path (inset 0) pak uřízla přetékající písmena */
+  display: inline-block; width: max-content; white-space: nowrap; transform-origin: left center;
+  font-size: 19vw; font-weight: 900; letter-spacing: -.04em; color: #fff;
+  animation: printIn 1.5s steps(22) both;
+}
+@keyframes printIn {
+  from { clip-path: inset(0 -6% 100% 0); }
+  to   { clip-path: inset(0 -6% 0 0); }   /* vpravo záporně, ať nic neuřízne */
+}
+/* tisková hlava: linka, co jednou projede dolů */
+.head {
+  position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: #fff; opacity: .9; animation: headRun 1.5s steps(22) both;
+}
+@keyframes headRun {
+  from { top: 0; opacity: .9; }
+  90%  { opacity: .9; }
+  to   { top: 100%; opacity: 0; }
+}
+
+.status { color: var(--ink); animation: blink 2.4s steps(1) infinite; }
+@keyframes blink { 0%, 62% { opacity: 1; } 63%, 72% { opacity: .25; } 73% { opacity: 1; } }
+
+.lede {
+  margin: 0; max-width: 46ch;
+  font-size: clamp(12px, 1.15vw, 14px); font-weight: 700;
+  text-transform: none; letter-spacing: .01em; line-height: 1.5; color: var(--dim);
+}
+
+/* ---------- kontaktní proužek (dither / termotisk) ---------- */
+.sheet { display: flex; gap: 10px; margin-top: 1.4vh; }
+.fr {
+  margin: 0; width: clamp(74px, 9vw, 128px); aspect-ratio: 1 / 1.35;
+  overflow: hidden; flex: none; position: relative;
+  opacity: 0; animation: frIn .9s ease forwards;
+}
+.fr:nth-child(1) { animation-delay: 1.5s; }
+.fr:nth-child(2) { animation-delay: 1.62s; }
+.fr:nth-child(3) { animation-delay: 1.74s; }
+.fr:nth-child(4) { animation-delay: 1.86s; }
+@keyframes frIn { from { opacity: 0; } to { opacity: .78; } }
+.fr:hover { opacity: 1; }
+.fr img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  /* přepálení do tvrdé černobílé, jak to vypadá na termotisku */
+  filter: grayscale(1) contrast(1.9) brightness(1.42);
+}
+/* rastr přímo v rámečku, ať to čte jako tisk a ne jako fotka */
+.fr::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(#000 .7px, transparent 1px);
+  background-size: 3px 3px; mix-blend-mode: multiply; opacity: .38;
+}
+
+/* ---------- patička ---------- */
+.ft {
+  position: relative; z-index: 4;
+  display: flex; justify-content: space-between; gap: 16px;
+  font-size: 11px; letter-spacing: .18em;
+}
+.ft a { color: var(--dim); transition: color .25s ease; }
+.ft a:hover { color: var(--ink); }
+
+/* ---------- telefon ---------- */
+@media (max-width: 720px) {
+  body { padding: 18px 16px; }
+  .fit { font-size: 23vw; }
+  .hd .dim { display: none; }
+  .sheet { gap: 7px; }
+  .fr:nth-child(4) { display: none; }
+  .ft { flex-direction: column; gap: 8px; }
+  .lede { font-size: 12px; }
+}
+
+/* ---------- kdo má vypnuté animace ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .tex, .status { animation: none; }
+  .fr { animation: none; opacity: .78; }
+  .fit { animation: none; clip-path: none; }
+  .head { display: none; }
+}

@@ -870,9 +870,12 @@ body.beta-on .beta { display: block; }
 .coin:focus-visible { outline: 2px solid var(--bg); outline-offset: 4px; }
 
 /* ---------- hromada proužků ---------- *//* ---------- hromada proužků ---------- */
-.fm-pile { position: absolute; inset: 0; overflow: hidden; z-index: 6; }
+/* hromada leží nad závěsem, ale nesmí brát kliknutí celé ploše —
+   myš pouští dál a chytá jen na samotných proužcích */
+.fm-pile { position: absolute; inset: 0; overflow: hidden; z-index: 6; pointer-events: none; }
+.fm-pile.grab { pointer-events: auto; }   /* při tažení ať myš neuteče mimo kousek */
 .fm-pile .pc {
-  position: absolute; left: 0; top: 0; will-change: transform; cursor: grab;
+  position: absolute; left: 0; top: 0; will-change: transform; cursor: grab; pointer-events: auto;
   box-shadow: 0 10px 30px rgba(12, 11, 9, .28); background: var(--bg);
   transform-origin: 50% 50%;
 }

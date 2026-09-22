@@ -931,6 +931,15 @@ function updateWorkFocus(vh) {
 }
 
 /* ---- dots ---- */
+/* Kam scéna doopravdy patří ve scrollu. POZOR: .scene jsou sticky, takže
+   scene.offsetTop vrací pozici, na které zrovna visí, ne tu v layoutu —
+   proto se to sčítá z výšek. (Dřív se skákalo na i × výška okna, jenže
+   WORK je vysoký přes pět obrazovek, takže tečky mířily úplně jinam.) */
+function sceneTop(i) {
+  let t = 0;
+  for (let k = 0; k < i && k < SCENES.length; k++) t += SCENES[k].offsetHeight;
+  return t;
+}
 function buildDots() {
   SCENES = [...journey.querySelectorAll(".scene")];
   SCENE_NAMES = SCENES.map((s) => s.dataset.name);
@@ -943,7 +952,7 @@ function buildDots() {
   SCENES.forEach((s, i) => {
     const b = document.createElement("button");
     b.dataset.label = s.dataset.name;
-    b.addEventListener("click", () => journey.scrollTo({ top: i * journey.clientHeight, behavior: "smooth" }));
+    b.addEventListener("click", () => journey.scrollTo({ top: sceneTop(i), behavior: "smooth" }));
     dotsNav.appendChild(b);
   });
 }

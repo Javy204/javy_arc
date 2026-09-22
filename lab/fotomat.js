@@ -233,6 +233,11 @@
     });
     return it;
   }
+  // po dobu tažení proužku musí hromada brát myš i mimo kousek (jinak drag utíká)
+  pile.addEventListener("pointerdown", (e) => { if (e.target.closest(".pc")) pile.classList.add("grab"); });
+  addEventListener("pointerup", () => pile.classList.remove("grab"));
+  addEventListener("pointercancel", () => pile.classList.remove("grab"));
+
   function syncPhysics(dt) {
     const M = window.Matter; if (!M || !engine) return;
     M.Engine.update(engine, Math.min(32, dt));

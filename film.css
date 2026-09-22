@@ -14,7 +14,7 @@
   --hole: #f3f1ea;
   --sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
   --stripF: .66;          /* výška fotky v pásu jako zlomek okna — čte i JS (stripF()) */
-  --curtOpen: 78;         /* o kolik % je závěs odhrnutý — čte i JS (na telefonu se skoro schová) */
+  --curtOpen: 100;        /* v klidu je závěs celý mimo plochu; přijede až za šňůru (čte i JS) */
   --frameH: 66vh;
   --barH: 24px;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -779,19 +779,20 @@ body.beta-on .beta { display: block; }
 /* ============ FOTOBUDKA: ZÁVĚS + MINCE ============
    Rituál místo tlačítka — zatáhneš závěs (jsi uvnitř), hodíš minci
    do automatu a teprve pak se závěs rozhrne a budka fotí. */
-.booth { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+/* POZOR: bez z-indexu — s ním by .booth udělala vlastní vrstvu a šňůra
+   uvnitř by neměla co míchat (difference by ji nechala bílou). Pořadí
+   proti plátnu i hromadě drží pořadí v DOM a z-index hromady. */
+.booth { position: absolute; inset: 0; pointer-events: none; }
 .booth .rail {                                   /* garnýž nad závěsem */
   position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--ink);
 }
 .curt {
   position: absolute; left: 0; top: 0; bottom: 0; width: 100%;
-  transform: translateX(calc(var(--curtOpen) * 1%)); pointer-events: auto; cursor: grab;
-  touch-action: pan-y;                           /* svisle ať stránka scrolluje dál, my chceme jen vodorovný tah */
+  transform: translateX(calc(var(--curtOpen) * 1%)); pointer-events: none;
   background: repeating-linear-gradient(90deg,
     #0a0907 0 15px, #16140f 15px 23px, #232018 23px 27px, #16140f 27px 36px);
   box-shadow: -7px 0 16px rgba(0, 0, 0, .22);    /* jen náznak, ne šmouha přes půl plochy */
 }
-.curt:active { cursor: grabbing; }
 .curt::before {                                  /* kroužky na garnýži */
   content: ""; position: absolute; top: -7px; left: 0; right: 0; height: 14px;
   background-image: radial-gradient(circle at 8px 7px, transparent 3.1px, var(--bg) 3.3px, var(--bg) 5.4px, transparent 5.6px);
@@ -801,17 +802,33 @@ body.beta-on .beta { display: block; }
   position: absolute; left: 0; top: 0; bottom: 0; width: 13px;
   background: linear-gradient(90deg, #3a3529, #0a0907);
 }
-.curt .grip {                                    /* místo, kde se za závěs chytá */
-  position: absolute; left: 16px; top: 50%; width: 14px; height: 74px; margin-top: -37px;
-  border: 2px solid rgba(243, 241, 234, .5); border-radius: 8px;
+/* šňůra od závěsu — v klidu je z fotomatu vidět jen ona */
+.pcord {
+  position: absolute; top: 0; right: 22%; z-index: 6;
+  display: flex; flex-direction: column; align-items: center;
+  color: #fff; mix-blend-mode: difference; pointer-events: none;
+  transition: opacity .3s ease;
 }
-.booth-hint {
-  position: absolute; right: 24%; top: 50%; transform: translateY(-50%);
-  font: 700 10px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase;
-  color: #fff; mix-blend-mode: difference; white-space: nowrap;
-  transition: opacity .25s ease;
+.pcord .line { width: 2px; height: 96px; background: currentColor; }
+.pcord.pull .line { transition: none; }
+.pcord .line { transition: height .55s cubic-bezier(.2, 1.5, .4, 1); }
+.pcord .knob {
+  appearance: none; margin: 0; padding: 0; position: relative; flex: none;
+  width: 34px; height: 34px; border-radius: 50%; background: none; color: inherit;
+  border: 2px solid currentColor; display: grid; place-items: center;
+  font: 900 13px/1 var(--sans); cursor: grab; pointer-events: auto;
+  touch-action: none; -webkit-tap-highlight-color: transparent;
 }
-.booth[data-step="coin"] .booth-hint, .booth[data-step="shoot"] .booth-hint { opacity: 0; }
+.pcord .knob::before { content: ""; position: absolute; inset: -18px -22px -24px; }   /* víc místa na palec */
+.pcord .knob:active { cursor: grabbing; }
+.pcord .knob:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.pcord-lbl {
+  margin-top: 9px; font: 700 8px/1 var(--sans); letter-spacing: .2em;
+  text-transform: uppercase; opacity: .62; white-space: nowrap;
+  transition: opacity .2s ease;
+}
+.pcord:hover .pcord-lbl, .pcord.pull .pcord-lbl { opacity: 1; }
+.booth[data-step="coin"] .pcord, .booth[data-step="shoot"] .pcord { opacity: 0; pointer-events: none; }
 .booth[data-step="shoot"] .curt, .booth[data-step="shoot"] .rail,
 .booth[data-step="shoot"] .curt::before { pointer-events: none; }
 
@@ -883,7 +900,6 @@ body.beta-on .beta { display: block; }
   box-shadow: none;
 }
 .sk-flat .curt .hem { background: none; border-right: 2px solid rgba(243, 241, 234, .5); width: 10px; }
-.sk-flat .curt .grip { border-radius: 0; }
 .sk-flat .cplate { box-shadow: 7px 7px 0 var(--ink); }          /* hloubka posunutou kopií, jako v tisku */
 .sk-flat .coin { box-shadow: 4px 4px 0 var(--ink); }
 .sk-flat .pslot .pbody {
@@ -907,7 +923,7 @@ body.beta-on .beta { display: block; }
 }
 .sk-typo .fm-bar #fmNote { display: none; }                      /* malý popisek už je zbytečný */
 .sk-typo .fm-say { display: none; }
-.sk-typo .booth-hint { display: none; }
+.sk-typo .pcord-lbl { display: none; }
 
 /* --- 3) ČERNÁ SCÉNA: invertovaná jako KONTAKT --- */
 .sk-dark { background: var(--ink); color: var(--bg); }
@@ -1139,7 +1155,6 @@ body.beta-on .beta { display: block; }
 
 /* ---------- FOTOMAT na telefonu (měřeno na iPhonu 17, 402 × 874) ---------- */
 @media (max-width: 720px) {
-  :root { --curtOpen: 90; }          /* ze závěsu kouká jen lem s úchytem, ať nepřekáží textu */
   .fm { height: 56vh; margin-top: 1.6vh; }
   .fm-say { width: 74%; bottom: 21%; }
   .fm-say b { font-size: 17px; }
@@ -1149,9 +1164,10 @@ body.beta-on .beta { display: block; }
   #fmLooks { gap: 9px; }
   #fmLooks button { font-size: 10px; letter-spacing: .02em; }
 
-  .booth-hint { right: 14%; font-size: 8px; letter-spacing: .12em; }
-  .curt .grip { left: 10px; width: 11px; height: 56px; margin-top: -28px; }
-  .curt .hem { width: 9px; }
+  .pcord { right: 15%; }
+  .pcord .line { height: 84px; }
+  .pcord .knob { width: 40px; height: 40px; font-size: 15px; }
+  .pcord-lbl { font-size: 8px; letter-spacing: .14em; }
 
   .cplate { width: 80%; padding: 15px 14px 13px; }
   .cplate-lbl { font-size: 12px; }

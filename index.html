@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=115" />
+  <link rel="stylesheet" href="film.css?v=118" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -78,7 +78,7 @@
           <div class="fm-mode m-strip">
             <div class="fm-say" id="fmSayStrip">
               <b>Udělej si fotku.</b>
-              <span>zatáhni závěs · hoď ℗ do štěrbiny · tvoje kamera, nic se nikam neukládá</span>
+              <span>zatáhni za šňůru · hoď ℗ do štěrbiny · tvoje kamera, nic se nikam neukládá</span>
             </div>
             <!-- hledáček: ukazuje přesně ten výřez, co skončí na fotce -->
             <div class="vf" id="fmVfr" hidden>
@@ -106,8 +106,14 @@
           <!-- fotobudka: nejdřív zatáhni závěs, pak hoď minci do automatu -->
           <div class="booth" id="fmBooth" data-step="curtain">
             <span class="rail"></span>
-            <div class="curt" id="fmCurt"><span class="hem"></span><span class="grip"></span></div>
-            <span class="booth-hint" id="fmBoothHint">ZATÁHNI ZÁVĚS ←</span>
+            <div class="curt" id="fmCurt"><span class="hem"></span></div>
+
+            <!-- šňůra od závěsu: zatáhnout dolů a pustit -->
+            <div class="pcord" id="fmCord">
+              <span class="line" id="fmCordLine"></span>
+              <button class="knob" id="fmCordKnob" type="button" aria-label="Šňůra — zatáhni dolů a zavře se závěs">↓</button>
+              <span class="pcord-lbl" id="fmBoothHint">ZATÁHNI ZA ŠŇŮRU</span>
+            </div>
 
             <div class="cpanel" id="fmCpanel" hidden>
               <div class="cplate">
@@ -155,10 +161,10 @@
         </div>
 
         <!-- obří typografie: pokyn nese stejná roztažená verzálka jako názvy alb -->
-        <div class="fm-big"><span class="fm-big-i" id="fmBig">ZATÁHNI ZÁVĚS</span></div>
+        <div class="fm-big"><span class="fm-big-i" id="fmBig">ZATÁHNI ZA ŠŇŮRU</span></div>
 
         <div class="fm-bar">
-          <span id="fmNote">zatáhni závěs a hoď minci</span>
+          <span id="fmNote">zatáhni za šňůru a hoď minci</span>
         </div>
 
         <!-- podoby fotomatu: klávesa F -->
@@ -245,7 +251,7 @@
   <script src="film.js?v=82"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=43" defer></script>
+  <script src="lab/fotomat.js?v=44" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

@@ -142,7 +142,7 @@
   } catch (e) {}
   let video = null, stream = null, live = false, busy = false, shots = [];
   let testImg = null, visible = false;
-  const HINT = "zatáhni závěs a hoď minci";
+  const HINT = "zatáhni za šňůru a hoď minci";
 
   const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
   const pile = $("#fmPile"), slot = $("#fmSlot"), prog = $("#fmProg"), vfr = $("#fmVfr");
@@ -343,7 +343,7 @@
     const made = await composeStrip(shots);
     closeCam(); vfr.hidden = true;
     await ejectStrip(made, { url: made.url, shots: shots.slice() });
-    note.textContent = "chyť ho, nebo na něj klikni · další focení zase závěsem";
+    note.textContent = "chyť ho, nebo na něj klikni · další focení zase šňůrou";
     bigText("HOTOVO");
     busy = false;
   }
@@ -405,7 +405,7 @@
   };
   let OPEN = readOpen();
   const cl = (v, a, b) => Math.max(a, Math.min(b, v));
-  let curX = OPEN, curDrag = false, curFrom = 0, curSX = 0, boothBusy = false;
+  let curX = OPEN, boothBusy = false;
   let coinDrag = false, coinSX = 0, coinSY = 0, coinDX = 0, coinDY = 0;
   const guideEl = () => $("#fmDGuide");
 
@@ -426,37 +426,54 @@
     if (guide) { guide.hidden = true; guide.classList.remove("on"); }
     cslot.classList.remove("hot", "in");
     curtSet(OPEN, true);
-    bHint.textContent = "ZATÁHNI ZÁVĚS ←";
-    bigText("ZATÁHNI ZÁVĚS");
+    cordReset();
+    bigText("ZATÁHNI ZA ŠŇŮRU");
     if (frameNo) frameNo.textContent = "00 / 04";
   }
 
-  /* ---- 1) závěs ---- */
-  curt.addEventListener("pointerdown", (e) => {
+  /* ---- 1) šňůra: zatáhnout dolů a pustit ---- */
+  const cord = $("#fmCord"), cordLine = $("#fmCordLine"), cordKnob = $("#fmCordKnob");
+  const CORD_REST = () => parseFloat(getComputedStyle(cordLine).height) || 96;
+  const PULL = 118;                      // kolik ujede prst, než to povolí
+  let cordRest = 0, cordDrag = false, cordSY = 0;
+
+  function cordSet(d) { cordLine.style.height = (cordRest + d).toFixed(1) + "px"; }
+  function cordReset() {
+    cord.classList.remove("pull");
+    cordLine.style.height = "";
+    bHint.textContent = "ZATÁHNI ZA ŠŇŮRU";
+  }
+  cordKnob.addEventListener("pointerdown", (e) => {
     if (boothBusy || booth.dataset.step !== "curtain") return;
-    curDrag = true; curSX = e.clientX; curFrom = curX;
-    try { curt.setPointerCapture(e.pointerId); } catch (x) {}
-    bHint.textContent = "TÁHNI DOLEVA ←";
+    cordDrag = true; cordSY = e.clientY; cordRest = CORD_REST();
+    cord.classList.add("pull");
+    bHint.textContent = "TÁHNI DOLŮ ↓";
+    try { cordKnob.setPointerCapture(e.pointerId); } catch (x) {}
   });
-  curt.addEventListener("pointermove", (e) => {
-    if (!curDrag) return;
-    const w = host.clientWidth || 1;
-    curtSet(curFrom + ((e.clientX - curSX) / w) * 100, false);
+  cordKnob.addEventListener("pointermove", (e) => {
+    if (!cordDrag) return;
+    const raw = Math.max(0, e.clientY - cordSY);
+    const t = Math.min(1, raw / PULL);
+    cordSet(PULL * (1 - Math.pow(1 - t, 1.7)));       // ke konci to jde ztuha
+    curtSet(OPEN - OPEN * .22 * t, false);            // závěs už kouká dovnitř
   });
-  const curtUp = () => {
-    if (!curDrag) return; curDrag = false;
-    // stačí pořádně škubnout — zbytek dojede sám, jako opravdový závěs
-    if (OPEN - curX >= 13) closeCurtain();
-    else { curtSet(OPEN, true); bHint.textContent = "ZATÁHNI ZÁVĚS ←"; }
+  const cordUp = () => {
+    if (!cordDrag) return; cordDrag = false;
+    cord.classList.remove("pull");
+    const tazeno = parseFloat(cordLine.style.height || 0) - cordRest;
+    cordLine.style.height = "";                        // šňůra cukne nahoru
+    if (tazeno >= PULL * .82) { closeCurtain(); return; }
+    curtSet(OPEN, true);
+    bHint.textContent = "AŽ NA DORAZ ↓";
+    setTimeout(() => { if (!cordDrag && booth.dataset.step === "curtain") bHint.textContent = "ZATÁHNI ZA ŠŇŮRU"; }, 1500);
   };
-  curt.addEventListener("pointerup", curtUp);
-  curt.addEventListener("pointercancel", curtUp);
-  curt.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); closeCurtain(); }
+  cordKnob.addEventListener("pointerup", cordUp);
+  cordKnob.addEventListener("pointercancel", cordUp);
+  cordKnob.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    if (!boothBusy && booth.dataset.step === "curtain") closeCurtain();
   });
-  curt.tabIndex = 0;
-  curt.setAttribute("role", "button");
-  curt.setAttribute("aria-label", "Závěs fotobudky — zatáhni ho");
 
   function closeCurtain() {
     if (boothBusy) return;

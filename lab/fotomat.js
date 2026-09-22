@@ -385,6 +385,7 @@
   const cl = (v, a, b) => Math.max(a, Math.min(b, v));
   let curX = OPEN, curDrag = false, curFrom = 0, curSX = 0, boothBusy = false;
   let coinDrag = false, coinSX = 0, coinSY = 0, coinDX = 0, coinDY = 0;
+  const guideEl = () => $("#fmDGuide");
 
   function curtSet(p, anim) {
     curX = cl(p, 0, OPEN);
@@ -396,9 +397,10 @@
     booth.dataset.step = "curtain";
     cpanel.hidden = true;
     // mince po vhození zůstala zmenšená a průhledná — vrať ji do původního stavu
-    coinDX = coinDY = 0;
+    coinDX = coinDY = 0; coinVX = coinVY = coinRot = 0; coinMode = "rest"; coinDrag = false;
     if (g()) g().set(coin, { clearProps: "all" });
     coin.style.opacity = ""; coin.style.transform = "translate(-50%, 0)";
+    if (guide) { guide.hidden = true; guide.classList.remove("on"); }
     cslot.classList.remove("hot", "in");
     curtSet(OPEN, true);
     bHint.textContent = "ZATÁHNI ZÁVĚS ←";
@@ -439,7 +441,7 @@
         onUpdate: () => { curX = st.v; curt.style.transition = "none"; curt.style.transform = `translateX(${st.v.toFixed(2)}%)`; } });
     } else curtSet(0, true);
     booth.dataset.step = "coin";
-    note.textContent = "hoď minci do štěrbiny";
+    note.textContent = "zvedni minci nad štěrbinu a pusť ji";
     setTimeout(() => {
       cpanel.hidden = false;
       if (g()) {
@@ -450,52 +452,131 @@
     }, 380);
   }
 
-  /* ---- 2) mince ---- */
-  const coinSet = () => (coin.style.transform = `translate(-50%, 0) translate(${coinDX.toFixed(1)}px, ${coinDY.toFixed(1)}px) rotate(${(coinDX * .25).toFixed(1)}deg)`);
-  const overCoinSlot = (x, y) => {
-    const r = cslot.getBoundingClientRect();
-    return x > r.left - 46 && x < r.right + 46 && y > r.top - 46 && y < r.bottom + 46;
-  };
+  /* ---- 2) mince: zvedneš ji, zamíříš nad díru a pustíš — dolů padá sama ---- */
+  const GRAV = 2700;                     // px/s²
+  let coinMode = "rest";                 // rest | held | fly
+  let coinVX = 0, coinVY = 0, coinRot = 0, coinFromX = 0, coinFromY = 0;
+  let coinLT = 0, coinLX = 0, coinLY = 0;
+  const guide = $("#fmDGuide");
+
+  const coinSet = () => (coin.style.transform =
+    `translate(-50%, 0) translate(${coinDX.toFixed(1)}px, ${coinDY.toFixed(1)}px) rotate(${coinRot.toFixed(1)}deg)`);
+  function coinBase() {                  // střed mince v okně, kdyby měla nulový posun
+    const r = coin.getBoundingClientRect();
+    return { x: r.left + r.width / 2 - coinDX, y: r.top + r.height / 2 - coinDY, r: r.width / 2 };
+  }
+  let cBase = null;
+  const slotBox = () => cslot.getBoundingClientRect();
+  function aimed(cx) {                   // je mince vodorovně nad dírou?
+    const sr = slotBox();
+    return Math.abs(cx - (sr.left + sr.width / 2)) < sr.width / 2 - 8;
+  }
+  function drawGuide(cx, cy) {           // tečkovaná dráha pádu, ať se dá mířit
+    const sr = slotBox(), hr = host.getBoundingClientRect();
+    const top = cy + (cBase ? cBase.r : 29), h = sr.top + sr.height / 2 - top;
+    if (h < 6) { guide.hidden = true; return; }
+    guide.hidden = false;
+    guide.style.left = (cx - hr.left) + "px";
+    guide.style.top = (top - hr.top) + "px";
+    guide.style.height = h + "px";
+    guide.classList.toggle("on", aimed(cx));
+  }
+
   coin.addEventListener("pointerdown", (e) => {
-    if (boothBusy || booth.dataset.step !== "coin") return;
-    coinDrag = true; coinSX = e.clientX; coinSY = e.clientY;
+    if (boothBusy || booth.dataset.step !== "coin" || coinMode === "fly") return;
+    coinMode = "held"; coinDrag = true;
+    coinSX = e.clientX; coinSY = e.clientY;
+    coinFromX = coinDX; coinFromY = coinDY;        // mince nemusí ležet na výchozím místě
+    coinVX = coinVY = 0;
+    coinLT = performance.now(); coinLX = e.clientX; coinLY = e.clientY;
+    cBase = coinBase();
     booth.classList.add("drag");
+    note.textContent = "zamiř nad štěrbinu a pusť";
     try { coin.setPointerCapture(e.pointerId); } catch (x) {}
   });
   coin.addEventListener("pointermove", (e) => {
     if (!coinDrag) return;
-    coinDX = e.clientX - coinSX; coinDY = e.clientY - coinSY;
+    coinDX = coinFromX + (e.clientX - coinSX);
+    coinDY = coinFromY + (e.clientY - coinSY);
     coinSet();
-    cslot.classList.toggle("hot", overCoinSlot(e.clientX, e.clientY));
+    // rychlost z posledního pohybu — mince se dá i mrštit
+    const now = performance.now(), dt = Math.max(8, now - coinLT);
+    coinVX = ((e.clientX - coinLX) / dt) * 1000;
+    coinVY = ((e.clientY - coinLY) / dt) * 1000;
+    coinLT = now; coinLX = e.clientX; coinLY = e.clientY;
+    const cx = cBase.x + coinDX, cy = cBase.y + coinDY;
+    cslot.classList.toggle("hot", aimed(cx) && cy < slotBox().top);
+    drawGuide(cx, cy);
   });
-  const coinUp = (e) => {
-    if (!coinDrag) return; coinDrag = false;
-    booth.classList.remove("drag");
-    if (overCoinSlot(e.clientX, e.clientY)) { insertCoin(); return; }
-    coinDX = coinDY = 0; coinSet();               // mimo štěrbinu se vrátí zpátky
-    cslot.classList.remove("hot");
+  const coinUp = () => {
+    if (!coinDrag) return;
+    coinDrag = false; booth.classList.remove("drag");
+    guide.hidden = true; guide.classList.remove("on");
+    coinMode = "fly";                               // od téhle chvíle padá sama
+    // setrvačnost z ruky se jen naznačí — hlavní je, že mince padá odtud, kde jsi ji pustil
+    coinVX = Math.max(-520, Math.min(520, coinVX * .4));
+    coinVY = Math.max(-520, Math.min(520, coinVY * .3));
+    note.textContent = "letí…";
   };
   coin.addEventListener("pointerup", coinUp);
   coin.addEventListener("pointercancel", coinUp);
-  coin.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); insertCoin(); }
+  coin.addEventListener("keydown", (e) => {         // klávesnice: zvedni ji nad díru a pusť
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    if (boothBusy || booth.dataset.step !== "coin" || coinMode !== "rest") return;
+    cBase = coinBase();
+    const sr = slotBox();
+    coinDX = sr.left + sr.width / 2 - cBase.x;
+    coinDY = sr.top - 150 - cBase.y;
+    coinVX = coinVY = 0; coinSet();
+    coinMode = "fly";
   });
 
-  async function insertCoin() {
-    if (boothBusy || booth.dataset.step !== "coin") return;
+  /* pád mince — jede z hlavní smyčky */
+  function coinStep(dt) {
+    if (coinMode !== "fly" || !cBase) return;
+    const t = Math.min(34, dt) / 1000;
+    const prevY = cBase.y + coinDY;
+    coinVY += GRAV * t;
+    coinDX += coinVX * t; coinDY += coinVY * t;
+    coinRot += coinVX * t * .9 + coinVY * t * .25;
+    const cx = cBase.x + coinDX, cy = cBase.y + coinDY;
+    const hr = host.getBoundingClientRect(), sr = slotBox(), R = cBase.r;
+    const slotMid = sr.top + sr.height / 2;
+    // protla se dírou?
+    if (coinVY > 0 && prevY <= slotMid && cy >= slotMid && aimed(cx)) {
+      coinMode = "rest";
+      coinDX = sr.left + sr.width / 2 - cBase.x; coinDY = slotMid - cBase.y;
+      coinSet();
+      swallowCoin();
+      return;
+    }
+    // stěny a podlaha plochy
+    if (cx - R < hr.left + 6) { coinDX += (hr.left + 6) - (cx - R); coinVX = Math.abs(coinVX) * .5; }
+    if (cx + R > hr.right - 6) { coinDX -= (cx + R) - (hr.right - 6); coinVX = -Math.abs(coinVX) * .5; }
+    const floor = hr.bottom - 10 - R;
+    if (cy >= floor) {
+      coinDY -= cy - floor;
+      coinVY = -coinVY * .32; coinVX *= .74;
+      if (Math.abs(coinVY) < 90) {                  // dopadla a zůstala ležet
+        coinVY = 0; coinVX = 0; coinMode = "rest";
+        note.textContent = "vedle — zvedni ji a zkus to znovu";
+      }
+    }
+    coinSet();
+  }
+
+  async function swallowCoin() {
+    if (boothBusy) return;
     boothBusy = true;
-    cslot.classList.remove("hot");
-    const cr = coin.getBoundingClientRect(), sr = cslot.getBoundingClientRect();
-    note.textContent = "mince spadla…";
+    cslot.classList.remove("hot"); guide.hidden = true;
+    note.textContent = "mince spadla dovnitř…";
     if (g()) {
-      // doletí ke štěrbině, postaví se na hranu a zajede dovnitř
+      // postaví se na hranu a zajede do štěrbiny
       await g().timeline()
-        .to(coin, { x: `+=${sr.left + sr.width / 2 - (cr.left + cr.width / 2)}`,
-                    y: `+=${sr.top + sr.height / 2 - (cr.top + cr.height / 2)}`,
-                    rotate: 380, duration: .42, ease: "power2.in" })
-        .to(coin, { scaleX: .12, duration: .16, ease: "power2.in" })
+        .to(coin, { rotate: coinRot + 90, duration: .12, ease: "power2.in" })
         .add(() => cslot.classList.add("in"))
-        .to(coin, { scaleY: .1, opacity: 0, duration: .22, ease: "power2.in" })
+        .to(coin, { scaleY: .08, opacity: 0, duration: .24, ease: "power2.in" })
         .then();
     }
     coin.style.opacity = "0";
@@ -509,7 +590,6 @@
     }
     note.textContent = "budka se probouzí…";
     await wait(220);
-    // závěs se rozhrne a objektiv se na tebe podívá
     booth.dataset.step = "shoot";
     if (g()) g().to(cpanel, { opacity: 0, duration: .25, onComplete: () => { cpanel.hidden = true; cpanel.style.opacity = ""; } });
     curtSet(OPEN, true);
@@ -518,6 +598,7 @@
     else await runNeg();
     boothReset();
   }
+
 
   boothReset();
 
@@ -911,6 +992,7 @@
       if (!visible) return;
       if (live || testImg) draw();
       if (engine) syncPhysics(dt);
+      coinStep(dt);
       tapeInertia();
     } catch (err) { console.warn("fotomat:", err); }
   }
@@ -918,6 +1000,11 @@
   // ladicí přístup (hodí se při doťukávání gradingu)
   window.__fotomat = {
     draw, get stav() { return { visible, live, test: !!testImg, kusu: items.length, G }; },
+    // posun pádu mince po krocích (v náhledu běží snímky pomalu)
+    mince(n, dt) {
+      for (let i = 0; i < (n || 1); i++) coinStep(dt || 16.7);
+      return { rezim: coinMode, dx: Math.round(coinDX), dy: Math.round(coinDY), vy: Math.round(coinVY) };
+    },
     // zkouška proužku bez kamery (bere se, co je zrovna na plátně)
     async zkouska() {
       const sh = [grab(), grab(), grab(), grab()];

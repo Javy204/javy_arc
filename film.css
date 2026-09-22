@@ -845,6 +845,15 @@ body.beta-on .beta { display: block; }
 .cplate-lbl { display: block; font: 900 14px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
 .cplate-sub { display: block; margin-top: 7px; font: 700 8px/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase; opacity: .5; }
 
+/* tečkovaná dráha pádu — ať se dá nad díru zamířit */
+.dguide {
+  position: absolute; width: 0; pointer-events: none;
+  border-left: 2px dotted rgba(243, 241, 234, .35);
+  transform: translateX(-1px);
+}
+.dguide[hidden] { display: none; }
+.dguide.on { border-left-color: rgba(243, 241, 234, .9); }
+
 /* mince s ℗ značkou */
 .coin {
   position: absolute; left: 50%; bottom: 13%; margin: 0; padding: 0;
@@ -855,7 +864,9 @@ body.beta-on .beta { display: block; }
   box-shadow: 0 10px 26px rgba(0, 0, 0, .5);
   transition: transform .45s cubic-bezier(.2, 1.4, .4, 1), box-shadow .2s ease;
 }
-.coin:active, .booth.drag .coin { cursor: grabbing; transition: none; }
+.coin:active, .booth.drag .coin { cursor: grabbing; }
+.booth.drag .coin { transition: none; }
+.coin { transition: none; }                      /* pohyb i pád si řídí JS po snímcích */
 .coin::before {                                  /* vroubkovaný okraj */
   content: ""; position: absolute; inset: 2px; border-radius: 50%;
   background: repeating-conic-gradient(var(--ink) 0 2.2deg, transparent 2.2deg 7deg);

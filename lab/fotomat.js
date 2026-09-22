@@ -399,7 +399,8 @@
     // mince po vhození zůstala zmenšená a průhledná — vrať ji do původního stavu
     coinDX = coinDY = 0; coinVX = coinVY = coinRot = 0; coinMode = "rest"; coinDrag = false;
     if (g()) g().set(coin, { clearProps: "all" });
-    coin.style.opacity = ""; coin.style.transform = "translate(-50%, 0)";
+    coin.style.opacity = ""; coin.style.transform = "translate(-50%, 0)"; coin.style.clipPath = "";
+    { const f = coin.querySelector(".coin-face"); if (f) f.style.transform = ""; }
     if (guide) { guide.hidden = true; guide.classList.remove("on"); }
     cslot.classList.remove("hot", "in");
     curtSet(OPEN, true);
@@ -459,8 +460,17 @@
   let coinLT = 0, coinLX = 0, coinLY = 0;
   const guide = $("#fmDGuide");
 
-  const coinSet = () => (coin.style.transform =
-    `translate(-50%, 0) translate(${coinDX.toFixed(1)}px, ${coinDY.toFixed(1)}px) rotate(${coinRot.toFixed(1)}deg)`);
+  const coinFace = coin.querySelector(".coin-face");
+  // POZOR: otáčí se jen líc mince, ne celá schránka — clip-path při zanořování
+  // do štěrbiny se počítá v souřadnicích prvku, a s pootočením by řezal našikmo.
+  const coinSet = () => {
+    coin.style.transform = `translate(-50%, 0) translate(${coinDX.toFixed(1)}px, ${coinDY.toFixed(1)}px)`;
+    if (coinFace) coinFace.style.transform = `rotate(${coinRot.toFixed(1)}deg)`;
+  };
+  const slotLine = () => {                        // hrana, za kterou mince mizí
+    const i = cslot.querySelector("i");
+    return (i ? i.getBoundingClientRect() : slotBox()).top + 1;
+  };
   function coinBase() {                  // střed mince v okně, kdyby měla nulový posun
     const r = coin.getBoundingClientRect();
     return { x: r.left + r.width / 2 - coinDX, y: r.top + r.height / 2 - coinDY, r: r.width / 2 };
@@ -546,7 +556,8 @@
     // protla se dírou?
     if (coinVY > 0 && prevY <= slotMid && cy >= slotMid && aimed(cx)) {
       coinMode = "rest";
-      coinDX = sr.left + sr.width / 2 - cBase.x; coinDY = slotMid - cBase.y;
+      coinDX = sr.left + sr.width / 2 - cBase.x;        // srovná se na střed díry
+      coinDY = (slotLine() - R) - cBase.y;              // a dosedne na její hranu
       coinSet();
       swallowCoin();
       return;
@@ -570,15 +581,22 @@
     if (boothBusy) return;
     boothBusy = true;
     cslot.classList.remove("hot"); guide.hidden = true;
-    note.textContent = "mince spadla dovnitř…";
+    note.textContent = "mince mizí ve štěrbině…";
+    // klesá do štěrbiny a co je pod její hranou, to se ořízne — mizí postupně,
+    // jako by ji automat polykal, ne že by se rozplynula
+    const h = coin.offsetHeight, line = slotLine(), od = coinDY, kam = coinDY + h + 12;
+    const rez = () => {
+      const top = cBase.y + coinDY - h / 2;
+      const vidno = Math.max(0, Math.min(h, line - top));
+      coin.style.clipPath = `inset(0 0 ${(h - vidno).toFixed(1)}px 0)`;
+    };
+    rez();
+    cslot.classList.add("in");
     if (g()) {
-      // postaví se na hranu a zajede do štěrbiny
-      await g().timeline()
-        .to(coin, { rotate: coinRot + 90, duration: .12, ease: "power2.in" })
-        .add(() => cslot.classList.add("in"))
-        .to(coin, { scaleY: .08, opacity: 0, duration: .24, ease: "power2.in" })
-        .then();
-    }
+      const pr = { v: od };
+      await g().to(pr, { v: kam, duration: .55, ease: "power2.in",
+        onUpdate: () => { coinDY = pr.v; coinRot += 2.2; coinSet(); rez(); } }).then();
+    } else { coinDY = kam; coinSet(); rez(); }
     coin.style.opacity = "0";
     // zarachocení uvnitř automatu
     if (g()) {

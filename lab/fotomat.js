@@ -364,13 +364,14 @@
        a stlačit dolů — poslední kus jde ztuha a na doraz to cvakne.
      ============================================================ */
   const rel = $("#fmRel"), relBtn = $("#fmRelBtn"), relLbl = $("#fmRelLbl");
-  const relCap = rel.querySelector(".cap");
-  const REL = 26;                      // dráha hlavice (px)
+  const relCap = rel.querySelector(".plunger");
+  const REL = 14;                      // dráha pístu (jednotky SVG = px)
+  const PUSH = 38;                     // kolik musí ujet prst, než to cvakne
   let relDown = false, relFired = false, relY = 0, relMoved = false;
 
   // pozor: hlavicí hýbeme přímo přes style.transform, doskok řeší CSS přechod
   // (.crel.hold ho vypíná) — GSAP by si s ručním zápisem transformu tloukl
-  function relSet(d) { relCap.style.transform = `translateX(-50%) translateY(${d.toFixed(1)}px)`; }
+  function relSet(d) { relCap.style.transform = `translateY(${d.toFixed(1)}px)`; }
   function relReset() {
     relFired = false; relDown = false;
     rel.classList.remove("hold", "fired", "off");
@@ -401,7 +402,7 @@
     if (!relDown || relFired) return;
     const raw = Math.max(0, e.clientY - relY);
     if (raw > 3) relMoved = true;
-    const t = Math.min(1, raw / (REL + 12));
+    const t = Math.min(1, raw / PUSH);
     relSet(REL * (1 - Math.pow(1 - t, 1.8)));      // ke konci to jde ztuha
     if (t >= 1) relFire();
   });

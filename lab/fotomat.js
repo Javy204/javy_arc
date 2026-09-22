@@ -382,7 +382,11 @@
     if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !/input|textarea/i.test(e.target.tagName || ""))
       skinsEl.hidden = !skinsEl.hidden;
   });
-  addEventListener("resize", fitBig);
+  addEventListener("resize", () => {
+    fitBig();
+    const o = readOpen();
+    if (o !== OPEN) { const zavreno = curX <= 0.5; OPEN = o; if (!zavreno) curtSet(OPEN, false); }
+  });
   applySkins();
 
   /* ============================================================
@@ -393,7 +397,13 @@
      ============================================================ */
   const booth = $("#fmBooth"), curt = $("#fmCurt"), bHint = $("#fmBoothHint");
   const cpanel = $("#fmCpanel"), coin = $("#fmCoin"), cslot = $("#fmCslot");
-  const OPEN = 78;                       // otevřený závěs = odhrnutý na 78 % šířky
+  // kolik % je závěs odhrnutý — jedno místo pravdy je CSS (--curtOpen),
+  // na telefonu z něj kouká jen lem, ať nepřekáží textu
+  const readOpen = () => {
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--curtOpen"));
+    return (isFinite(v) && v > 0) ? v : 78;
+  };
+  let OPEN = readOpen();
   const cl = (v, a, b) => Math.max(a, Math.min(b, v));
   let curX = OPEN, curDrag = false, curFrom = 0, curSX = 0, boothBusy = false;
   let coinDrag = false, coinSX = 0, coinSY = 0, coinDX = 0, coinDY = 0;

@@ -14,6 +14,7 @@
   --hole: #f3f1ea;
   --sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
   --stripF: .66;          /* výška fotky v pásu jako zlomek okna — čte i JS (stripF()) */
+  --curtOpen: 78;         /* o kolik % je závěs odhrnutý — čte i JS (na telefonu se skoro schová) */
   --frameH: 66vh;
   --barH: 24px;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -784,11 +785,11 @@ body.beta-on .beta { display: block; }
 }
 .curt {
   position: absolute; left: 0; top: 0; bottom: 0; width: 100%;
-  transform: translateX(78%); pointer-events: auto; cursor: grab;
+  transform: translateX(calc(var(--curtOpen) * 1%)); pointer-events: auto; cursor: grab;
   touch-action: pan-y;                           /* svisle ať stránka scrolluje dál, my chceme jen vodorovný tah */
   background: repeating-linear-gradient(90deg,
     #0a0907 0 15px, #16140f 15px 23px, #232018 23px 27px, #16140f 27px 36px);
-  box-shadow: -18px 0 40px rgba(0, 0, 0, .45);
+  box-shadow: -7px 0 16px rgba(0, 0, 0, .22);    /* jen náznak, ne šmouha přes půl plochy */
 }
 .curt:active { cursor: grabbing; }
 .curt::before {                                  /* kroužky na garnýži */
@@ -1136,45 +1137,38 @@ body.beta-on .beta { display: block; }
 #fmLooks button:hover { opacity: .65; }
 #fmLooks button.on { opacity: 1; text-decoration: underline; text-underline-offset: 4px; }
 
+/* ---------- FOTOMAT na telefonu (měřeno na iPhonu 17, 402 × 874) ---------- */
 @media (max-width: 720px) {
+  :root { --curtOpen: 90; }          /* ze závěsu kouká jen lem s úchytem, ať nepřekáží textu */
   .fm { height: 56vh; margin-top: 1.6vh; }
-  .fm-say { width: 92%; bottom: 20%; }
-  #fmLooks button { font-size: 10px; letter-spacing: .02em; }
+  .fm-say { width: 74%; bottom: 21%; }
+  .fm-say b { font-size: 17px; }
+  .fm-say span { font-size: 10px; letter-spacing: .1em; }
   .fm-bar { font-size: 9px; letter-spacing: .06em; }
-  .fm-view-bar { gap: 6px; padding: 8px; }
-  .tape-in { width: min(52%, 190px); }
-  .pslot { width: 70%; bottom: 6%; }
-  .cplate { width: 74%; padding: 16px 16px 14px; }
-  .coin { width: 64px; height: 64px; bottom: 11%; }
-  .booth-hint { right: 22%; font-size: 9px; letter-spacing: .16em; }
-  .inhand { width: 92px; }
-  .fm-view-bar button, .fm-view-bar a { padding: 7px 8px; font-size: 9px; letter-spacing: .08em; }
-}
-
-/* ---------- tajný grading panel ---------- */
-.grade {
-  position: fixed; right: 16px; bottom: 16px; z-index: 95; width: min(92vw, 310px);
-  max-height: 76vh; overflow: auto; background: #0d0d0c; color: #f3f1ea;
-  border: 1px solid rgba(243,241,234,.2); padding: 10px 12px 14px;
-  font-family: var(--sans); box-shadow: 0 24px 60px rgba(0,0,0,.55);
-}
-.grade[hidden] { display: none; }
-.grade-head { display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: .2em; opacity: .7; }
-.grade-head .r { display: flex; gap: 6px; }
-.grade-head button {
-  appearance: none; border: 1px solid rgba(243,241,234,.3); background: none; color: inherit;
-  font: 700 9px/1 var(--sans); letter-spacing: .1em; padding: 4px 6px; cursor: pointer;
-}
-.grade-head button:hover { background: rgba(243,241,234,.12); }
-.grade-row { margin-top: 10px; }
-.grade-row label { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: .1em; opacity: .75; }
-.grade-row input[type=range] { width: 100%; margin: 4px 0 0; accent-color: #f3f1ea; }
-
-@media (max-width: 720px) {
-  .fm { height: 52vh; margin-top: 1.6vh; }
   .fm-art .lbl { font-size: 26px; }
-  .fm-bar { font-size: 9px; letter-spacing: .06em; }
   #fmLooks { gap: 9px; }
   #fmLooks button { font-size: 10px; letter-spacing: .02em; }
-  .grade { right: 8px; left: 8px; width: auto; bottom: 8px; }
+
+  .booth-hint { right: 14%; font-size: 8px; letter-spacing: .12em; }
+  .curt .grip { left: 10px; width: 11px; height: 56px; margin-top: -28px; }
+  .curt .hem { width: 9px; }
+
+  .cplate { width: 80%; padding: 15px 14px 13px; }
+  .cplate-lbl { font-size: 12px; }
+  .cplate-sub { font-size: 7px; letter-spacing: .1em; }
+  .cslot { width: 66%; height: 14px; }
+  .coin { width: 62px; height: 62px; bottom: 12%; }
+  .coin-face { font-size: 22px; }
+
+  .fm-big-i { font-size: 5.6vh; }
+  .sk-film .film-hud { inset: auto 8px 9px; font-size: 8px; letter-spacing: .1em; }
+  .sk-film .fm::before, .sk-film .fm::after { height: 10px; }
+
+  .tape-in { width: min(62%, 196px); }
+  .pslot { width: 78%; bottom: 5%; }
+  .inhand { width: 92px; }
+  .fm-view-bar { gap: 6px; padding: 8px; }
+  .fm-view-bar button, .fm-view-bar a { padding: 7px 8px; font-size: 9px; letter-spacing: .08em; }
+
+  .grade, .skins { right: 8px; left: 8px; width: auto; bottom: 8px; }
 }

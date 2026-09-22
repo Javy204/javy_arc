@@ -793,13 +793,13 @@ body.beta-on .beta { display: block; }
 .crel {
   position: absolute; right: 5%; bottom: 0; z-index: 4;
   display: flex; flex-direction: column; align-items: center;
+  color: #fff; mix-blend-mode: difference;   /* kresba v inkoustu na papíru, přes živý obraz se obrátí */
   transition: opacity .25s ease;
 }
 .crel.off { opacity: .32; pointer-events: none; }
 .crel-lbl {
   margin-bottom: 10px; font: 700 9px/1 var(--sans); letter-spacing: .2em;
   text-transform: uppercase; opacity: .72; white-space: nowrap;
-  color: #fff; mix-blend-mode: difference;      /* čitelné na světlé ploše i přes živý obraz */
   transition: opacity .2s ease;
 }
 .crel:hover .crel-lbl, .crel.hold .crel-lbl { opacity: 1; }
@@ -808,13 +808,12 @@ body.beta-on .beta { display: block; }
   appearance: none; border: 0; padding: 0; background: none; position: relative;
   display: block; line-height: 0; cursor: grab;
   touch-action: none; -webkit-tap-highlight-color: transparent;
-  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .45));
 }
 .crel-btn:active { cursor: grabbing; }
 .crel-btn::before { content: ""; position: absolute; inset: -12px -14px -6px; }  /* palec chce víc místa */
 .crel-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
 .crel-head, .crel-cable { display: block; overflow: visible; }
-.crel-cable { margin-top: -2px; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, .35)); }
+.crel-cable { margin-top: -1px; }
 .plunger { transition: transform .5s cubic-bezier(.18, 1.5, .4, 1); }   /* doskok pružiny */
 .crel.hold .plunger { transition: none; }
 

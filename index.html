@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=104" />
+  <link rel="stylesheet" href="film.css?v=105" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -119,52 +119,45 @@
             <button class="crel-btn" id="fmRelBtn" type="button" aria-label="Spoušť — podrž ji a stlač dolů">
               <svg class="crel-head" viewBox="0 0 120 152" width="120" height="152" aria-hidden="true">
                 <defs>
-                  <linearGradient id="crM" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#3f3b33"/><stop offset=".14" stop-color="#8d8778"/>
-                    <stop offset=".34" stop-color="#eae6da"/><stop offset=".52" stop-color="#c4beaf"/>
-                    <stop offset=".74" stop-color="#7d7768"/><stop offset="1" stop-color="#37342c"/>
-                  </linearGradient>
-                  <linearGradient id="crC" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stop-color="#6e6859"/><stop offset=".2" stop-color="#cfc9ba"/>
-                    <stop offset=".42" stop-color="#f5f2e9"/><stop offset=".66" stop-color="#ccc6b7"/>
-                    <stop offset="1" stop-color="#5d5849"/>
-                  </linearGradient>
-                  <clipPath id="crClip"><rect x="0" y="0" width="120" height="53"/></clipPath>
+                  <!-- rastr jako na termopapíru: stínování je z teček, ne z přechodů -->
+                  <pattern id="crDA" width="4" height="4" patternUnits="userSpaceOnUse">
+                    <circle cx="2" cy="2" r="1" fill="#fff"/>
+                  </pattern>
+                  <pattern id="crDB" width="3" height="3" patternUnits="userSpaceOnUse">
+                    <circle cx="1.5" cy="1.5" r="1.15" fill="#fff"/>
+                  </pattern>
+                  <clipPath id="crClip"><rect x="0" y="0" width="120" height="52"/></clipPath>
                 </defs>
 
-                <!-- kónický chránič, kde kabel vchází do válečku -->
-                <path d="M47 120 L73 120 L67 150 L53 150 Z" fill="url(#crM)"/>
-                <g stroke="rgba(26,24,19,.4)" stroke-width="1">
-                  <line x1="48" y1="126" x2="72" y2="126"/><line x1="49" y1="132" x2="71" y2="132"/>
-                  <line x1="50" y1="138" x2="70" y2="138"/><line x1="51" y1="144" x2="69" y2="144"/>
-                </g>
-
-                <!-- rýhovaný váleček do prstů -->
-                <rect x="46" y="57" width="28" height="64" rx="3" fill="url(#crM)"/>
-                <g stroke="rgba(26,24,19,.32)" stroke-width=".9">
-                  <line x1="48" y1="70" x2="72" y2="70"/><line x1="48" y1="74" x2="72" y2="74"/>
-                  <line x1="48" y1="78" x2="72" y2="78"/><line x1="48" y1="82" x2="72" y2="82"/>
-                  <line x1="48" y1="86" x2="72" y2="86"/><line x1="48" y1="90" x2="72" y2="90"/>
-                  <line x1="48" y1="94" x2="72" y2="94"/><line x1="48" y1="98" x2="72" y2="98"/>
-                  <line x1="48" y1="102" x2="72" y2="102"/><line x1="48" y1="106" x2="72" y2="106"/>
-                </g>
-                <rect x="46" y="110" width="28" height="4" fill="rgba(26,24,19,.22)"/>
-
-                <!-- pojistný kroužek -->
-                <rect x="42" y="47" width="36" height="11" rx="2.5" fill="url(#crM)"/>
-                <line x1="42" y1="52.5" x2="78" y2="52.5" stroke="rgba(26,24,19,.35)" stroke-width="1"/>
-
-                <!-- píst: kotouč na tenké jehle, zajíždí pod kroužek -->
-                <g class="plunger" id="crPlunger" clip-path="url(#crClip)">
-                  <rect x="56" y="24" width="8" height="30" rx="1.5" fill="url(#crM)"/>
-                  <rect x="43" y="12" width="34" height="13" rx="3.5" fill="url(#crC)"/>
-                  <g stroke="rgba(26,24,19,.28)" stroke-width=".9">
-                    <line x1="47" y1="17" x2="47" y2="23"/><line x1="51" y1="17" x2="51" y2="23"/>
-                    <line x1="55" y1="17" x2="55" y2="23"/><line x1="59" y1="17" x2="59" y2="23"/>
-                    <line x1="63" y1="17" x2="63" y2="23"/><line x1="67" y1="17" x2="67" y2="23"/>
-                    <line x1="71" y1="17" x2="71" y2="23"/>
+                <g fill="#000" stroke="#fff" stroke-width="2.2" stroke-linejoin="round">
+                  <!-- kónický chránič kabelu -->
+                  <path d="M47 121 L73 121 L67 150 L53 150 Z"/>
+                  <path d="M60 121 L57 150" stroke-width="1.2" opacity=".7"/>
+                  <!-- rýhovaný váleček -->
+                  <rect x="46" y="57" width="28" height="64" rx="2"/>
+                  <g stroke-width="1.4">
+                    <path d="M47 68 H73"/><path d="M47 74 H73"/><path d="M47 80 H73"/>
+                    <path d="M47 86 H73"/><path d="M47 92 H73"/><path d="M47 98 H73"/>
+                    <path d="M47 104 H73"/><path d="M47 110 H73"/>
                   </g>
-                  <rect x="46" y="13.5" width="28" height="3" rx="1.5" fill="rgba(255,255,255,.6)"/>
+                  <!-- pojistný kroužek: plná linka, ať je jasné, kde to končí -->
+                  <rect x="41" y="45" width="38" height="11" rx="1.5" fill="#fff"/>
+                </g>
+                <!-- stín z rastru na jedné straně válečku -->
+                <rect x="64" y="59" width="8" height="60" fill="url(#crDA)"/>
+                <rect x="61" y="123" width="5" height="25" fill="url(#crDA)"/>
+
+                <!-- píst: kotouč na jehle, zajede pod kroužek -->
+                <g class="plunger" id="crPlunger" clip-path="url(#crClip)">
+                  <g fill="#000" stroke="#fff" stroke-width="2.2" stroke-linejoin="round">
+                    <rect x="56" y="24" width="8" height="28"/>
+                    <rect x="42" y="10" width="36" height="14" rx="2"/>
+                    <g stroke-width="1.4">
+                      <path d="M48 14 V20"/><path d="M54 14 V20"/><path d="M60 14 V20"/>
+                      <path d="M66 14 V20"/><path d="M72 14 V20"/>
+                    </g>
+                  </g>
+                  <rect x="70" y="12" width="6" height="10" fill="url(#crDB)"/>
                 </g>
               </svg>
             </button>
@@ -172,12 +165,11 @@
             <!-- opletený kabel, mizí dolů z plochy -->
             <svg class="crel-cable" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
               <path d="M60 0 C60 22 36 34 38 58 C40 82 76 88 71 120" fill="none"
-                    stroke="#24221d" stroke-width="9.5" stroke-linecap="round"/>
+                    stroke="#fff" stroke-width="10.4" stroke-linecap="round"/>
               <path d="M60 0 C60 22 36 34 38 58 C40 82 76 88 71 120" fill="none"
-                    stroke="#6f6859" stroke-width="7.5" stroke-dasharray="2.6 4.2"/>
+                    stroke="#000" stroke-width="7.2" stroke-linecap="round"/>
               <path d="M60 0 C60 22 36 34 38 58 C40 82 76 88 71 120" fill="none"
-                    stroke="rgba(255,255,255,.22)" stroke-width="2.4" stroke-dasharray="2.6 4.2"
-                    transform="translate(-1.7 -1.1)"/>
+                    stroke="#fff" stroke-width="7.2" stroke-dasharray="1.7 5"/>
             </svg>
           </div>
 
@@ -294,7 +286,7 @@
   <script src="film.js?v=81"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=30" defer></script>
+  <script src="lab/fotomat.js?v=31" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

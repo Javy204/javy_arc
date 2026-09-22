@@ -129,8 +129,19 @@
   }
 
   /* ---- stav ---- */
-  let G = { ...DEFAULTS, ...LOOKS["TERMO"] };
-  try { Object.assign(G, JSON.parse(localStorage.getItem("javy-grade") || "{}")); } catch (e) {}
+  /* Uložené hodnoty: dřív se do localStorage psalo CELÉ G, takže jedno šáhnutí
+     do skrytého panelu (nebo RESET, který spadl na holé DEFAULTS bez ditheru)
+     přebilo look napořád — prohlížeč pak ukazoval TERMO, ale termo tam nebylo.
+     Teď se pamatuje zvolený look zvlášť a z posuvníků jen odchylky od něj. */
+  const LOOK_KEY = "javy-look2", GRADE_KEY = "javy-grade2";
+  let lookName = "TERMO";
+  try { const l = localStorage.getItem(LOOK_KEY); if (l && LOOKS[l]) lookName = l; } catch (e) {}
+  const baseLook = () => ({ ...DEFAULTS, ...LOOKS[lookName] });
+  let G = baseLook();
+  try {
+    const saved = JSON.parse(localStorage.getItem(GRADE_KEY) || "{}");
+    for (const k of Object.keys(DEFAULTS)) if (typeof saved[k] === "number") G[k] = saved[k];
+  } catch (e) {}
   let video = null, stream = null, live = false, busy = false, shots = [];
   let testImg = null, mode = "strip", visible = false;
   const HINT = "podrž spoušť a stlač ji dolů";
@@ -735,10 +746,12 @@
 
   /* ---- presety + tajný panel ---- */
   const looks = $("#fmLooks");
-  looks.innerHTML = Object.keys(LOOKS).map((n, i) => `<button type="button" data-look="${n}"${i === 0 ? ' class="on"' : ""}>${n}</button>`).join("");
+  looks.innerHTML = Object.keys(LOOKS).map((n) => `<button type="button" data-look="${n}"${n === lookName ? ' class="on"' : ""}>${n}</button>`).join("");
   looks.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-look]"); if (!b) return;
-    G = { ...DEFAULTS, ...LOOKS[b.dataset.look] }; syncPanel(); save();
+    lookName = b.dataset.look;
+    G = baseLook(); syncPanel();                       // volba looku zahodí ruční doladění
+    try { localStorage.setItem(LOOK_KEY, lookName); localStorage.removeItem(GRADE_KEY); } catch (x) {}
     [...looks.children].forEach((x) => x.classList.toggle("on", x === b));
   });
   const panel = $("#grade"), body = $("#gradeBody");
@@ -749,7 +762,11 @@
     G[p.k] = parseFloat(e.target.value); $("#v_" + p.k).textContent = e.target.value; save();
   }));
   function syncPanel() { PARAMS.forEach((p) => { const el = $("#g_" + p.k); if (el) { el.value = G[p.k]; $("#v_" + p.k).textContent = String(G[p.k]); } }); }
-  function save() { try { localStorage.setItem("javy-grade", JSON.stringify(G)); } catch (e) {} }
+  function save() {                                    // ukládá se jen rozdíl proti looku
+    const base = baseLook(), diff = {};
+    for (const k of Object.keys(base)) if (G[k] !== base[k]) diff[k] = G[k];
+    try { localStorage.setItem(GRADE_KEY, JSON.stringify(diff)); } catch (e) {}
+  }
   $("#gradeTest").addEventListener("click", async () => {
     if (testImg) { testImg = null; if (!live) host.classList.remove("live"); $("#gradeTest").textContent = "TEST"; return; }
     try {
@@ -761,7 +778,11 @@
     } catch (e) {}
   });
   $("#gradeClose").addEventListener("click", () => (panel.hidden = true));
-  $("#gradeReset").addEventListener("click", () => { G = { ...DEFAULTS }; syncPanel(); save(); });
+  // RESET = zpátky na zvolený look (dřív padal na holé DEFAULTS, což shodilo dither)
+  $("#gradeReset").addEventListener("click", () => {
+    G = baseLook(); syncPanel();
+    try { localStorage.removeItem(GRADE_KEY); } catch (e) {}
+  });
   $("#gradeCopy").addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(JSON.stringify(G, null, 2)); $("#gradeCopy").textContent = "ZKOPÍROVÁNO"; setTimeout(() => ($("#gradeCopy").textContent = "KOPÍROVAT"), 1400); }
     catch (e) { console.log(JSON.stringify(G, null, 2)); }

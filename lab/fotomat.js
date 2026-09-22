@@ -133,6 +133,7 @@
   try { Object.assign(G, JSON.parse(localStorage.getItem("javy-grade") || "{}")); } catch (e) {}
   let video = null, stream = null, live = false, busy = false, shots = [];
   let testImg = null, mode = "strip", visible = false;
+  const HINT = "podrž spoušť a stlač ji dolů";
 
   const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
   const shootB = $("#fmShoot"), saveA = $("#fmSave"), againB = $("#fmAgain");
@@ -330,16 +331,16 @@
     const made = await composeStrip(shots);
     closeCam(); vfr.hidden = true;
     await ejectStrip(made, { url: made.url, shots: shots.slice() });
-    note.textContent = "chyť ho, nebo na něj klikni · další focení klikem do plochy";
+    note.textContent = "chyť ho, nebo na něj klikni · další focení spouští";
     busy = false;
   }
   async function runNeg() {
     if (busy || live) return; busy = true;
     if (!(await openCam())) { busy = false; return; }
-    note.textContent = "zmáčkni spoušť"; shootB.hidden = false; busy = false;
+    note.textContent = "zamiř se a stlač spoušť znovu"; shootB.hidden = false; busy = false;
   }
-  shootB.addEventListener("click", async () => {
-    if (!live) return;
+  async function shootNeg() {
+    if (!live || busy) return; busy = true;
     await countdown(3);
     const url = grab();
     const im = new Image(); im.src = url;
@@ -347,17 +348,80 @@
     $("#fmNeg").appendChild(im);
     host.classList.remove("live");
     saveA.href = url; saveA.hidden = false; againB.hidden = false; shootB.hidden = true;
-    note.textContent = "hotovo"; closeCam();
-  });
+    note.textContent = "hotovo"; closeCam(); busy = false; relReset();
+  }
+  shootB.addEventListener("click", shootNeg);
   againB.addEventListener("click", () => {
     $("#fmNeg").querySelectorAll("img").forEach((i) => i.remove());
     saveA.hidden = true; againB.hidden = true; shootB.hidden = true;
-    note.textContent = "klikni do plochy";
+    note.textContent = HINT;
   });
 
-  host.addEventListener("click", (e) => {
-    if (busy || live || e.target.closest(".fm-bar, .fm-view, .pc")) return;
-    mode === "strip" ? runStrip() : runNeg();
+  /* ============================================================
+     DRÁTĚNÁ SPOUŠŤ
+       Klikem do plochy se dřív fotilo omylem a nikdo netušil, kde se
+       to spouští. Teď je to hmatatelné tlačítko: podržet palcem
+       a stlačit dolů — poslední kus jde ztuha a na doraz to cvakne.
+     ============================================================ */
+  const rel = $("#fmRel"), relBtn = $("#fmRelBtn"), relLbl = $("#fmRelLbl");
+  const relCap = rel.querySelector(".cap");
+  const REL = 26;                      // dráha hlavice (px)
+  let relDown = false, relFired = false, relY = 0, relMoved = false;
+
+  // pozor: hlavicí hýbeme přímo přes style.transform, doskok řeší CSS přechod
+  // (.crel.hold ho vypíná) — GSAP by si s ručním zápisem transformu tloukl
+  function relSet(d) { relCap.style.transform = `translateX(-50%) translateY(${d.toFixed(1)}px)`; }
+  function relReset() {
+    relFired = false; relDown = false;
+    rel.classList.remove("hold", "fired", "off");
+    relLbl.textContent = "PODRŽ A STLAČ ↓";
+    relSet(0);
+  }
+  async function relFire() {
+    if (relFired || busy) return;
+    relFired = true;
+    relSet(REL);
+    rel.classList.add("fired"); relLbl.textContent = "CVAK";
+    if (g()) g().fromTo(rel, { y: 3 }, { y: 0, duration: .45, ease: "elastic.out(1, .35)" });
+    try { navigator.vibrate && navigator.vibrate(18); } catch (e) {}
+    rel.classList.add("off");
+    if (mode === "strip") await runStrip();
+    else if (!live) { await runNeg(); }
+    else await shootNeg();
+    relReset();
+  }
+
+  relBtn.addEventListener("pointerdown", (e) => {
+    if (busy || relFired) return;
+    relDown = true; relMoved = false; relY = e.clientY;
+    rel.classList.add("hold"); relLbl.textContent = "TEĎ DOLŮ ↓";
+    try { relBtn.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  relBtn.addEventListener("pointermove", (e) => {
+    if (!relDown || relFired) return;
+    const raw = Math.max(0, e.clientY - relY);
+    if (raw > 3) relMoved = true;
+    const t = Math.min(1, raw / (REL + 12));
+    relSet(REL * (1 - Math.pow(1 - t, 1.8)));      // ke konci to jde ztuha
+    if (t >= 1) relFire();
+  });
+  const relUp = () => {
+    if (!relDown) return;
+    relDown = false;
+    if (relFired) return;
+    rel.classList.remove("hold");
+    relLbl.textContent = relMoved ? "AŽ NA DORAZ ↓" : "PODRŽ A STLAČ ↓";
+    relSet(0);
+    setTimeout(() => { if (!relDown && !relFired) relLbl.textContent = "PODRŽ A STLAČ ↓"; }, 1600);
+  };
+  relBtn.addEventListener("pointerup", relUp);
+  relBtn.addEventListener("pointercancel", relUp);
+  relBtn.addEventListener("click", (e) => e.preventDefault());
+  relBtn.addEventListener("keydown", (e) => {      // klávesnice: stlač to za uživatele
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    if (busy || relFired) return;
+    relSet(REL); relFire();
   });
 
   /* ============================================================
@@ -759,6 +823,6 @@
   addEventListener("resize", () => { if (engine) buildWalls(); });
   new IntersectionObserver((es) => es.forEach((e) => {
     visible = e.isIntersecting;
-    if (!visible && live) { closeCam(); note.textContent = "klikni do plochy"; busy = false; }
+    if (!visible && live) { closeCam(); note.textContent = HINT; busy = false; relReset(); }
   }), { threshold: .15 }).observe(scene);
 })();

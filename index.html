@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=99" />
+  <link rel="stylesheet" href="film.css?v=103" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -81,8 +81,8 @@
           <!-- 1) FOTOBUDKA -->
           <div class="fm-mode m-strip">
             <div class="fm-say" id="fmSayStrip">
-              <b>Vyfoť se mým objektivem.</b>
-              <span>čtyři snímky · tvoje kamera · nic se nikam neukládá</span>
+              <b>Čtyři snímky, jedna spoušť.</b>
+              <span>drátěná spoušť vpravo · podrž ji a stlač dolů · tvoje kamera, nic se nikam neukládá</span>
             </div>
             <!-- hledáček: ukazuje přesně ten výřez, co skončí na fotce -->
             <div class="vf" id="fmVfr" hidden>
@@ -112,6 +112,17 @@
 
           <!-- vypadlé proužky: fyzika, dají se chytat a rozkliknout -->
           <div class="fm-pile" id="fmPile"></div>
+
+          <!-- drátěná spoušť: palcem podržet a stlačit dolů, teprve pak cvakne -->
+          <div class="crel" id="fmRel">
+            <span class="crel-lbl" id="fmRelLbl">PODRŽ A STLAČ ↓</span>
+            <button class="crel-btn" id="fmRelBtn" type="button" aria-label="Spoušť — podrž a stlač dolů">
+              <span class="well"><span class="cap"></span></span>
+              <span class="collar"></span>
+              <span class="barrel"></span>
+            </button>
+            <span class="cable"></span>
+          </div>
 
           <!-- detail proužku: svisle se posouvá tahem, vodorovným tahem se stříhá -->
           <div class="fm-view" id="fmView" hidden>
@@ -146,7 +157,7 @@
         </div>
 
         <div class="fm-bar">
-          <span id="fmNote">klikni do plochy</span>
+          <span id="fmNote">podrž spoušť a stlač ji dolů</span>
           <span class="fm-btns">
             <button type="button" id="fmShoot" hidden>SPOUŠŤ</button>
             <a id="fmSave" hidden download="javy-fotomat.jpg">ULOŽIT ↓</a>
@@ -226,7 +237,7 @@
   <script src="film.js?v=81"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=28" defer></script>
+  <script src="lab/fotomat.js?v=29" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

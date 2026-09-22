@@ -44,8 +44,6 @@
     "TERMO": { dither: 1, ditherSize: 2, exposure: .3, contrast: 1.5, sat: 0, grain: .05, halation: .15, vignette: .5 },
     "KLUB": { dither: 0, exposure: .35, contrast: 1.7, sat: 0, grain: .22, halation: .5, vignette: 1, scurve: .5 },
     "BLESK": { dither: 0, exposure: .7, contrast: 1.5, sat: 0, grain: .12, halation: .9, vignette: .5, white: 1, gain: 1.2 },
-    "FILM": { dither: 0, exposure: .1, contrast: 1.25, sat: .25, grain: .34, grainSize: 2.1, halation: .3, vignette: .8, temp: .06 },
-    "SYROVÝ": { dither: 0, exposure: 0, contrast: 1, sat: 1, grain: .05, halation: 0, vignette: .25, scurve: 0, barrel: 0 },
   };
 
   const VERT = `attribute vec2 p; varying vec2 vUv;
@@ -143,11 +141,10 @@
     for (const k of Object.keys(DEFAULTS)) if (typeof saved[k] === "number") G[k] = saved[k];
   } catch (e) {}
   let video = null, stream = null, live = false, busy = false, shots = [];
-  let testImg = null, mode = "strip", visible = false;
+  let testImg = null, visible = false;
   const HINT = "zatáhni závěs a hoď minci";
 
   const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
-  const shootB = $("#fmShoot"), saveA = $("#fmSave"), againB = $("#fmAgain");
   const pile = $("#fmPile"), slot = $("#fmSlot"), prog = $("#fmProg"), vfr = $("#fmVfr");
   const view = $("#fmView"), viewImg = $("#fmViewImg"), viewIdx = $("#fmViewIdx"), viewSave = $("#fmViewSave");
   const srcEl = () => testImg || video;
@@ -165,11 +162,9 @@
     video.playsInline = true; video.muted = true; video.srcObject = stream;
     await video.play().catch(() => {});
     live = true; host.classList.add("live");
-    if (mode === "strip") {                      // hledáček ukáže, co se opravdu ořízne
-      vfr.hidden = false;
-      if (g()) g().fromTo(vfr.querySelector(".vf-hole"),
-        { scale: 1.12, opacity: 0 }, { scale: 1, opacity: 1, duration: .5, ease: "power3.out" });
-    }
+    vfr.hidden = false;                          // hledáček ukáže, co se opravdu ořízne
+    if (g()) g().fromTo(vfr.querySelector(".vf-hole"),
+      { scale: 1.12, opacity: 0 }, { scale: 1, opacity: 1, duration: .5, ease: "power3.out" });
     return true;
   }
   function closeCam() {
@@ -350,29 +345,6 @@
     note.textContent = "chyť ho, nebo na něj klikni · další focení zase závěsem";
     busy = false;
   }
-  async function runNeg() {
-    if (busy || live) return; busy = true;
-    if (!(await openCam())) { busy = false; return; }
-    note.textContent = "zamiř se a stlač spoušť znovu"; shootB.hidden = false; busy = false;
-  }
-  async function shootNeg() {
-    if (!live || busy) return; busy = true;
-    await countdown(3);
-    const url = grab();
-    const im = new Image(); im.src = url;
-    im.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover";
-    $("#fmNeg").appendChild(im);
-    host.classList.remove("live");
-    saveA.href = url; saveA.hidden = false; againB.hidden = false; shootB.hidden = true;
-    note.textContent = "hotovo"; closeCam(); busy = false;
-  }
-  shootB.addEventListener("click", shootNeg);
-  againB.addEventListener("click", () => {
-    $("#fmNeg").querySelectorAll("img").forEach((i) => i.remove());
-    saveA.hidden = true; againB.hidden = true; shootB.hidden = true;
-    note.textContent = HINT; boothReset();
-  });
-
   /* ============================================================
      FOTOBUDKA: ZÁVĚS → MINCE
        Klikem do plochy se dřív fotilo omylem a nikdo netušil, kde se
@@ -612,8 +584,7 @@
     if (g()) g().to(cpanel, { opacity: 0, duration: .25, onComplete: () => { cpanel.hidden = true; cpanel.style.opacity = ""; } });
     curtSet(OPEN, true);
     await wait(520);
-    if (mode === "strip") await runStrip();
-    else await runNeg();
+    await runStrip();
     boothReset();
   }
 
@@ -919,14 +890,6 @@
       M.Composite.add(engine.world, it.body);
     }
   }
-
-  /* ---- přepínač podoby ---- */
-  const modes = $("#fmModes");
-  modes.addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-mode]"); if (!b) return;
-    mode = b.dataset.mode; host.dataset.mode = mode;
-    [...modes.children].forEach((x) => x.classList.toggle("on", x === b));
-  });
 
   /* ---- presety + tajný panel ---- */
   const looks = $("#fmLooks");

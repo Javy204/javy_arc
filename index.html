@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=110" />
+  <link rel="stylesheet" href="film.css?v=111" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -68,10 +68,6 @@
       <div class="scene-inner poster">
         <div class="p-row par" data-rise="14" data-exit="40">
           <span>03 — FOTOMAT</span>
-          <span class="fm-modes" id="fmModes">
-            <button type="button" data-mode="strip" class="on">PROUŽEK</button>
-            <button type="button" data-mode="neg">POLÍČKO</button>
-          </span>
           <span class="r" id="fmLooks"></span>
         </div>
 
@@ -81,7 +77,7 @@
           <!-- 1) FOTOBUDKA -->
           <div class="fm-mode m-strip">
             <div class="fm-say" id="fmSayStrip">
-              <b>Čtyři snímky, jedna mince.</b>
+              <b>Sluší ti to. Udělej si fotku.</b>
               <span>zatáhni závěs · hoď ℗ do štěrbiny · tvoje kamera, nic se nikam neukládá</span>
             </div>
             <!-- hledáček: ukazuje přesně ten výřez, co skončí na fotce -->
@@ -93,18 +89,6 @@
             </div>
             <div class="fm-prog" id="fmProg"><i></i><i></i><i></i><i></i></div>
             <div class="fm-slot" id="fmSlot"><span class="lip"></span><span class="tag">JAVY · FOTOMAT</span></div>
-          </div>
-
-          <!-- 2) POLÍČKO NEGATIVU -->
-          <div class="fm-mode m-neg">
-            <div class="neg" id="fmNeg">
-              <span class="perf t"></span><span class="perf b"></span>
-              <span class="neg-id">JAVY 5200 · 12A</span>
-              <div class="fm-say" id="fmSayNeg">
-                <b>Tvůj snímek.</b>
-                <span>tvoje kamera · nic se nikam neukládá</span>
-              </div>
-            </div>
           </div>
 
           <div class="fm-count" id="fmCount" hidden></div>
@@ -166,11 +150,6 @@
 
         <div class="fm-bar">
           <span id="fmNote">zatáhni závěs a hoď minci</span>
-          <span class="fm-btns">
-            <button type="button" id="fmShoot" hidden>SPOUŠŤ</button>
-            <a id="fmSave" hidden download="javy-fotomat.jpg">ULOŽIT ↓</a>
-            <button type="button" id="fmAgain" hidden>ZNOVU</button>
-          </span>
         </div>
 
         <!-- tajný panel: klávesa G nebo trojklik na "03 — FOTOMAT" -->
@@ -245,7 +224,7 @@
   <script src="film.js?v=82"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=39" defer></script>
+  <script src="lab/fotomat.js?v=40" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

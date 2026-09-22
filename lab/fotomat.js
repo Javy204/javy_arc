@@ -136,7 +136,7 @@
 
   const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
   const shootB = $("#fmShoot"), saveA = $("#fmSave"), againB = $("#fmAgain");
-  const pile = $("#fmPile"), slot = $("#fmSlot"), prog = $("#fmProg");
+  const pile = $("#fmPile"), slot = $("#fmSlot"), prog = $("#fmProg"), vfr = $("#fmVfr");
   const view = $("#fmView"), viewImg = $("#fmViewImg"), viewIdx = $("#fmViewIdx"), viewSave = $("#fmViewSave");
   const srcEl = () => testImg || video;
   const srcReady = () => { const e = srcEl(); return !!e && (e.tagName === "IMG" ? e.complete && e.naturalWidth : e.readyState >= 2); };
@@ -153,10 +153,16 @@
     video.playsInline = true; video.muted = true; video.srcObject = stream;
     await video.play().catch(() => {});
     live = true; host.classList.add("live");
+    if (mode === "strip") {                      // hledáček ukáže, co se opravdu ořízne
+      vfr.hidden = false;
+      if (g()) g().fromTo(vfr.querySelector(".vf-hole"),
+        { scale: 1.12, opacity: 0 }, { scale: 1, opacity: 1, duration: .5, ease: "power3.out" });
+    }
     return true;
   }
   function closeCam() {
-    live = false; if (!testImg) host.classList.remove("live");
+    live = false; vfr.hidden = true;
+    if (!testImg) host.classList.remove("live");
     if (stream) stream.getTracks().forEach((t) => t.stop());
     stream = null; video = null;
   }
@@ -221,10 +227,11 @@
   }
 
   /* ---- vyjetí proužku ze štěrbiny ---- */
-  function ejectStrip(url, data) {
+  function ejectStrip(made, data) {
     physics();
+    const url = made.url;
     const ph = pile.clientHeight, pw = pile.clientWidth;
-    const sz = pieceSize(4), h = sz.h, w = sz.w;
+    const sz = fitPiece(made, data.shots.length), h = sz.h, w = sz.w;
     const sx = pw / 2, sy = ph - 6;
     const el = document.createElement("div");
     el.className = "pc"; el.style.width = w + "px"; el.style.height = h + "px";
@@ -239,7 +246,8 @@
         .to({}, { duration: .12 })
         .add(() => { pile.removeChild(el); res(dropIt()); });
       function dropIt() {
-        return addPiece(url, data, sx, sy - h / 2, w, h, (Math.random() - .5) * 2, -1.5, (Math.random() - .5) * .25);
+        return addPiece(url, { ...data, nat: made }, sx, sy - h / 2, w, h,
+                        (Math.random() - .5) * 2, -1.5, (Math.random() - .5) * .25);
       }
     });
   }
@@ -258,8 +266,9 @@
     return Promise.all(list.map((src) => new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.src = src; })));
   }
   async function composeStrip(list) {
+    const n = Math.max(1, list.length);          // výška podle POČTU políček, ne natvrdo 4
     const W = 520, pad = 22, gap = 12, fw = W - pad * 2, fh = Math.round(fw * 4 / 3);
-    const H = pad + (fh + gap) * 4 + 64;
+    const H = pad + (fh + gap) * n + 64;
     const c = document.createElement("canvas"); c.width = W; c.height = H;
     const x = c.getContext("2d");
     x.fillStyle = "#f3f1ea"; x.fillRect(0, 0, W, H);
@@ -270,7 +279,7 @@
     const d = new Date();
     x.textAlign = "right";
     x.fillText(`${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`, W - pad, H - 26);
-    return c.toDataURL("image/jpeg", .92);
+    return { url: c.toDataURL("image/jpeg", .92), w: W, h: H };   // rozměry kvůli poměru stran
   }
   async function composePhoto(src) {                 // jedno políčko s papírovým okrajem
     const W = 460, pad = 18, fw = W - pad * 2, fh = Math.round(fw * 4 / 3), H = fh + pad * 2 + 34;
@@ -314,9 +323,9 @@
       if (i < 3) { note.textContent = `snímek ${i + 1} / 4`; await wait(1400); }
     }
     note.textContent = "proužek jede ven…";
-    const url = await composeStrip(shots);
-    closeCam();
-    await ejectStrip(url, { url, shots: shots.slice() });
+    const made = await composeStrip(shots);
+    closeCam(); vfr.hidden = true;
+    await ejectStrip(made, { url: made.url, shots: shots.slice() });
     note.textContent = "chyť ho, nebo na něj klikni · další focení klikem do plochy";
     busy = false;
   }
@@ -353,7 +362,7 @@
      ============================================================ */
   const tape = $("#fmTape"), tapeIn = $("#fmTapeIn"), cutline = $("#fmCutline");
   const viewHint = $("#fmViewHint");
-  let vItem = null, vShots = [], scrollY = 0, vel = 0;
+  let vItem = null, vShots = [], scrollY = 0, vel = 0, cutting = false;
 
   function buildTape() {
     const d = new Date();
@@ -366,7 +375,8 @@
   }
   function maxScroll() { return Math.max(0, tapeIn.offsetHeight - tape.clientHeight); }
   function applyScroll() {
-    scrollY = Math.max(-40, Math.min(maxScroll() + 40, scrollY));
+    const slack = maxScroll() > 0 ? 40 : 90;      // když se páska vejde, nech s ní aspoň pohnout
+    scrollY = Math.max(-slack, Math.min(maxScroll() + slack, scrollY));
     tapeIn.style.transform = `translateX(-50%) translateY(${-scrollY}px)`;
   }
   /* švy mezi políčky v souřadnicích pásky */
@@ -390,22 +400,37 @@
   }
 
   async function doCut(seam) {
-    if (!seam || vShots.length < 2) return;
+    if (!seam || vShots.length < 2 || cutting) return;
+    cutting = true;
     const keep = vShots.slice(0, seam.i + 1);
     const away = vShots.slice(seam.i + 1);
-    // spodní část se oddělí a odletí do hromady
     const fr = [...tapeIn.querySelectorAll(".tf")];
     const moving = fr.slice(seam.i + 1).concat([tapeIn.querySelector(".tape-foot")]).filter(Boolean);
-    if (g()) await g().to(moving, { x: 90, y: 60, rotate: 7, opacity: 0, duration: .45, ease: "power2.in", stagger: .03 });
+    const staying = fr.slice(0, seam.i + 1);
+    const yAt = seam.y - scrollY + tape.getBoundingClientRect().top;
+    if (g()) {
+      const tl = g().timeline();
+      tl.to(cutline, { scaleX: 1.15, duration: .12, ease: "power2.out" }, 0)      // cvaknutí nůžek
+        .fromTo(cutline, { opacity: 1 }, { opacity: 0, duration: .3 }, .12)
+        .to(staying, { y: -6, duration: .1, ease: "power2.out" }, 0)              // horní část nadskočí
+        .to(staying, { y: 0, duration: .5, ease: "elastic.out(1, .45)" }, .1)
+        .to(moving, { y: 26, rotate: 2.5, duration: .18, ease: "power1.out" }, .06)
+        .to(moving, { y: 340, rotate: 14, opacity: 0, duration: .55, ease: "power2.in", stagger: .04 }, .24);
+      await tl.then();
+    }
     const made = await composeStrip(away);
-    dropPiece(made, away);
+    dropPiece(made, away, pile.clientWidth / 2 + (Math.random() - .5) * 120,
+              Math.max(40, Math.min(pile.clientHeight - 60, yAt - pile.getBoundingClientRect().top)));
     vShots = keep;
     buildTape();
+    if (g()) g().fromTo(tapeIn.querySelectorAll(".tf"),
+      { opacity: .25 }, { opacity: 1, duration: .35, stagger: .05, ease: "power2.out" });
     const rest = await composeStrip(vShots);
-    $("#fmViewSave").href = rest;
+    $("#fmViewSave").href = rest.url;
     $("#fmViewSave").download = vShots.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
     if (vItem) refreshItem(vItem, rest, vShots);
     note.textContent = "rozstřiženo";
+    cutting = false;
   }
 
   /* ---- tažení: svisle posun, vodorovně střih ---- */
@@ -458,7 +483,15 @@
     buildTape();
     $("#fmViewSave").href = it.data.url;
     $("#fmViewSave").download = vShots.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
-    if (g()) g().fromTo(view, { opacity: 0 }, { opacity: 1, duration: .3 });
+    if (g()) {
+      g().fromTo(view, { opacity: 0 }, { opacity: 1, duration: .28 });
+      // POZOR: transform na pásce si řídí applyScroll, takže GSAP nesmí sahat
+      // na transform — nájezd se dělá přes hodnotu posunu, ne přes yPercent.
+      g().fromTo(tapeIn, { opacity: 0 }, { opacity: 1, duration: .4 });
+      const proxy = { v: -70 };
+      g().to(proxy, { v: 0, duration: .6, ease: "power3.out",
+        onUpdate: () => { scrollY = proxy.v; applyScroll(); } });
+    }
     setTimeout(applyScroll, 60);
   }
   function closeView() { view.hidden = true; vItem = null; }
@@ -466,21 +499,23 @@
   addEventListener("keydown", (e) => { if (!view.hidden && e.key === "Escape") closeView(); });
 
   /* ---- kousky v hromadě ---- */
-  function pieceSize(n) {
+  function fitPiece(nat, n) {                      // ← poměr stran bereme z hotového obrázku
     const ph = pile.clientHeight;
-    const h = Math.max(60, Math.round(ph * .13 * n + ph * .06));
-    return { w: Math.round(h * (520 / (22 + (476 * 4 / 3 + 12) * n + 64))), h };
+    const h = Math.max(70, Math.round(ph * (.12 * n + .07)));
+    return { w: Math.round(h * (nat.w / nat.h)), h };
   }
-  function dropPiece(url, shotsArr) {
-    const { w, h } = pieceSize(shotsArr.length);
-    addPiece(url, { url, shots: shotsArr }, pile.clientWidth / 2 + (Math.random() - .5) * 80, pile.clientHeight * .2,
-             w, h, (Math.random() - .5) * 3, -1.5, (Math.random() - .5) * .4);
+  function dropPiece(made, shotsArr, atX, atY) {
+    const { w, h } = fitPiece(made, shotsArr.length);
+    addPiece(made.url, { url: made.url, nat: made, shots: shotsArr },
+             atX != null ? atX : pile.clientWidth / 2 + (Math.random() - .5) * 80,
+             atY != null ? atY : pile.clientHeight * .2,
+             w, h, (Math.random() - .5) * 3.5, -1.5, (Math.random() - .5) * .5);
   }
-  function refreshItem(it, url, shotsArr) {
+  function refreshItem(it, made, shotsArr) {
     const M = window.Matter;
-    it.data = { url, shots: shotsArr };
-    it.el.querySelector("img").src = url;
-    const { w, h } = pieceSize(shotsArr.length);
+    it.data = { url: made.url, nat: made, shots: shotsArr };
+    it.el.querySelector("img").src = made.url;
+    const { w, h } = fitPiece(made, shotsArr.length);
     it.el.style.width = w + "px"; it.el.style.height = h + "px";
     if (M && engine) {
       const pos = it.body.position, ang = it.body.angle;

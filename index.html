@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=93" />
+  <link rel="stylesheet" href="film.css?v=94" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -83,6 +83,13 @@
             <div class="fm-say" id="fmSayStrip">
               <b>Vyfoť se mým objektivem.</b>
               <span>čtyři snímky · tvoje kamera · nic se nikam neukládá</span>
+            </div>
+            <!-- hledáček: ukazuje přesně ten výřez, co skončí na fotce -->
+            <div class="vf" id="fmVfr" hidden>
+              <div class="vf-hole">
+                <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
+              </div>
+              <span class="vf-l">3:4</span>
             </div>
             <div class="fm-prog" id="fmProg"><i></i><i></i><i></i><i></i></div>
             <div class="fm-slot" id="fmSlot"><span class="lip"></span><span class="tag">JAVY · FOTOMAT</span></div>
@@ -201,7 +208,7 @@
   <script src="film.js?v=80"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=19" defer></script>
+  <script src="lab/fotomat.js?v=22" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=97" />
+  <link rel="stylesheet" href="film.css?v=98" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -122,14 +122,23 @@
             <!-- utržený snímek, co držíš v ruce -->
             <div class="inhand" id="fmHand" hidden><img alt="" /></div>
 
-            <!-- tisková štěrbina s válečky -->
+            <!-- termotiskárna: proužek se do ní podá a ona ho vytiskne -->
             <div class="pslot" id="fmPslot">
-              <span class="mouth"><i></i><i></i><i></i></span>
-              <span class="lbl">TISK</span>
+              <span class="lbl">TISKÁRNA ▾</span>
+              <span class="pbody">
+                <span class="phead">
+                  <i class="led"></i>
+                  <span class="pname">JAVY THERMO 58</span>
+                  <span class="pst">READY</span>
+                </span>
+                <span class="teeth"></span>
+                <span class="mouth"><i></i></span>
+                <span class="paper"><em></em></span>
+              </span>
             </div>
 
             <div class="fm-view-bar">
-              <span id="fmViewHint">do strany = utrhnout fotku · celým proužkem dolů = podat ho do tiskárny</span>
+              <span id="fmViewHint">chyť proužek a táhni · do strany = utrhnout fotku · dolů = podat ho do tiskárny</span>
               <a id="fmViewSave" hidden download="javy-fotomat-prouzek.jpg">ULOŽIT ↓</a>
               <button type="button" id="fmViewClose">ZAVŘÍT ✕</button>
             </div>
@@ -217,7 +226,7 @@
   <script src="film.js?v=80"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=26" defer></script>
+  <script src="lab/fotomat.js?v=28" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

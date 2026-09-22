@@ -181,6 +181,10 @@
       const mouse = M.Mouse.create(pile);
       mouse.element.removeEventListener("wheel", mouse.mousewheel);
       mouse.element.removeEventListener("DOMMouseScroll", mouse.mousewheel);
+      // Matter si u dotyků volá preventDefault → sebralo by to scrollování stránky
+      mouse.element.removeEventListener("touchstart", mouse.mousedown);
+      mouse.element.removeEventListener("touchmove", mouse.mousemove);
+      mouse.element.removeEventListener("touchend", mouse.mouseup);
       M.Composite.add(engine.world, M.MouseConstraint.create(engine, { mouse, constraint: { stiffness: .16, render: { visible: false } } }));
     }
   }
@@ -372,8 +376,8 @@
       `<div class="tape-lead">↓ DO TISKÁRNY</div>`;
     scrollY = 0; vel = 0; applyScroll();
     viewHint.textContent = vShots.length > 1
-      ? "do strany = utrhnout fotku · celým proužkem dolů = podat ho do tiskárny"
-      : "poslední fotka — zatáhni proužkem dolů a tiskárna si ho vtáhne";
+      ? "chyť proužek a táhni · do strany = utrhnout fotku · dolů = do tiskárny"
+      : "poslední fotka — chyť proužek a zatáhni dolů do tiskárny";
   }
   function maxScroll() { return Math.max(0, tapeIn.offsetHeight - tape.clientHeight); }
   let feeding = false, dragging = false;          // vtahování do tiskárny / prst na pásce
@@ -390,11 +394,19 @@
        do strany za políčko  = perforace se natáhne a fotka se utrhne
        dolů celým proužkem   = podáváš ho do štěrbiny, ta ho vtáhne
      ============================================================ */
-  const pslot = $("#fmPslot"), hand = $("#fmHand"), slotLbl = pslot.querySelector(".lbl");
-  const FEED = 62;                                  // o kolik musíš podat, než to štěrbina chytne
+  const pslot = $("#fmPslot"), hand = $("#fmHand");
+  const slotLbl = pslot.querySelector(".lbl"), slotSt = pslot.querySelector(".pst");
+  const FEED = 62;                                  // o kolik musíš podat, než to tiskárna chytne
   function feedHot(on) {
     pslot.classList.toggle("hot", on);
-    slotLbl.textContent = on ? "PUSŤ" : "TISK";
+    slotLbl.textContent = on ? "PUSŤ ↓" : "TISKÁRNA ▾";
+    if (!pslot.classList.contains("feed")) slotSt.textContent = on ? "VLOŽ" : "READY";
+  }
+  /* lístek vyjede z tiskárny ven — ať je vidět, že fakt tiskne */
+  function paperOut() {
+    pslot.classList.remove("gone"); pslot.classList.add("out");
+    setTimeout(() => pslot.classList.add("gone"), 1100);
+    setTimeout(() => pslot.classList.remove("out", "gone"), 1700);
   }
 
   /* natržený okraj — nepravidelná pila, pokaždé jiná */
@@ -425,6 +437,7 @@
     a.href = made.url;
     a.download = list.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
     pslot.classList.add("feed"); pslot.classList.remove("hot");
+    slotSt.textContent = "TISKNE…";
     if (g() && fromEl) {
       const r = slotRect();
       await g().timeline()
@@ -439,6 +452,8 @@
     }
     pslot.classList.remove("feed");
     if (g()) g().fromTo(pslot, { y: 6 }, { y: 0, duration: .35, ease: "elastic.out(1, .4)" });
+    paperOut(); slotSt.textContent = "HOTOVO";
+    setTimeout(() => { if (!pslot.classList.contains("feed")) slotSt.textContent = "READY"; }, 1600);
     a.click();
     note.textContent = list.length > 1 ? "proužek vytištěn" : "snímek vytištěn";
   }
@@ -452,6 +467,7 @@
     const a = $("#fmViewSave");
     a.href = made.url; a.download = "javy-fotomat-prouzek.jpg";
     feedHot(false); pslot.classList.add("feed");
+    slotSt.textContent = "TISKNE…";
     note.textContent = "podávám do tiskárny…";
     const konec = -(tapeIn.offsetHeight + 80);
     const tween = (to, dur, ease) => new Promise((res) => {
@@ -463,6 +479,8 @@
     await tween(konec, .95, "steps(14)");            // trhaně, jak jedou válečky
     pslot.classList.remove("feed");
     if (g()) g().fromTo(pslot, { y: 8 }, { y: 0, duration: .4, ease: "elastic.out(1, .4)" });
+    paperOut(); slotSt.textContent = "HOTOVO";
+    setTimeout(() => { if (!pslot.classList.contains("feed")) slotSt.textContent = "READY"; }, 1600);
     a.click();
     note.textContent = "proužek vytištěn";
     await tween(0, .75, "power3.out");               // a páska se vrátí nahoru
@@ -477,7 +495,8 @@
     const TEAR = 110;         // po kolika pixelech do strany to povolí
 
     tape.addEventListener("pointerdown", (e) => {
-      if (cutting) return;
+      if (cutting || feeding) return;
+      if (!e.target.closest(".tape-in")) return;   // vedle papíru necháme scrollovat stránku
       const f = e.target.closest(".tf");
       startX = e.clientX; startY = e.clientY; lastY = e.clientY; vel = 0; dragging = true;
       mode = null; frame = f || null;
@@ -486,6 +505,7 @@
     });
 
     tape.addEventListener("pointermove", (e) => {
+      if (!dragging) return;                       // páska se hýbe jen se stisknutým tlačítkem
       const dx = e.clientX - startX, dy = e.clientY - startY;
       if (!mode) {
         if (Math.hypot(dx, dy) < 8) return;
@@ -543,7 +563,7 @@
     }
 
     tape.addEventListener("pointermove", (e) => {
-      if (mode !== "hand") return;
+      if (!dragging || mode !== "hand") return;
       const host = view.getBoundingClientRect();
       hand.style.left = (e.clientX - host.left - hand.offsetWidth / 2) + "px";
       hand.style.top = (e.clientY - host.top - hand.offsetHeight / 2) + "px";

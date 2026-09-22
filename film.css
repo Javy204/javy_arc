@@ -806,9 +806,10 @@ body.beta-on .beta { display: block; }
 /* páska: svisle se posouvá tažením, vodorovný tah = střih */
 .fm-tape {
   position: relative; flex: 1; min-height: 0; overflow: hidden;
-  cursor: grab; touch-action: none; user-select: none;
+  user-select: none; touch-action: pan-y;        /* vedle papíru scrolluje normálně stránka */
 }
-.fm-tape:active { cursor: grabbing; }
+.tape-in { cursor: grab; touch-action: none; }   /* chytá se jen papír */
+.tape-in:active { cursor: grabbing; }
 .tape-in {
   position: absolute; left: 50%; top: 0; transform: translateX(-50%);
   width: min(38%, 240px); background: var(--bg); padding: 10px 10px 0;
@@ -857,21 +858,79 @@ body.beta-on .beta { display: block; }
 .inhand[hidden] { display: none; }
 .inhand img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
-/* štěrbina s válečky */
+/* ============ TERMOTISKÁRNA ============
+   ať je na první pohled jasné, že proužek se sem opravdu podává a tiskne */
 .pslot {
-  position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); z-index: 5;
-  width: min(46%, 300px); text-align: center; color: #f3f1ea; transition: transform .2s ease;
+  position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); z-index: 5;
+  width: min(52%, 320px); text-align: center; color: #f3f1ea;
+  transition: transform .22s cubic-bezier(.2, .8, .3, 1);
 }
+.pslot .lbl {
+  display: block; margin-bottom: 8px; font: 700 9px/1 var(--sans);
+  letter-spacing: .24em; opacity: .45; transition: opacity .2s ease;
+}
+/* tělo přístroje */
+.pslot .pbody {
+  display: block; position: relative; padding: 7px 9px 9px;
+  background: linear-gradient(#efece2 0%, #dcd7c9 62%, #c6c1b3 100%);
+  border-radius: 4px 4px 7px 7px; color: #17150f;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .6), inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -2px 0 rgba(0, 0, 0, .12);
+}
+.pslot .phead {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 7px;
+  font: 700 7px/1 var(--sans); letter-spacing: .18em; text-transform: uppercase;
+}
+.pslot .pname { opacity: .6; }
+.pslot .pst { margin-left: auto; opacity: .42; }
+.pslot .led {
+  width: 6px; height: 6px; border-radius: 50%; flex: none; background: #928d7e;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .3); transition: background .2s ease, box-shadow .2s ease;
+}
+/* trhací hrana nad štěrbinou */
+.pslot .teeth {
+  display: block; height: 5px; margin: 0 2px 2px; background: #aca696;
+  -webkit-mask-image: conic-gradient(from 135deg at 50% 0, #000 0 90deg, transparent 0);
+  mask-image: conic-gradient(from 135deg at 50% 0, #000 0 90deg, transparent 0);
+  -webkit-mask-size: 7px 100%; mask-size: 7px 100%;
+  -webkit-mask-repeat: repeat-x; mask-repeat: repeat-x;
+}
+/* štěrbina s válečky */
 .pslot .mouth {
-  display: flex; gap: 4px; align-items: center; justify-content: center;
-  height: 16px; background: #f3f1ea; overflow: hidden;
+  display: block; position: relative; height: 15px; overflow: hidden; background: #100f0c;
+  box-shadow: inset 0 3px 7px rgba(0, 0, 0, .95), inset 0 -1px 0 rgba(255, 255, 255, .08);
+  transition: box-shadow .2s ease;
 }
-.pslot .mouth i { width: 26%; height: 4px; background: #0d0c0b; opacity: .55; }
-.pslot .lbl { display: block; margin-top: 6px; font: 700 9px/1 var(--sans); letter-spacing: .24em; opacity: .75; }
-.pslot.hot { transform: translateX(-50%) scale(1.06); }
-.pslot.hot .mouth { box-shadow: 0 0 0 5px rgba(243,241,234,.28); }
-.pslot.feed .mouth i { animation: rollers .5s linear infinite; }
-@keyframes rollers { from { transform: translateX(0); } to { transform: translateX(10px); } }
+.pslot .mouth i {
+  position: absolute; left: -50%; top: 50%; width: 200%; height: 3px; margin-top: -1.5px;
+  background: repeating-linear-gradient(90deg, #6e6757 0 24px, transparent 24px 34px);
+}
+/* lístek, co po tisku vyjede ven */
+.pslot .paper {
+  position: absolute; left: 14px; right: 14px; top: calc(100% - 5px); height: 0; overflow: hidden;
+  transition: height .5s steps(9, end), opacity .3s ease, transform .45s ease;
+}
+.pslot .paper em {
+  display: block; position: relative; height: 48px;
+  background: linear-gradient(#f7f5ed, #e9e6da);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .5);
+}
+.pslot .paper em::after {           /* natištěné body, jako z termopapíru */
+  content: ""; position: absolute; inset: 6px 9px 9px;
+  background-image: radial-gradient(circle at 1px 1px, rgba(17, 16, 12, .8) .9px, transparent 1px);
+  background-size: 3px 3px; opacity: .5;
+}
+.pslot.out .paper { height: 48px; }
+.pslot.gone .paper { opacity: 0; transform: translateY(16px); }
+
+/* stavy */
+.pslot.hot { transform: translateX(-50%) translateY(-4px) scale(1.04); }
+.pslot.hot .lbl { opacity: 1; }
+.pslot.hot .mouth { box-shadow: inset 0 3px 7px rgba(0, 0, 0, .95), 0 0 0 4px rgba(243, 241, 234, .22); }
+.pslot.hot .led, .pslot.feed .led { background: #4fd98a; box-shadow: 0 0 9px rgba(79, 217, 138, .85), inset 0 0 0 1px rgba(0, 0, 0, .3); }
+.pslot.feed .led { animation: ledBlink .4s steps(2, end) infinite; }
+.pslot.feed .mouth i { animation: rollers .45s linear infinite; }
+@keyframes rollers { from { transform: translateX(0); } to { transform: translateX(34px); } }
+@keyframes ledBlink { 50% { opacity: .2; } }
 
 .fm-view-bar {
   flex: none; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
@@ -915,7 +974,7 @@ body.beta-on .beta { display: block; }
   .fm-bar { font-size: 9px; letter-spacing: .06em; }
   .fm-view-bar { gap: 6px; padding: 8px; }
   .tape-in { width: min(52%, 190px); }
-  .pslot { width: 64%; bottom: 2%; }
+  .pslot { width: 70%; bottom: 6%; }
   .inhand { width: 92px; }
   .fm-view-bar button, .fm-view-bar a { padding: 7px 8px; font-size: 9px; letter-spacing: .08em; }
 }

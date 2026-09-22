@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=105" />
+  <link rel="stylesheet" href="film.css?v=108" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -81,8 +81,8 @@
           <!-- 1) FOTOBUDKA -->
           <div class="fm-mode m-strip">
             <div class="fm-say" id="fmSayStrip">
-              <b>Čtyři snímky, jedna spoušť.</b>
-              <span>drátěná spoušť vpravo · podrž ji a stlač dolů · tvoje kamera, nic se nikam neukládá</span>
+              <b>Čtyři snímky, jedna mince.</b>
+              <span>zatáhni závěs · hoď ℗ do štěrbiny · tvoje kamera, nic se nikam neukládá</span>
             </div>
             <!-- hledáček: ukazuje přesně ten výřez, co skončí na fotce -->
             <div class="vf" id="fmVfr" hidden>
@@ -113,64 +113,22 @@
           <!-- vypadlé proužky: fyzika, dají se chytat a rozkliknout -->
           <div class="fm-pile" id="fmPile"></div>
 
-          <!-- drátěná spoušť: palcem podržet a stlačit dolů, teprve pak cvakne -->
-          <div class="crel" id="fmRel">
-            <span class="crel-lbl" id="fmRelLbl">PODRŽ A STLAČ ↓</span>
-            <button class="crel-btn" id="fmRelBtn" type="button" aria-label="Spoušť — podrž ji a stlač dolů">
-              <svg class="crel-head" viewBox="0 0 120 152" width="120" height="152" aria-hidden="true">
-                <defs>
-                  <!-- rastr jako na termopapíru: stínování je z teček, ne z přechodů -->
-                  <pattern id="crDA" width="4" height="4" patternUnits="userSpaceOnUse">
-                    <circle cx="2" cy="2" r="1" fill="#fff"/>
-                  </pattern>
-                  <pattern id="crDB" width="3" height="3" patternUnits="userSpaceOnUse">
-                    <circle cx="1.5" cy="1.5" r="1.15" fill="#fff"/>
-                  </pattern>
-                  <clipPath id="crClip"><rect x="0" y="0" width="120" height="52"/></clipPath>
-                </defs>
+          <!-- fotobudka: nejdřív zatáhni závěs, pak hoď minci do automatu -->
+          <div class="booth" id="fmBooth" data-step="curtain">
+            <span class="rail"></span>
+            <div class="curt" id="fmCurt"><span class="hem"></span><span class="grip"></span></div>
+            <span class="booth-hint" id="fmBoothHint">ZATÁHNI ZÁVĚS ←</span>
 
-                <g fill="#000" stroke="#fff" stroke-width="2.2" stroke-linejoin="round">
-                  <!-- kónický chránič kabelu -->
-                  <path d="M47 121 L73 121 L67 150 L53 150 Z"/>
-                  <path d="M60 121 L57 150" stroke-width="1.2" opacity=".7"/>
-                  <!-- rýhovaný váleček -->
-                  <rect x="46" y="57" width="28" height="64" rx="2"/>
-                  <g stroke-width="1.4">
-                    <path d="M47 68 H73"/><path d="M47 74 H73"/><path d="M47 80 H73"/>
-                    <path d="M47 86 H73"/><path d="M47 92 H73"/><path d="M47 98 H73"/>
-                    <path d="M47 104 H73"/><path d="M47 110 H73"/>
-                  </g>
-                  <!-- pojistný kroužek: plná linka, ať je jasné, kde to končí -->
-                  <rect x="41" y="45" width="38" height="11" rx="1.5" fill="#fff"/>
-                </g>
-                <!-- stín z rastru na jedné straně válečku -->
-                <rect x="64" y="59" width="8" height="60" fill="url(#crDA)"/>
-                <rect x="61" y="123" width="5" height="25" fill="url(#crDA)"/>
-
-                <!-- píst: kotouč na jehle, zajede pod kroužek -->
-                <g class="plunger" id="crPlunger" clip-path="url(#crClip)">
-                  <g fill="#000" stroke="#fff" stroke-width="2.2" stroke-linejoin="round">
-                    <rect x="56" y="24" width="8" height="28"/>
-                    <rect x="42" y="10" width="36" height="14" rx="2"/>
-                    <g stroke-width="1.4">
-                      <path d="M48 14 V20"/><path d="M54 14 V20"/><path d="M60 14 V20"/>
-                      <path d="M66 14 V20"/><path d="M72 14 V20"/>
-                    </g>
-                  </g>
-                  <rect x="70" y="12" width="6" height="10" fill="url(#crDB)"/>
-                </g>
-              </svg>
-            </button>
-
-            <!-- opletený kabel, mizí dolů z plochy -->
-            <svg class="crel-cable" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
-              <path d="M60 0 C60 22 36 34 38 58 C40 82 76 88 71 120" fill="none"
-                    stroke="#fff" stroke-width="10.4" stroke-linecap="round"/>
-              <path d="M60 0 C60 22 36 34 38 58 C40 82 76 88 71 120" fill="none"
-                    stroke="#000" stroke-width="7.2" stroke-linecap="round"/>
-              <path d="M60 0 C60 22 36 34 38 58 C40 82 76 88 71 120" fill="none"
-                    stroke="#fff" stroke-width="7.2" stroke-dasharray="1.7 5"/>
-            </svg>
+            <div class="cpanel" id="fmCpanel" hidden>
+              <div class="cplate">
+                <span class="cslot" id="fmCslot"><i></i></span>
+                <span class="cplate-lbl">VHOĎ MINCI</span>
+                <span class="cplate-sub">JAVY · FOTOMAT · 1 PROUŽEK · 4 SNÍMKY</span>
+              </div>
+              <button class="coin" id="fmCoin" type="button" aria-label="Mince — přetáhni ji nahoru do štěrbiny">
+                <span class="coin-face">℗</span>
+              </button>
+            </div>
           </div>
 
           <!-- detail proužku: svisle se posouvá tahem, vodorovným tahem se stříhá -->
@@ -206,7 +164,7 @@
         </div>
 
         <div class="fm-bar">
-          <span id="fmNote">podrž spoušť a stlač ji dolů</span>
+          <span id="fmNote">zatáhni závěs a hoď minci</span>
           <span class="fm-btns">
             <button type="button" id="fmShoot" hidden>SPOUŠŤ</button>
             <a id="fmSave" hidden download="javy-fotomat.jpg">ULOŽIT ↓</a>
@@ -286,7 +244,7 @@
   <script src="film.js?v=81"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=31" defer></script>
+  <script src="lab/fotomat.js?v=34" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

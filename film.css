@@ -744,7 +744,7 @@ body.beta-on .beta { display: block; }
 .fm.live .fm-slot .tag { opacity: 0; }
 
 /* hledáček — díra 3:4 přes celou výšku; přesně tolik se ořízne na fotku */
-.vf { position: absolute; inset: 0; pointer-events: none; }
+.vf { position: absolute; inset: 0; pointer-events: none; z-index: 7; }
 .vf[hidden] { display: none; }
 .vf-hole {
   position: absolute; left: 50%; top: 0; height: 100%; aspect-ratio: 3 / 4;
@@ -779,46 +779,98 @@ body.beta-on .beta { display: block; }
 .m-neg .fm-say { left: 14%; bottom: 8%; width: 70%; }
 
 .fm-count {
-  position: absolute; inset: 0; display: grid; place-items: center;
+  position: absolute; inset: 0; display: grid; place-items: center; z-index: 7;
   font: 900 clamp(60px, 12vw, 160px)/1 var(--sans); color: #f3f1ea;
   mix-blend-mode: difference; pointer-events: none;
 }
 .fm-count[hidden] { display: none; }
-.fm-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.fm-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 7; }
 
-/* ============ DRÁTĚNÁ SPOUŠŤ ============
-   Kotouč na jehle, pojistný kroužek, rýhovaný váleček, kónický chránič
-   a opletený kabel — kreslené v SVG, ať to má správné proporce.
-   Musíš ji podržet a stlačit dolů; teprve na doraz to cvakne. */
-.crel {
-  position: absolute; right: 5%; bottom: 0; z-index: 4;
-  display: flex; flex-direction: column; align-items: center;
-  color: #fff; mix-blend-mode: difference;   /* kresba v inkoustu na papíru, přes živý obraz se obrátí */
+/* ============ FOTOBUDKA: ZÁVĚS + MINCE ============
+   Rituál místo tlačítka — zatáhneš závěs (jsi uvnitř), hodíš minci
+   do automatu a teprve pak se závěs rozhrne a budka fotí. */
+.booth { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.booth .rail {                                   /* garnýž nad závěsem */
+  position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--ink);
+}
+.curt {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 100%;
+  transform: translateX(78%); pointer-events: auto; cursor: grab;
+  touch-action: pan-y;                           /* svisle ať stránka scrolluje dál, my chceme jen vodorovný tah */
+  background: repeating-linear-gradient(90deg,
+    #0a0907 0 15px, #16140f 15px 23px, #232018 23px 27px, #16140f 27px 36px);
+  box-shadow: -18px 0 40px rgba(0, 0, 0, .45);
+}
+.curt:active { cursor: grabbing; }
+.curt::before {                                  /* kroužky na garnýži */
+  content: ""; position: absolute; top: -7px; left: 0; right: 0; height: 14px;
+  background-image: radial-gradient(circle at 8px 7px, transparent 3.1px, var(--bg) 3.3px, var(--bg) 5.4px, transparent 5.6px);
+  background-size: 26px 14px;
+}
+.curt .hem {                                     /* přední lem látky */
+  position: absolute; left: 0; top: 0; bottom: 0; width: 13px;
+  background: linear-gradient(90deg, #3a3529, #0a0907);
+}
+.curt .grip {                                    /* místo, kde se za závěs chytá */
+  position: absolute; left: 16px; top: 50%; width: 14px; height: 74px; margin-top: -37px;
+  border: 2px solid rgba(243, 241, 234, .5); border-radius: 8px;
+}
+.booth-hint {
+  position: absolute; right: 24%; top: 50%; transform: translateY(-50%);
+  font: 700 10px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase;
+  color: #fff; mix-blend-mode: difference; white-space: nowrap;
   transition: opacity .25s ease;
 }
-.crel.off { opacity: .32; pointer-events: none; }
-.crel-lbl {
-  margin-bottom: 10px; font: 700 9px/1 var(--sans); letter-spacing: .2em;
-  text-transform: uppercase; opacity: .72; white-space: nowrap;
-  transition: opacity .2s ease;
-}
-.crel:hover .crel-lbl, .crel.hold .crel-lbl { opacity: 1; }
-.crel.fired .crel-lbl { opacity: 1; letter-spacing: .32em; }
-.crel-btn {
-  appearance: none; border: 0; padding: 0; background: none; position: relative;
-  display: block; line-height: 0; cursor: grab;
-  touch-action: none; -webkit-tap-highlight-color: transparent;
-}
-.crel-btn:active { cursor: grabbing; }
-.crel-btn::before { content: ""; position: absolute; inset: -12px -14px -6px; }  /* palec chce víc místa */
-.crel-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
-.crel-head, .crel-cable { display: block; overflow: visible; }
-.crel-cable { margin-top: -1px; }
-.plunger { transition: transform .5s cubic-bezier(.18, 1.5, .4, 1); }   /* doskok pružiny */
-.crel.hold .plunger { transition: none; }
+.booth[data-step="coin"] .booth-hint, .booth[data-step="shoot"] .booth-hint { opacity: 0; }
+.booth[data-step="shoot"] .curt, .booth[data-step="shoot"] .rail,
+.booth[data-step="shoot"] .curt::before { pointer-events: none; }
 
-/* ---------- hromada proužků ---------- */
-.fm-pile { position: absolute; inset: 0; overflow: hidden; }
+/* panel automatu, co se objeví za zataženým závěsem */
+.cpanel { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.cpanel[hidden] { display: none; }
+.cplate {
+  position: relative; width: min(52%, 280px); padding: 20px 22px 18px; text-align: center;
+  background: var(--bg); color: var(--ink); box-shadow: 0 22px 60px rgba(0, 0, 0, .65);
+}
+.cslot {                                         /* štěrbina na mince */
+  display: block; width: 62%; height: 15px; margin: 0 auto 14px; position: relative;
+  border: 2.5px solid var(--ink); border-radius: 9px; background: var(--bg);
+}
+.cslot i {
+  position: absolute; inset: 3px 6px; background: var(--ink); border-radius: 4px;
+}
+.cslot.hot { box-shadow: 0 0 0 4px rgba(12, 11, 9, .18); }
+.cslot.in i { animation: coinIn .45s steps(5, end); }
+@keyframes coinIn { 0% { transform: scaleY(1); } 50% { transform: scaleY(.45); } 100% { transform: scaleY(1); } }
+.cplate-lbl { display: block; font: 900 14px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+.cplate-sub { display: block; margin-top: 7px; font: 700 8px/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase; opacity: .5; }
+
+/* mince s ℗ značkou */
+.coin {
+  position: absolute; left: 50%; bottom: 13%; margin: 0; padding: 0;
+  width: 58px; height: 58px; border-radius: 50%; pointer-events: auto;
+  transform: translate(-50%, 0); transform-origin: 50% 50%;
+  background: var(--bg); color: var(--ink); border: 3px solid var(--ink);
+  cursor: grab; touch-action: none; -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .5);
+  transition: transform .45s cubic-bezier(.2, 1.4, .4, 1), box-shadow .2s ease;
+}
+.coin:active, .booth.drag .coin { cursor: grabbing; transition: none; }
+.coin::before {                                  /* vroubkovaný okraj */
+  content: ""; position: absolute; inset: 2px; border-radius: 50%;
+  background: repeating-conic-gradient(var(--ink) 0 2.2deg, transparent 2.2deg 7deg);
+  -webkit-mask-image: radial-gradient(circle, transparent 20px, #000 20px);
+  mask-image: radial-gradient(circle, transparent 20px, #000 20px);
+  opacity: .55;
+}
+.coin-face {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font: 900 21px/1 var(--sans);
+}
+.coin:focus-visible { outline: 2px solid var(--bg); outline-offset: 4px; }
+
+/* ---------- hromada proužků ---------- *//* ---------- hromada proužků ---------- */
+.fm-pile { position: absolute; inset: 0; overflow: hidden; z-index: 6; }
 .fm-pile .pc {
   position: absolute; left: 0; top: 0; will-change: transform; cursor: grab;
   box-shadow: 0 10px 30px rgba(12, 11, 9, .28); background: var(--bg);
@@ -830,7 +882,7 @@ body.beta-on .beta { display: block; }
 .fm-pile .pc:hover { box-shadow: 0 18px 44px rgba(12, 11, 9, .42); filter: brightness(1.06); }
 
 /* ---------- detail proužku ---------- */
-.fm-view { position: absolute; inset: 0; z-index: 6; background: rgba(8, 8, 7, .94); display: flex; flex-direction: column; }
+.fm-view { position: absolute; inset: 0; z-index: 8; background: rgba(8, 8, 7, .94); display: flex; flex-direction: column; }
 .fm-view[hidden] { display: none; }
 
 /* páska: svisle se posouvá tažením, vodorovný tah = střih */
@@ -1005,10 +1057,9 @@ body.beta-on .beta { display: block; }
   .fm-view-bar { gap: 6px; padding: 8px; }
   .tape-in { width: min(52%, 190px); }
   .pslot { width: 70%; bottom: 6%; }
-  .crel { right: 4%; }
-  .crel-lbl { font-size: 8px; letter-spacing: .14em; }
-  .crel-head { width: 96px; height: 122px; }
-  .crel-cable { width: 96px; height: 96px; }
+  .cplate { width: 74%; padding: 16px 16px 14px; }
+  .coin { width: 64px; height: 64px; bottom: 11%; }
+  .booth-hint { right: 22%; font-size: 9px; letter-spacing: .16em; }
   .inhand { width: 92px; }
   .fm-view-bar button, .fm-view-bar a { padding: 7px 8px; font-size: 9px; letter-spacing: .08em; }
 }

@@ -144,7 +144,7 @@
   } catch (e) {}
   let video = null, stream = null, live = false, busy = false, shots = [];
   let testImg = null, mode = "strip", visible = false;
-  const HINT = "podrž spoušť a stlač ji dolů";
+  const HINT = "zatáhni závěs a hoď minci";
 
   const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
   const shootB = $("#fmShoot"), saveA = $("#fmSave"), againB = $("#fmAgain");
@@ -342,7 +342,7 @@
     const made = await composeStrip(shots);
     closeCam(); vfr.hidden = true;
     await ejectStrip(made, { url: made.url, shots: shots.slice() });
-    note.textContent = "chyť ho, nebo na něj klikni · další focení spouští";
+    note.textContent = "chyť ho, nebo na něj klikni · další focení zase závěsem";
     busy = false;
   }
   async function runNeg() {
@@ -359,82 +359,162 @@
     $("#fmNeg").appendChild(im);
     host.classList.remove("live");
     saveA.href = url; saveA.hidden = false; againB.hidden = false; shootB.hidden = true;
-    note.textContent = "hotovo"; closeCam(); busy = false; relReset();
+    note.textContent = "hotovo"; closeCam(); busy = false;
   }
   shootB.addEventListener("click", shootNeg);
   againB.addEventListener("click", () => {
     $("#fmNeg").querySelectorAll("img").forEach((i) => i.remove());
     saveA.hidden = true; againB.hidden = true; shootB.hidden = true;
-    note.textContent = HINT;
+    note.textContent = HINT; boothReset();
   });
 
   /* ============================================================
-     DRÁTĚNÁ SPOUŠŤ
+     FOTOBUDKA: ZÁVĚS → MINCE
        Klikem do plochy se dřív fotilo omylem a nikdo netušil, kde se
-       to spouští. Teď je to hmatatelné tlačítko: podržet palcem
-       a stlačit dolů — poslední kus jde ztuha a na doraz to cvakne.
+       to spouští. Teď je to rituál jako u opravdového automatu:
+       zatáhneš závěs (jsi uvnitř) a hodíš do štěrbiny minci.
      ============================================================ */
-  const rel = $("#fmRel"), relBtn = $("#fmRelBtn"), relLbl = $("#fmRelLbl");
-  const relCap = rel.querySelector(".plunger");
-  const REL = 14;                      // dráha pístu (jednotky SVG = px)
-  const PUSH = 38;                     // kolik musí ujet prst, než to cvakne
-  let relDown = false, relFired = false, relY = 0, relMoved = false;
+  const booth = $("#fmBooth"), curt = $("#fmCurt"), bHint = $("#fmBoothHint");
+  const cpanel = $("#fmCpanel"), coin = $("#fmCoin"), cslot = $("#fmCslot");
+  const OPEN = 78;                       // otevřený závěs = odhrnutý na 78 % šířky
+  const cl = (v, a, b) => Math.max(a, Math.min(b, v));
+  let curX = OPEN, curDrag = false, curFrom = 0, curSX = 0, boothBusy = false;
+  let coinDrag = false, coinSX = 0, coinSY = 0, coinDX = 0, coinDY = 0;
 
-  // pozor: hlavicí hýbeme přímo přes style.transform, doskok řeší CSS přechod
-  // (.crel.hold ho vypíná) — GSAP by si s ručním zápisem transformu tloukl
-  function relSet(d) { relCap.style.transform = `translateY(${d.toFixed(1)}px)`; }
-  function relReset() {
-    relFired = false; relDown = false;
-    rel.classList.remove("hold", "fired", "off");
-    relLbl.textContent = "PODRŽ A STLAČ ↓";
-    relSet(0);
+  function curtSet(p, anim) {
+    curX = cl(p, 0, OPEN);
+    curt.style.transition = anim ? "transform .55s cubic-bezier(.22,.9,.24,1)" : "none";
+    curt.style.transform = `translateX(${curX.toFixed(2)}%)`;
   }
-  async function relFire() {
-    if (relFired || busy) return;
-    relFired = true;
-    relSet(REL);
-    rel.classList.add("fired"); relLbl.textContent = "CVAK";
-    if (g()) g().fromTo(rel, { y: 3 }, { y: 0, duration: .45, ease: "elastic.out(1, .35)" });
-    try { navigator.vibrate && navigator.vibrate(18); } catch (e) {}
-    rel.classList.add("off");
-    if (mode === "strip") await runStrip();
-    else if (!live) { await runNeg(); }
-    else await shootNeg();
-    relReset();
+  function boothReset() {
+    boothBusy = false;
+    booth.dataset.step = "curtain";
+    cpanel.hidden = true;
+    // mince po vhození zůstala zmenšená a průhledná — vrať ji do původního stavu
+    coinDX = coinDY = 0;
+    if (g()) g().set(coin, { clearProps: "all" });
+    coin.style.opacity = ""; coin.style.transform = "translate(-50%, 0)";
+    cslot.classList.remove("hot", "in");
+    curtSet(OPEN, true);
+    bHint.textContent = "ZATÁHNI ZÁVĚS ←";
   }
 
-  relBtn.addEventListener("pointerdown", (e) => {
-    if (busy || relFired) return;
-    relDown = true; relMoved = false; relY = e.clientY;
-    rel.classList.add("hold"); relLbl.textContent = "TEĎ DOLŮ ↓";
-    try { relBtn.setPointerCapture(e.pointerId); } catch (x) {}
+  /* ---- 1) závěs ---- */
+  curt.addEventListener("pointerdown", (e) => {
+    if (boothBusy || booth.dataset.step !== "curtain") return;
+    curDrag = true; curSX = e.clientX; curFrom = curX;
+    try { curt.setPointerCapture(e.pointerId); } catch (x) {}
+    bHint.textContent = "TÁHNI DOLEVA ←";
   });
-  relBtn.addEventListener("pointermove", (e) => {
-    if (!relDown || relFired) return;
-    const raw = Math.max(0, e.clientY - relY);
-    if (raw > 3) relMoved = true;
-    const t = Math.min(1, raw / PUSH);
-    relSet(REL * (1 - Math.pow(1 - t, 1.8)));      // ke konci to jde ztuha
-    if (t >= 1) relFire();
+  curt.addEventListener("pointermove", (e) => {
+    if (!curDrag) return;
+    const w = host.clientWidth || 1;
+    curtSet(curFrom + ((e.clientX - curSX) / w) * 100, false);
   });
-  const relUp = () => {
-    if (!relDown) return;
-    relDown = false;
-    if (relFired) return;
-    rel.classList.remove("hold");
-    relLbl.textContent = relMoved ? "AŽ NA DORAZ ↓" : "PODRŽ A STLAČ ↓";
-    relSet(0);
-    setTimeout(() => { if (!relDown && !relFired) relLbl.textContent = "PODRŽ A STLAČ ↓"; }, 1600);
+  const curtUp = () => {
+    if (!curDrag) return; curDrag = false;
+    // stačí pořádně škubnout — zbytek dojede sám, jako opravdový závěs
+    if (OPEN - curX >= 13) closeCurtain();
+    else { curtSet(OPEN, true); bHint.textContent = "ZATÁHNI ZÁVĚS ←"; }
   };
-  relBtn.addEventListener("pointerup", relUp);
-  relBtn.addEventListener("pointercancel", relUp);
-  relBtn.addEventListener("click", (e) => e.preventDefault());
-  relBtn.addEventListener("keydown", (e) => {      // klávesnice: stlač to za uživatele
-    if (e.key !== "Enter" && e.key !== " ") return;
-    e.preventDefault();
-    if (busy || relFired) return;
-    relSet(REL); relFire();
+  curt.addEventListener("pointerup", curtUp);
+  curt.addEventListener("pointercancel", curtUp);
+  curt.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); closeCurtain(); }
   });
+  curt.tabIndex = 0;
+  curt.setAttribute("role", "button");
+  curt.setAttribute("aria-label", "Závěs fotobudky — zatáhni ho");
+
+  function closeCurtain() {
+    if (boothBusy) return;
+    if (g()) {                                    // dojede sám a ťukne o stěnu
+      const st = { v: curX };
+      g().to(st, { v: 0, duration: .7, ease: "back.out(1.5)",
+        onUpdate: () => { curX = st.v; curt.style.transition = "none"; curt.style.transform = `translateX(${st.v.toFixed(2)}%)`; } });
+    } else curtSet(0, true);
+    booth.dataset.step = "coin";
+    note.textContent = "hoď minci do štěrbiny";
+    setTimeout(() => {
+      cpanel.hidden = false;
+      if (g()) {
+        g().fromTo(cpanel.querySelector(".cplate"), { y: -14, opacity: 0 }, { y: 0, opacity: 1, duration: .45, ease: "power3.out" });
+        g().fromTo(coin, { scale: .3, opacity: 0 }, { scale: 1, opacity: 1, duration: .5, ease: "back.out(2)", delay: .12,
+          onComplete: () => { coin.style.transform = "translate(-50%, 0)"; } });
+      }
+    }, 380);
+  }
+
+  /* ---- 2) mince ---- */
+  const coinSet = () => (coin.style.transform = `translate(-50%, 0) translate(${coinDX.toFixed(1)}px, ${coinDY.toFixed(1)}px) rotate(${(coinDX * .25).toFixed(1)}deg)`);
+  const overCoinSlot = (x, y) => {
+    const r = cslot.getBoundingClientRect();
+    return x > r.left - 46 && x < r.right + 46 && y > r.top - 46 && y < r.bottom + 46;
+  };
+  coin.addEventListener("pointerdown", (e) => {
+    if (boothBusy || booth.dataset.step !== "coin") return;
+    coinDrag = true; coinSX = e.clientX; coinSY = e.clientY;
+    booth.classList.add("drag");
+    try { coin.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  coin.addEventListener("pointermove", (e) => {
+    if (!coinDrag) return;
+    coinDX = e.clientX - coinSX; coinDY = e.clientY - coinSY;
+    coinSet();
+    cslot.classList.toggle("hot", overCoinSlot(e.clientX, e.clientY));
+  });
+  const coinUp = (e) => {
+    if (!coinDrag) return; coinDrag = false;
+    booth.classList.remove("drag");
+    if (overCoinSlot(e.clientX, e.clientY)) { insertCoin(); return; }
+    coinDX = coinDY = 0; coinSet();               // mimo štěrbinu se vrátí zpátky
+    cslot.classList.remove("hot");
+  };
+  coin.addEventListener("pointerup", coinUp);
+  coin.addEventListener("pointercancel", coinUp);
+  coin.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); insertCoin(); }
+  });
+
+  async function insertCoin() {
+    if (boothBusy || booth.dataset.step !== "coin") return;
+    boothBusy = true;
+    cslot.classList.remove("hot");
+    const cr = coin.getBoundingClientRect(), sr = cslot.getBoundingClientRect();
+    note.textContent = "mince spadla…";
+    if (g()) {
+      // doletí ke štěrbině, postaví se na hranu a zajede dovnitř
+      await g().timeline()
+        .to(coin, { x: `+=${sr.left + sr.width / 2 - (cr.left + cr.width / 2)}`,
+                    y: `+=${sr.top + sr.height / 2 - (cr.top + cr.height / 2)}`,
+                    rotate: 380, duration: .42, ease: "power2.in" })
+        .to(coin, { scaleX: .12, duration: .16, ease: "power2.in" })
+        .add(() => cslot.classList.add("in"))
+        .to(coin, { scaleY: .1, opacity: 0, duration: .22, ease: "power2.in" })
+        .then();
+    }
+    coin.style.opacity = "0";
+    // zarachocení uvnitř automatu
+    if (g()) {
+      const plate = cpanel.querySelector(".cplate");
+      await g().timeline()
+        .to(plate, { x: -3, duration: .05 }).to(plate, { x: 3, duration: .05 })
+        .to(plate, { x: -2, duration: .05 }).to(plate, { x: 0, duration: .16, ease: "elastic.out(1,.4)" })
+        .then();
+    }
+    note.textContent = "budka se probouzí…";
+    await wait(220);
+    // závěs se rozhrne a objektiv se na tebe podívá
+    booth.dataset.step = "shoot";
+    if (g()) g().to(cpanel, { opacity: 0, duration: .25, onComplete: () => { cpanel.hidden = true; cpanel.style.opacity = ""; } });
+    curtSet(OPEN, true);
+    await wait(520);
+    if (mode === "strip") await runStrip();
+    else await runNeg();
+    boothReset();
+  }
+
+  boothReset();
 
   /* ============================================================
      DETAIL PROUŽKU — páska: svisle se posouvá tahem,
@@ -845,6 +925,6 @@
   addEventListener("resize", () => { if (engine) buildWalls(); });
   new IntersectionObserver((es) => es.forEach((e) => {
     visible = e.isIntersecting;
-    if (!visible && live) { closeCam(); note.textContent = HINT; busy = false; relReset(); }
+    if (!visible && live) { closeCam(); note.textContent = HINT; busy = false; boothReset(); }
   }), { threshold: .15 }).observe(scene);
 })();

@@ -71,7 +71,7 @@
         const pick = Array.from({ length: n }, (_, i) =>
           all[Math.round((i * (all.length - 1)) / (n - 1))]);
         document.getElementById("sheet").innerHTML = pick
-          .map((f) => `<figure class="fr"><img alt="" loading="lazy" src="photos/${f}"></figure>`)
+          .map((f) => `<figure class="fr"><img alt="" loading="lazy" decoding="async" src="photos/${f}"></figure>`)
           .join("");
       } catch (e) { /* bez proužku */ }
     })();

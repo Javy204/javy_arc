@@ -47,7 +47,7 @@ const clampN = (x, a, b) => Math.max(a, Math.min(b, x));
 let SETS = [];
 let wiEls = [], wiSlots = [], workActive = -1;
 let workMode = localStorage.getItem("javy-workmode3") || "C";   // "A" film/overlap · "B" film/magazín · "C" horizontální pás (výchozí)
-let SCENES = [], SCENE_NAMES = [];
+let SCENES = [], SCENE_NAMES = [], SCENE_INNER = [], SCENE_PARS = [];
 let ITEMS = [], FRAMES = [], centers = [];
 let targetX = 0, currentX = 0, minX = 0, maxX = 0;
 let vw = window.innerWidth || document.documentElement.clientWidth;
@@ -114,6 +114,14 @@ function warmInBackground(urls, batch) {
     slice.forEach((u) => { const img = new Image(); img.onload = img.onerror = () => { if (--left === 0) setTimeout(next, 120); }; img.src = u; });
   };
   next();
+}
+
+// přichystej prvních pár fotek alba (najetí myší / otevření) — ne celé portfolio
+const warmed = new Set();
+function warmSet(set, n) {
+  if (!set || warmed.has(set)) return; warmed.add(set);
+  const urls = (set.isGroup ? (set.shoots || []).flatMap((sh) => sh.images || []) : (set.images || [])).slice(0, n || 8);
+  warmInBackground(urls, 3);
 }
 
 /* ---- fit-to-width (squished/stretched přes šířku) ---- */
@@ -260,14 +268,8 @@ function renderWorkIndex() {
     w.addEventListener("mouseenter", () => setWorkActive(i));
     w.addEventListener("click", () => openShoot(i));
     slot.appendChild(w);
-    // varianta A: řádek náhledů (místo rezervované vždy, plní se až při zaostření)
-    const th = document.createElement("div"); th.className = "wi-thumbs";
-    sampleImages(imagesOf(set), 5).forEach((src) => {
-      const im = document.createElement("img");
-      im.loading = "lazy"; im.alt = ""; im.src = src;
-      th.appendChild(im);
-    });
-    slot.appendChild(th);
+    // náhledy se sem kdysi vešly, ale .work-list je v CSS natrvalo display:none
+    // → stahovalo se 55 fotek pro rozložení, které nikdo nikdy neuvidí
     workIndex.appendChild(slot); wiEls.push(w); wiSlots.push(slot);
   });
   workMeta.textContent = `${SETS.length} SETS · ${SETS.reduce((n, s) => n + (s.count || imagesOf(s).length), 0)} SHOTS`;
@@ -282,10 +284,11 @@ function renderWorkH() {
     const it = document.createElement("div"); it.className = "wh-item";
     const shots = set.count || imgs.length;
     it.innerHTML =
-      `<div class="wh-frame"><img class="wh-ph" alt="" src="${coverOf(set) || imgs[0] || ""}"></div>` +
+      `<div class="wh-frame"><img class="wh-ph" alt="" decoding="async" src="${coverOf(set) || imgs[0] || ""}"></div>` +
       `<div class="wh-name"><span class="wh-name-i">${set.title}</span></div>` +
       `<div class="wh-meta"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""}</span></div>`;
     it.addEventListener("click", () => openShoot(i));
+    it.addEventListener("pointerenter", () => warmSet(set), { once: true });
     whTrack.appendChild(it); whEls.push(it);
     // šířka panelu = poměr stran fotky × výška → fotka celá, nic oříznutého
     const img = it.querySelector(".wh-ph");
@@ -454,7 +457,9 @@ let sActs = [];        // kontaktní kopie po aktech: {act, items:[el]}
 let ixActs = [], ixBackLayers = [], ixBackI = -1, ixActive = -1, ixRail = [];   // INDEX
 let arActs = [], arNames = [], arPrevLayers = [], arPrevI = -1, arActive = -1;   // ARCHIV
 let mkActs = [];   // MAKRO
+let wfBuilt = false;          // filmové rozložení je za beta přepínačem — stavíme ho až je potřeba
 function renderWorkFilm() {
+  wfBuilt = true;
   if (!workFilm) return;
   wfPhone = isPhone();
   const L = LAYOUTS[wfLayout] || LAYOUTS.K;
@@ -469,20 +474,20 @@ function renderWorkFilm() {
     const act = document.createElement("section"); act.className = "act";
     let run = "";
     if (L.kind === "collage") {
-      run = r.map((src, k) => `<div class="wf-ph cph" style="z-index:${k + 1}"><img alt="" src="${src}"></div>`).join("");
+      run = r.map((src, k) => `<div class="wf-ph cph" style="z-index:${k + 1}"><img alt="" decoding="async" src="${src}"></div>`).join("");
     } else if (L.kind === "grid") {
       run = r.map((src, k) => {
         const sl = L.slots[k % L.slots.length];
-        return `<div class="wf-ph gph" style="grid-column:${sl.c} / span ${sl.n}"><img alt="" loading="lazy" src="${src}"></div>`;
+        return `<div class="wf-ph gph" style="grid-column:${sl.c} / span ${sl.n}"><img alt="" decoding="async" loading="lazy" src="${src}"></div>`;
       }).join("");
     } else if (L.kind === "sheet") {
-      run = r.map((src) => `<div class="wf-ph sph"><img alt="" loading="lazy" src="${src}"></div>`).join("");
+      run = r.map((src) => `<div class="wf-ph sph"><img alt="" decoding="async" loading="lazy" src="${src}"></div>`).join("");
     } else if (L.kind === "archive") {
       run =
         `<div class="ar-row">` +
           `<div class="ar-head"><div class="ar-num">${pad2(i + 1)}</div><div class="ar-title">${set.title}</div></div>` +
           `<div class="ar-thumbs">` +
-            r.map((src) => `<figure class="wf-ph ar-th"><img alt="" loading="lazy" src="${src}"></figure>`).join("") +
+            r.map((src) => `<figure class="wf-ph ar-th"><img alt="" decoding="async" loading="lazy" src="${src}"></figure>`).join("") +
           `</div>` +
         `</div>`;
     } else if (L.kind === "macro") {
@@ -491,7 +496,7 @@ function renderWorkFilm() {
       run =
         `<div class="mk-stage">` +
           `<div class="mk-num">${pad2(i + 1)}</div>` +
-          `<div class="wf-ph mk-frame"><img alt="" src="${r[0] || hero}"></div>` +
+          `<div class="wf-ph mk-frame"><img alt="" decoding="async" src="${r[0] || hero}"></div>` +
           `<div class="mk-name">${chars}</div>` +
           `<div class="mk-corner mk-tl">(SHOOT ${pad2(i + 1)})</div>` +
           `<div class="mk-corner mk-tr">(${shots} SHOTS)</div>` +
@@ -504,17 +509,17 @@ function renderWorkFilm() {
       run =
         `<div class="ix-row">` +
           `<div class="ix-cluster">` +
-            `<div class="wf-ph ix-tile"><img alt="" src="${r[0] || hero}"></div>` +
-            (r[1] ? `<div class="wf-ph ix-sub ix-sub-a"><img alt="" loading="lazy" src="${r[1]}"></div>` : "") +
-            (r[2] ? `<div class="wf-ph ix-sub ix-sub-b"><img alt="" loading="lazy" src="${r[2]}"></div>` : "") +
+            `<div class="wf-ph ix-tile"><img alt="" decoding="async" src="${r[0] || hero}"></div>` +
+            (r[1] ? `<div class="wf-ph ix-sub ix-sub-a"><img alt="" decoding="async" loading="lazy" src="${r[1]}"></div>` : "") +
+            (r[2] ? `<div class="wf-ph ix-sub ix-sub-b"><img alt="" decoding="async" loading="lazy" src="${r[2]}"></div>` : "") +
             `<div class="ix-name"><span class="ix-name-i">${set.title}</span></div>` +
           `</div>` +
           `<div class="ix-meta-line"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SNÍMKŮ</span><span>OTEVŘÍT ↗</span></div>` +
         `</div>`;
     } else {
-      if (r[0]) run += `<div class="wf-ph wf-solo reveal"><img alt="" src="${r[0]}"></div>`;
-      if (r[1] || r[2]) run += `<div class="wf-row">${r[1] ? `<div class="wf-ph reveal"><img alt="" src="${r[1]}"></div>` : ""}${r[2] ? `<div class="wf-ph reveal"><img alt="" src="${r[2]}"></div>` : ""}</div>`;
-      if (r[3]) run += `<div class="wf-ph wf-tail reveal"><img alt="" src="${r[3]}"></div>`;
+      if (r[0]) run += `<div class="wf-ph wf-solo reveal"><img alt="" decoding="async" src="${r[0]}"></div>`;
+      if (r[1] || r[2]) run += `<div class="wf-row">${r[1] ? `<div class="wf-ph reveal"><img alt="" decoding="async" src="${r[1]}"></div>` : ""}${r[2] ? `<div class="wf-ph reveal"><img alt="" decoding="async" src="${r[2]}"></div>` : ""}</div>`;
+      if (r[3]) run += `<div class="wf-ph wf-tail reveal"><img alt="" decoding="async" src="${r[3]}"></div>`;
     }
     const runCls = L.kind === "collage" ? " collage" : L.kind === "grid" ? " grid12" : L.kind === "sheet" ? " sheet"
                  : L.kind === "index" ? " index" : L.kind === "archive" ? " archive" : L.kind === "macro" ? " macro" : "";
@@ -523,7 +528,7 @@ function renderWorkFilm() {
     if (L.kind === "macro") act.classList.add("mk");
     const bare = L.kind === "index" || L.kind === "archive" || L.kind === "macro";
     act.innerHTML =
-      (bare ? "" : `<figure class="wf-hero reveal"><img alt="" src="${hero}"><figcaption class="wf-name"><span class="wf-name-i">${set.title}</span></figcaption></figure>`) +
+      (bare ? "" : `<figure class="wf-hero reveal"><img alt="" decoding="async" src="${hero}"><figcaption class="wf-name"><span class="wf-name-i">${set.title}</span></figcaption></figure>`) +
       `<div class="wf-run${runCls}">${run}</div>` +
       (L.kind === "macro" || L.kind === "index" ? "" :
         `<div class="wf-meta${bare ? "" : " reveal"}">${pad2(i + 1)} / ${pad2(SETS.length)} · ${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""} · OTEVŘÍT ↗</div>`);
@@ -575,7 +580,7 @@ function renderWorkFilm() {
     // náhled vedle úzkého sloupce s legendou (dřív byly pod sebou a mezi
     // náhledy vlevo a panelem zůstávalo ~500 px prázdna)
     side.innerHTML =
-      `<div class="ar-prev"><img class="ar-prev-l" alt=""><img class="ar-prev-l" alt=""></div>` +
+      `<div class="ar-prev"><img class="ar-prev-l" alt="" decoding="async"><img class="ar-prev-l" alt="" decoding="async"></div>` +
       `<div class="ar-col">` +
         `<ol class="ar-legend">${arActs.map((a, k) => `<li data-k="${k}">${a.title}</li>`).join("")}</ol>` +
         `<div class="ar-note"></div>` +
@@ -811,6 +816,7 @@ function updateCollage(vh) {
 }
 function applyWorkMode() {
   const film = workMode === "A" || workMode === "B";
+  if (film && !wfBuilt) renderWorkFilm();      // dostav rozložení, na které se právě přepíná
   document.body.classList.toggle("wf-film", film);
   document.body.classList.toggle("ixpaper", film && wfLayout === "B");  // INDEX = papír jako zbytek webu
   document.body.classList.toggle("mkdark", film && wfLayout === "M");   // MAKRO = úplná čerň
@@ -928,6 +934,11 @@ function updateWorkFocus(vh) {
 function buildDots() {
   SCENES = [...journey.querySelectorAll(".scene")];
   SCENE_NAMES = SCENES.map((s) => s.dataset.name);
+  // uzly si zapamatuj — querySelectorAll při každém scrollu byl zbytečný
+  SCENE_INNER = SCENES.map((s) => s.querySelector(".scene-inner"));
+  SCENE_PARS = SCENES.map((s) => [...s.querySelectorAll(".par")].map((el) => ({
+    el, rise: +(el.dataset.rise || 0), exit: +(el.dataset.exit || (+(el.dataset.rise || 0)) * 1.4),
+  })));
   dotsNav.innerHTML = "";
   SCENES.forEach((s, i) => {
     const b = document.createElement("button");
@@ -947,15 +958,16 @@ function updateJourney() {
     const r = rects[i];
     const enterP = i === 0 ? 1 : clampN(1 - r.top / vh, 0, 1);
     const coverP = (i < SCENES.length - 1) ? clampN(1 - rects[i + 1].top / vh, 0, 1) : 0;
-    const inner = scene.querySelector(".scene-inner");
+    const inner = SCENE_INNER[i];
     if (inner) {
       inner.style.transform = `scale(${(1 - coverP * 0.07).toFixed(4)}) translateY(${(-coverP * 30).toFixed(1)}px)`;
       inner.style.opacity = ((0.32 + 0.68 * enterP) * (1 - coverP * 0.6)).toFixed(3);
     }
-    scene.querySelectorAll(".par").forEach((el) => {
-      const rise = +(el.dataset.rise || 0), exit = +(el.dataset.exit || rise * 1.4);
-      el.style.transform = `translate3d(0, ${((1 - enterP) * rise - coverP * exit).toFixed(1)}px, 0)`;
-    });
+    const pars = SCENE_PARS[i] || [];
+    for (let k = 0; k < pars.length; k++) {
+      const pr = pars[k];
+      pr.el.style.transform = `translate3d(0, ${((1 - enterP) * pr.rise - coverP * pr.exit).toFixed(1)}px, 0)`;
+    }
     if (r.top <= vh / 2 && r.bottom >= vh / 2) centerIdx = i;
   }
   [...dotsNav.children].forEach((d, i) => d.classList.toggle("on", i === centerIdx));
@@ -1098,7 +1110,7 @@ function buildStrip(set) {
   for (let i = 0; i < set.count; i++) {
     const f = document.createElement("div");
     f.className = "frame"; f.style.minWidth = "26vh";
-    f.innerHTML = `<img ${i < 10 ? "" : 'loading="lazy"'} src="${set.images[i]}" alt="${set.title} ${pad2(i + 1)}" /><span class="num">${pad2(i + 1)}</span><span class="dot"></span>`;
+    f.innerHTML = `<img decoding="async" ${i < 10 ? "" : 'loading="lazy"'} src="${set.images[i]}" alt="${set.title} ${pad2(i + 1)}" /><span class="num">${pad2(i + 1)}</span><span class="dot"></span>`;
     strip.appendChild(f);
     const item = { type: "frame", set, i, full: set.images[i], el: f, global: i + 1, total: set.count };
     ITEMS.push(item); FRAMES.push(item);
@@ -1271,7 +1283,7 @@ window.addEventListener("resize", () => { if (wfPhone !== null && wfPhone !== is
   await loadData();                       // manifest
   loader.set(12);
   renderWorkIndex();
-  renderWorkFilm();
+  if (workMode !== "C") renderWorkFilm();   // v PÁSu se filmové rozložení vůbec nestaví
   buildDots();
   // dočasný přepínač variant WORK (na porovnání) — klávesa V
   buildBetaMenu();
@@ -1286,7 +1298,8 @@ window.addEventListener("resize", () => { if (wfPhone !== null && wfPhone !== is
   await preloadImages(previews, (n, total) => loader.set(12 + (total ? (n / total) * 88 : 88)), 9000);
   loader.finish();
 
-  // po loaderu potichu dohraj celé pásy fotek → otevření shootu je pak okamžité
-  const rest = collectAllURLs().filter((u) => !previews.includes(u));
-  warmInBackground(rest);
+  // POZOR: tady se dřív na pozadí stahovalo VŠECH 666 fotek (~190 MB). Prohlížeč
+  // pak celé minuty dekódoval obrázky, které nikdo neviděl, a web se u toho sekal.
+  // Teď se fotky shootu natáhnou až při otevření (buildStrip + loading="lazy")
+  // a při najetí na panel se v tichosti přichystá jen jeho začátek.
 })();

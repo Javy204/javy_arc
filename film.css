@@ -198,7 +198,6 @@ html, body {
   display: block; width: 100%; margin-top: 1.9vh;
   opacity: .18; transform: translateY(18px);
   transition: opacity .55s ease, transform .7s cubic-bezier(.2, .85, .25, 1);
-  will-change: opacity, transform;
 }
 .wh-item.active .wh-name { opacity: 1; transform: translateY(0); }
 .wh-name-i {

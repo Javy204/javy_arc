@@ -336,6 +336,7 @@
     for (let i = 0; i < 4; i++) {
       shots.push(grab());
       prog.children[i].classList.add("on");
+      if (frameNo) frameNo.textContent = `0${i + 1} / 04`;
       if (i < 3) { note.textContent = `snímek ${i + 1} / 4`; await wait(1400); }
     }
     note.textContent = "proužek jede ven…";
@@ -343,8 +344,47 @@
     closeCam(); vfr.hidden = true;
     await ejectStrip(made, { url: made.url, shots: shots.slice() });
     note.textContent = "chyť ho, nebo na něj klikni · další focení zase závěsem";
+    bigText("HOTOVO");
     busy = false;
   }
+  /* ============================================================
+     PODOBY FOTOMATU — čtyři grafické polohy, dají se kombinovat.
+     Klávesa F otevře panel; volba se pamatuje.
+     ============================================================ */
+  const SKINS = ["flat", "typo", "dark", "film"];
+  const skinsEl = $("#fmSkins"), big = $("#fmBig"), frameNo = $("#fmFrameNo");
+  let skins = [];
+  try { skins = (JSON.parse(localStorage.getItem("javy-fmskin") || "[]") || []).filter((x) => SKINS.includes(x)); } catch (e) {}
+
+  function applySkins() {
+    SKINS.forEach((k) => scene.classList.toggle("sk-" + k, skins.includes(k)));   // scene = sekce .s-lab
+    skinsEl.querySelectorAll("button[data-skin]").forEach((b) => b.classList.toggle("on", skins.includes(b.dataset.skin)));
+    try { localStorage.setItem("javy-fmskin", JSON.stringify(skins)); } catch (e) {}
+    fitBig();
+  }
+  function bigText(t) { if (!big) return; big.textContent = t; fitBig(); }
+  function fitBig() {                                  // roztažení na šířku jako .fit na zbytku webu
+    if (!big || !skins.includes("typo")) return;
+    big.style.transform = "none";
+    const par = big.parentElement, w = par ? par.clientWidth : 0, tw = big.scrollWidth;
+    if (w > 0 && tw > 0) big.style.transform = `scaleX(${(w / tw).toFixed(4)})`;
+  }
+  skinsEl.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-skin]"); if (!b) return;
+    const k = b.dataset.skin;
+    skins = skins.includes(k) ? skins.filter((x) => x !== k) : skins.concat(k);
+    applySkins();
+  });
+  $("#skinsAll").addEventListener("click", () => { skins = SKINS.slice(); applySkins(); });
+  $("#skinsNone").addEventListener("click", () => { skins = []; applySkins(); });
+  $("#skinsClose").addEventListener("click", () => (skinsEl.hidden = true));
+  addEventListener("keydown", (e) => {
+    if ((e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey && !/input|textarea/i.test(e.target.tagName || ""))
+      skinsEl.hidden = !skinsEl.hidden;
+  });
+  addEventListener("resize", fitBig);
+  applySkins();
+
   /* ============================================================
      FOTOBUDKA: ZÁVĚS → MINCE
        Klikem do plochy se dřív fotilo omylem a nikdo netušil, kde se
@@ -377,6 +417,8 @@
     cslot.classList.remove("hot", "in");
     curtSet(OPEN, true);
     bHint.textContent = "ZATÁHNI ZÁVĚS ←";
+    bigText("ZATÁHNI ZÁVĚS");
+    if (frameNo) frameNo.textContent = "00 / 04";
   }
 
   /* ---- 1) závěs ---- */
@@ -415,6 +457,7 @@
     } else curtSet(0, true);
     booth.dataset.step = "coin";
     note.textContent = "zvedni minci nad štěrbinu a pusť ji";
+    bigText("VHOĎ MINCI");
     setTimeout(() => {
       cpanel.hidden = false;
       if (g()) {
@@ -579,6 +622,7 @@
         .then();
     }
     note.textContent = "budka se probouzí…";
+    bigText("ÚSMĚV");
     await wait(220);
     booth.dataset.step = "shoot";
     if (g()) g().to(cpanel, { opacity: 0, duration: .25, onComplete: () => { cpanel.hidden = true; cpanel.style.opacity = ""; } });

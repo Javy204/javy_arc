@@ -869,6 +869,93 @@ body.beta-on .beta { display: block; }
 }
 .coin:focus-visible { outline: 2px solid var(--bg); outline-offset: 4px; }
 
+/* ============================================================
+   PODOBY FOTOMATU (klávesa F) — daly by se kombinovat
+   sk-flat  plochý tisk        sk-typo  obří typografie
+   sk-dark  černá scéna        sk-film  filmový slovník
+   ============================================================ */
+
+/* --- 1) PLOCHÝ TISK: žádné přechody, žádné rozostřené stíny --- */
+.sk-flat .curt {
+  background: var(--ink);
+  background-image: repeating-linear-gradient(90deg, transparent 0 21px, rgba(243, 241, 234, .16) 21px 22px);
+  box-shadow: none;
+}
+.sk-flat .curt .hem { background: none; border-right: 2px solid rgba(243, 241, 234, .5); width: 10px; }
+.sk-flat .curt .grip { border-radius: 0; }
+.sk-flat .cplate { box-shadow: 7px 7px 0 var(--ink); }          /* hloubka posunutou kopií, jako v tisku */
+.sk-flat .coin { box-shadow: 4px 4px 0 var(--ink); }
+.sk-flat .pslot .pbody {
+  background: var(--bg); border: 2px solid var(--ink); border-radius: 0;
+  box-shadow: 7px 7px 0 var(--ink);
+}
+.sk-flat .pslot .mouth { box-shadow: none; border: 2px solid var(--ink); background: var(--ink); }
+.sk-flat .pslot .paper em { background: var(--bg); box-shadow: 5px 5px 0 rgba(12, 11, 9, .55); }
+.sk-flat .pslot .led { border-radius: 0; }
+.sk-flat .fm-pile .pc { box-shadow: 5px 5px 0 rgba(12, 11, 9, .5); }
+.sk-flat .inhand { box-shadow: 6px 6px 0 rgba(12, 11, 9, .55); }
+.sk-flat .tape-in .tf.pull { box-shadow: 6px 6px 0 rgba(12, 11, 9, .5); }
+
+/* --- 2) OBŘÍ TYPOGRAFIE: pokyn nese verzálka přes celou šířku --- */
+.fm-big { display: none; overflow: hidden; margin-top: 1.4vh; }
+.sk-typo .fm-big { display: block; }
+.fm-big-i {
+  display: inline-block; white-space: nowrap;
+  font-weight: 900; font-size: 9.5vh; line-height: 1; letter-spacing: -.02em;
+  text-transform: uppercase; transform-origin: left top; color: var(--ink);
+}
+.sk-typo .fm-bar #fmNote { display: none; }                      /* malý popisek už je zbytečný */
+.sk-typo .fm-say { display: none; }
+.sk-typo .booth-hint { display: none; }
+
+/* --- 3) ČERNÁ SCÉNA: invertovaná jako KONTAKT --- */
+.sk-dark { background: var(--ink); color: var(--bg); }
+.sk-dark .fm { background: var(--ink); box-shadow: inset 0 0 0 2px rgba(243, 241, 234, .16); }
+.sk-dark .fm-slot .lip { background: var(--bg); }
+.sk-dark .fm-big-i { color: var(--bg); }
+.sk-dark .curt { background-color: #000; }
+.sk-dark .cplate { background: var(--bg); color: var(--ink); }
+.sk-dark .coin { background: var(--bg); color: var(--ink); border-color: var(--ink); }
+.sk-dark .fm-pile .pc { background: var(--bg); }
+.sk-dark .tape-in { background: var(--bg); }
+
+/* --- 4) FILMOVÝ SLOVNÍK: perforace, počítadlo, kód --- */
+.film-hud { display: none; }
+.sk-film .film-hud {
+  display: flex; justify-content: space-between; position: absolute; inset: auto 12px 14px;
+  z-index: 8; pointer-events: none;
+  font: 700 10px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase;
+  color: #fff; mix-blend-mode: difference;
+}
+.sk-film .fm::before, .sk-film .fm::after {
+  content: ""; position: absolute; left: 0; right: 0; height: 13px; z-index: 8; pointer-events: none;
+  background-image: repeating-linear-gradient(to right, var(--ink) 0 9px, transparent 9px 22px);
+  opacity: .85;
+}
+.sk-film .fm::before { top: 0; }
+.sk-film .fm::after { bottom: 0; }
+.sk-film.sk-dark .fm::before, .sk-film.sk-dark .fm::after {
+  background-image: repeating-linear-gradient(to right, var(--bg) 0 9px, transparent 9px 22px);
+}
+.sk-film .fm-slot { display: none; }                              /* proužek vyjede mezi perforacemi */
+
+/* panel s podobami — stejný kabát jako grading */
+.skins {
+  position: fixed; left: 16px; bottom: 16px; z-index: 95; width: min(92vw, 260px);
+  background: #0d0d0c; color: #f3f1ea; border: 1px solid rgba(243, 241, 234, .2);
+  padding: 10px 12px 12px; font-family: var(--sans); box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+}
+.skins[hidden] { display: none; }
+.skins-body { display: grid; gap: 6px; margin-top: 10px; }
+.skins-body button {
+  appearance: none; text-align: left; cursor: pointer; padding: 7px 9px;
+  background: none; color: inherit; border: 1px solid rgba(243, 241, 234, .22);
+}
+.skins-body button b { display: block; font: 900 10px/1.2 var(--sans); letter-spacing: .12em; }
+.skins-body button span { display: block; margin-top: 3px; font: 700 8px/1.3 var(--sans); letter-spacing: .06em; opacity: .5; }
+.skins-body button.on { background: #f3f1ea; color: #0d0d0c; border-color: #f3f1ea; }
+.skins-foot { margin-top: 9px; font: 700 8px/1 var(--sans); letter-spacing: .14em; opacity: .4; }
+
 /* ---------- hromada proužků ---------- *//* ---------- hromada proužků ---------- */
 /* hromada leží nad závěsem, ale nesmí brát kliknutí celé ploše —
    myš pouští dál a chytá jen na samotných proužcích */

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=111" />
+  <link rel="stylesheet" href="film.css?v=112" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -91,6 +91,12 @@
             <div class="fm-slot" id="fmSlot"><span class="lip"></span><span class="tag">JAVY · FOTOMAT</span></div>
           </div>
 
+          <!-- filmový slovník: perforace řeší CSS, tohle je počítadlo a kód -->
+          <div class="film-hud" aria-hidden="true">
+            <span class="fc" id="fmFrameNo">00 / 04</span>
+            <span class="fcode">JAVY 5200 · 12A</span>
+          </div>
+
           <div class="fm-count" id="fmCount" hidden></div>
           <div class="fm-flash" id="fmFlash"></div>
 
@@ -148,8 +154,23 @@
           </div>
         </div>
 
+        <!-- obří typografie: pokyn nese stejná roztažená verzálka jako názvy alb -->
+        <div class="fm-big"><span class="fm-big-i" id="fmBig">ZATÁHNI ZÁVĚS</span></div>
+
         <div class="fm-bar">
           <span id="fmNote">zatáhni závěs a hoď minci</span>
+        </div>
+
+        <!-- podoby fotomatu: klávesa F -->
+        <div class="skins" id="fmSkins" hidden>
+          <div class="grade-head"><span>PODOBA FOTOMATU</span><span class="r"><button type="button" id="skinsAll">VŠE</button><button type="button" id="skinsNone">NIC</button><button type="button" id="skinsClose">✕</button></span></div>
+          <div class="skins-body">
+            <button type="button" data-skin="flat"><b>PLOCHÝ TISK</b><span>bez přechodů a rozostřených stínů</span></button>
+            <button type="button" data-skin="typo"><b>OBŘÍ TYPOGRAFIE</b><span>pokyn přes celou šířku jako názvy alb</span></button>
+            <button type="button" data-skin="dark"><b>ČERNÁ SCÉNA</b><span>invertovaná scéna jako KONTAKT</span></button>
+            <button type="button" data-skin="film"><b>FILMOVÝ SLOVNÍK</b><span>perforace, počítadlo, kód</span></button>
+          </div>
+          <div class="skins-foot">klávesa F · dá se kombinovat</div>
         </div>
 
         <!-- tajný panel: klávesa G nebo trojklik na "03 — FOTOMAT" -->
@@ -224,7 +245,7 @@
   <script src="film.js?v=82"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=40" defer></script>
+  <script src="lab/fotomat.js?v=42" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

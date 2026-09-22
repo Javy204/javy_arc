@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=95" />
+  <link rel="stylesheet" href="film.css?v=97" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -119,24 +119,17 @@
               <div class="tape-in" id="fmTapeIn"></div>
             </div>
 
-            <!-- řezačka: chytneš ji a položíš na políčko, které chceš vyříznout -->
-            <div class="cutter" id="fmCutter">
-              <span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span>
-              <em>ŘEZAČKA</em>
-            </div>
+            <!-- utržený snímek, co držíš v ruce -->
+            <div class="inhand" id="fmHand" hidden><img alt="" /></div>
 
-            <!-- ouško proužku: zatáhni s ním do štěrbiny a vytiskne se celý -->
-            <div class="grip" id="fmGrip">CELÝ PROUŽEK ⇢</div>
-
-            <!-- tisková štěrbina -->
+            <!-- tisková štěrbina s válečky -->
             <div class="pslot" id="fmPslot">
-              <span class="mouth"></span>
-              <span class="arr">↓</span>
+              <span class="mouth"><i></i><i></i><i></i></span>
               <span class="lbl">TISK</span>
             </div>
 
             <div class="fm-view-bar">
-              <span id="fmViewHint">řezačkou vyřízneš jedno políčko · ouškem vytiskneš celý proužek</span>
+              <span id="fmViewHint">do strany = utrhnout fotku · celým proužkem dolů = podat ho do tiskárny</span>
               <a id="fmViewSave" hidden download="javy-fotomat-prouzek.jpg">ULOŽIT ↓</a>
               <button type="button" id="fmViewClose">ZAVŘÍT ✕</button>
             </div>
@@ -224,7 +217,7 @@
   <script src="film.js?v=80"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=23" defer></script>
+  <script src="lab/fotomat.js?v=26" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

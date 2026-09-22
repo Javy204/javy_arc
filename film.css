@@ -820,53 +820,58 @@ body.beta-on .beta { display: block; }
   display: flex; justify-content: space-between; padding: 4px 0 12px;
   font: 700 8px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ink);
 }
+/* vodicí praporek na konci pásky — tady za to chytneš a podáš to do tiskárny */
+.tape-in .tape-lead {
+  margin: 0 -10px; padding: 9px 0 11px; text-align: center;
+  font: 700 8px/1 var(--sans); letter-spacing: .22em; color: rgba(12, 11, 9, .55);
+  border-top: 1px dashed rgba(12, 11, 9, .35);
+  background: repeating-linear-gradient(45deg, rgba(12,11,9,.05) 0 6px, transparent 6px 12px);
+}
+
 /* část, co se po střihu oddělí */
 .tape-in.cutting { transition: none; }
 
-/* zvýrazněné políčko pod řezačkou */
-.tape-in .tf.aim { outline: 2px solid #f3f1ea; outline-offset: 2px; }
-.tape-in .tf.aim::after {
-  content: "VYŘÍZNOUT"; position: absolute; left: 6px; bottom: 6px;
-  font: 700 8px/1 var(--sans); letter-spacing: .18em; color: #0d0c0b;
-  background: #f3f1ea; padding: 4px 6px;
+/* perforace mezi políčky — za ni se trhá */
+.tape-in .seam {
+  position: relative; height: 14px; margin: 0 -10px;
+  background-image:
+    radial-gradient(circle at 7px 50%, var(--bg) 3.2px, transparent 3.4px),
+    linear-gradient(to right, transparent 0, transparent 100%);
+  background-size: 14px 14px, 100% 100%;
+  background-repeat: repeat-x, no-repeat;
+  transform-origin: 50% 0;
 }
+.tape-in .seam::after {
+  content: ""; position: absolute; left: 10px; right: 10px; top: 50%;
+  border-top: 1px dashed rgba(12, 11, 9, .45);
+}
+/* políčko, za které se zrovna tahá */
+.tape-in .tf { transition: none; }
+.tape-in .tf.pull { z-index: 4; box-shadow: 0 18px 40px rgba(0,0,0,.45); }
 
-/* řezačka — hranatý nástroj, dá se vzít do ruky */
-.cutter {
-  position: absolute; left: 4%; top: 12%; width: 116px; aspect-ratio: 3 / 4;
-  border: 2px solid #f3f1ea; cursor: grab; touch-action: none; z-index: 3;
-  background: rgba(243, 241, 234, .06);
+/* utržená fotka v ruce */
+.inhand {
+  position: absolute; z-index: 8; pointer-events: none; width: 120px; aspect-ratio: 3 / 4;
+  background: var(--bg); padding: 6px 6px 18px; box-shadow: 0 22px 50px rgba(0,0,0,.5);
 }
-.cutter:active, .cutter.held { cursor: grabbing; }
-.cutter.held { box-shadow: 0 20px 50px rgba(0,0,0,.5); }
-.cutter .c { position: absolute; width: 14px; height: 14px; border: 3px solid #f3f1ea; }
-.cutter .tl { top: -3px; left: -3px; border-right: 0; border-bottom: 0; }
-.cutter .tr { top: -3px; right: -3px; border-left: 0; border-bottom: 0; }
-.cutter .bl { bottom: -3px; left: -3px; border-right: 0; border-top: 0; }
-.cutter .br { bottom: -3px; right: -3px; border-left: 0; border-top: 0; }
-.cutter em {
-  position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%);
-  font: 700 9px/1 var(--sans); letter-spacing: .2em; font-style: normal; color: #f3f1ea; white-space: nowrap;
-}
+.inhand[hidden] { display: none; }
+.inhand img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
-/* ouško proužku */
-.grip {
-  position: absolute; right: 4%; top: 12%; z-index: 3; cursor: grab; touch-action: none;
-  border: 2px solid #f3f1ea; color: #f3f1ea; padding: 9px 11px;
-  font: 700 9px/1 var(--sans); letter-spacing: .18em; background: rgba(243,241,234,.06);
-}
-.grip:active, .grip.held { cursor: grabbing; }
-
-/* tisková štěrbina */
+/* štěrbina s válečky */
 .pslot {
-  position: absolute; right: 4%; bottom: 8%; z-index: 3; width: 150px; text-align: center; color: #f3f1ea;
-  transition: transform .25s ease;
+  position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); z-index: 5;
+  width: min(46%, 300px); text-align: center; color: #f3f1ea; transition: transform .2s ease;
 }
-.pslot .mouth { display: block; height: 12px; background: #f3f1ea; }
-.pslot .arr { display: block; font: 700 18px/1.2 var(--sans); opacity: .8; }
-.pslot .lbl { display: block; font: 700 9px/1 var(--sans); letter-spacing: .22em; opacity: .8; }
-.pslot.hot { transform: scale(1.08); }
-.pslot.hot .mouth { box-shadow: 0 0 0 4px rgba(243,241,234,.25); }
+.pslot .mouth {
+  display: flex; gap: 4px; align-items: center; justify-content: center;
+  height: 16px; background: #f3f1ea; overflow: hidden;
+}
+.pslot .mouth i { width: 26%; height: 4px; background: #0d0c0b; opacity: .55; }
+.pslot .lbl { display: block; margin-top: 6px; font: 700 9px/1 var(--sans); letter-spacing: .24em; opacity: .75; }
+.pslot.hot { transform: translateX(-50%) scale(1.06); }
+.pslot.hot .mouth { box-shadow: 0 0 0 5px rgba(243,241,234,.28); }
+.pslot.feed .mouth i { animation: rollers .5s linear infinite; }
+@keyframes rollers { from { transform: translateX(0); } to { transform: translateX(10px); } }
 
 .fm-view-bar {
   flex: none; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
@@ -910,9 +915,8 @@ body.beta-on .beta { display: block; }
   .fm-bar { font-size: 9px; letter-spacing: .06em; }
   .fm-view-bar { gap: 6px; padding: 8px; }
   .tape-in { width: min(52%, 190px); }
-  .cutter { width: 86px; left: 2%; top: 8%; }
-  .grip { right: 2%; top: 8%; padding: 7px 8px; font-size: 8px; }
-  .pslot { width: 110px; right: 2%; bottom: 6%; }
+  .pslot { width: 64%; bottom: 2%; }
+  .inhand { width: 92px; }
   .fm-view-bar button, .fm-view-bar a { padding: 7px 8px; font-size: 9px; letter-spacing: .08em; }
 }
 

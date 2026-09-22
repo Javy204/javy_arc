@@ -366,172 +366,226 @@
 
   function buildTape() {
     const d = new Date();
-    tapeIn.innerHTML = vShots.map((src) => `<figure class="tf"><img alt="" src="${src}"></figure>`).join("") +
-      `<div class="tape-foot"><span>JAVY · FOTOMAT</span><span>${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}</span></div>`;
+    tapeIn.innerHTML = vShots.map((src, i) =>
+        (i ? `<div class="seam"></div>` : "") + `<figure class="tf"><img alt="" src="${src}"></figure>`).join("") +
+      `<div class="tape-foot"><span>JAVY · FOTOMAT</span><span>${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}</span></div>` +
+      `<div class="tape-lead">↓ DO TISKÁRNY</div>`;
     scrollY = 0; vel = 0; applyScroll();
     viewHint.textContent = vShots.length > 1
-      ? "řezačkou vyřízneš jedno políčko · ouškem vytiskneš celý proužek"
-      : "poslední políčko — ouškem ho vytiskneš";
+      ? "do strany = utrhnout fotku · celým proužkem dolů = podat ho do tiskárny"
+      : "poslední fotka — zatáhni proužkem dolů a tiskárna si ho vtáhne";
   }
   function maxScroll() { return Math.max(0, tapeIn.offsetHeight - tape.clientHeight); }
+  let feeding = false, dragging = false;          // vtahování do tiskárny / prst na pásce
+  const rubber = (d) => 190 * (1 - 1 / (1 + d / 150));   // čím dál taháš, tím větší odpor
   function applyScroll() {
-    const slack = maxScroll() > 0 ? 40 : 90;      // když se páska vejde, nech s ní aspoň pohnout
-    scrollY = Math.max(-slack, Math.min(maxScroll() + slack, scrollY));
-    tapeIn.style.transform = `translateX(-50%) translateY(${-scrollY}px)`;
+    if (feeding) { tapeIn.style.transform = `translateX(-50%) translateY(${(-scrollY).toFixed(2)}px)`; return; }
+    const m = maxScroll();
+    scrollY = Math.max(-300, Math.min(m + 300, scrollY));
+    const y = scrollY < 0 ? -rubber(-scrollY) : (scrollY > m ? m + rubber(scrollY - m) : scrollY);
+    tapeIn.style.transform = `translateX(-50%) translateY(${(-y).toFixed(2)}px)`;
   }
   /* ============================================================
-     DVA NÁSTROJE MÍSTO NEVIDITELNÝCH ŠVŮ:
-       řezačka — položíš ji na políčko, které chceš vyříznout
-       ouško   — zatáhneš s ním do tiskové štěrbiny = celý proužek
+     TRHÁNÍ A TISK
+       do strany za políčko  = perforace se natáhne a fotka se utrhne
+       dolů celým proužkem   = podáváš ho do štěrbiny, ta ho vtáhne
      ============================================================ */
-  const cutter = $("#fmCutter"), grip = $("#fmGrip"), pslot = $("#fmPslot");
-  let cutHome = { left: "4%", top: "12%" }, gripTop = "12%";
-
-  function parkTools() {
-    cutter.style.left = cutHome.left; cutter.style.top = cutHome.top;
-    grip.style.left = ""; grip.style.right = ""; grip.style.top = gripTop;
-    if (g()) g().set([cutter, grip], { clearProps: "transform" });
+  const pslot = $("#fmPslot"), hand = $("#fmHand"), slotLbl = pslot.querySelector(".lbl");
+  const FEED = 62;                                  // o kolik musíš podat, než to štěrbina chytne
+  function feedHot(on) {
+    pslot.classList.toggle("hot", on);
+    slotLbl.textContent = on ? "PUSŤ" : "TISK";
   }
-  function frameUnder(cx, cy) {                       // políčko pod středem nástroje
-    for (const el of tapeIn.querySelectorAll(".tf")) {
-      const r = el.getBoundingClientRect();
-      if (cx > r.left && cx < r.right && cy > r.top && cy < r.bottom) return el;
+
+  /* natržený okraj — nepravidelná pila, pokaždé jiná */
+  function tornEdge(topToo) {
+    const pts = [], n = 22;
+    for (let i = 0; i <= n; i++) {
+      const x = (i / n) * 100;
+      pts.push(`${x.toFixed(1)}% ${(2 + Math.random() * 4).toFixed(1)}%`);
     }
-    return null;
-  }
-  function overSlot(cx, cy) {
-    const r = pslot.getBoundingClientRect();
-    return cx > r.left - 30 && cx < r.right + 30 && cy > r.top - 30 && cy < r.bottom + 30;
-  }
-
-  /* ---- řezačka ---- */
-  {
-    let held = false, offX = 0, offY = 0;
-    cutter.addEventListener("pointerdown", (e) => {
-      held = true; cutter.classList.add("held");
-      const r = cutter.getBoundingClientRect();
-      offX = e.clientX - r.left; offY = e.clientY - r.top;
-      try { cutter.setPointerCapture(e.pointerId); } catch (x) {}
-      if (g()) g().to(cutter, { scale: 1.06, duration: .18, ease: "power2.out" });
-      e.stopPropagation();
-    });
-    cutter.addEventListener("pointermove", (e) => {
-      if (!held) return;
-      const host = view.getBoundingClientRect();
-      cutter.style.left = (e.clientX - offX - host.left) + "px";
-      cutter.style.top = (e.clientY - offY - host.top) + "px";
-      const r = cutter.getBoundingClientRect();
-      const hit = frameUnder(r.left + r.width / 2, r.top + r.height / 2);
-      tapeIn.querySelectorAll(".tf").forEach((f) => f.classList.toggle("aim", f === hit));
-      e.stopPropagation();
-    });
-    const drop = async (e) => {
-      if (!held) return; held = false; cutter.classList.remove("held");
-      const r = cutter.getBoundingClientRect();
-      const hit = frameUnder(r.left + r.width / 2, r.top + r.height / 2);
-      tapeIn.querySelectorAll(".tf").forEach((f) => f.classList.remove("aim"));
-      if (g()) g().to(cutter, { scale: 1, duration: .2 });
-      if (hit) await cutFrame([...tapeIn.querySelectorAll(".tf")].indexOf(hit), r);
-      if (g()) g().to(cutter, { left: cutHome.left, top: cutHome.top, duration: .45, ease: "power3.inOut" });
-      else parkTools();
-    };
-    cutter.addEventListener("pointerup", drop);
-    cutter.addEventListener("pointercancel", drop);
-  }
-
-  /* vyříznutí JEDNOHO políčka */
-  async function cutFrame(idx, atRect) {
-    if (idx < 0 || cutting || !vShots.length) return;
-    cutting = true;
-    const taken = vShots[idx];
-    const frames = [...tapeIn.querySelectorAll(".tf")];
-    if (g()) {
-      await g().timeline()
-        .to(frames[idx], { scale: 1.06, duration: .12, ease: "power2.out" })
-        .to(frames[idx], { x: 60, y: 40, rotate: 6, opacity: 0, duration: .4, ease: "power2.in" }).then();
+    const bottom = [];
+    for (let i = n; i >= 0; i--) {
+      const x = (i / n) * 100;
+      bottom.push(`${x.toFixed(1)}% ${(96 - Math.random() * 4).toFixed(1)}%`);
     }
-    const made = await composeStrip([taken]);
-    const host = pile.getBoundingClientRect();
-    dropPiece(made, [taken],
-      atRect ? Math.max(40, Math.min(pile.clientWidth - 40, atRect.left + atRect.width / 2 - host.left)) : pile.clientWidth / 2,
-      atRect ? Math.max(30, atRect.top - host.top) : pile.clientHeight * .25);
-    vShots.splice(idx, 1);
-    if (!vShots.length) { closeView(); note.textContent = "proužek je rozebraný"; cutting = false; return; }
-    buildTape();
-    if (g()) g().fromTo(tapeIn.querySelectorAll(".tf"), { opacity: .2 }, { opacity: 1, duration: .35, stagger: .05 });
-    const rest = await composeStrip(vShots);
-    if (vItem) refreshItem(vItem, rest, vShots);
-    note.textContent = "vyříznuto — snímek spadl dolů";
-    cutting = false;
+    return `polygon(${(topToo ? pts : ["0% 0%", "100% 0%"]).join(",")}, ${bottom.join(",")})`;
   }
 
-  /* ---- ouško + tisková štěrbina ---- */
-  {
-    let held = false, offX = 0, offY = 0;
-    grip.addEventListener("pointerdown", (e) => {
-      held = true; grip.classList.add("held");
-      const r = grip.getBoundingClientRect();
-      offX = e.clientX - r.left; offY = e.clientY - r.top;
-      try { grip.setPointerCapture(e.pointerId); } catch (x) {}
-      e.stopPropagation();
-    });
-    grip.addEventListener("pointermove", (e) => {
-      if (!held) return;
-      const host = view.getBoundingClientRect();
-      grip.style.right = "auto";
-      grip.style.left = (e.clientX - offX - host.left) + "px";
-      grip.style.top = (e.clientY - offY - host.top) + "px";
-      pslot.classList.toggle("hot", overSlot(e.clientX, e.clientY));
-      e.stopPropagation();
-    });
-    const drop = async (e) => {
-      if (!held) return; held = false; grip.classList.remove("held");
-      const ok = overSlot(e.clientX, e.clientY);
-      pslot.classList.remove("hot");
-      if (ok) await printStrip();
-      parkTools();
-    };
-    grip.addEventListener("pointerup", drop);
-    grip.addEventListener("pointercancel", drop);
-    pslot.addEventListener("click", () => printStrip());
+  function slotRect() { return pslot.getBoundingClientRect(); }
+  function overSlot(x, y) {
+    const r = slotRect();
+    return x > r.left - 40 && x < r.right + 40 && y > r.top - 50 && y < r.bottom + 40;
   }
 
-  async function printStrip() {
-    const made = await composeStrip(vShots);
+  /* ---- vytištění: válečky si to vtáhnou ---- */
+  async function printThing(list, fromEl) {
+    const made = await composeStrip(list);
     const a = $("#fmViewSave");
     a.href = made.url;
-    a.download = vShots.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
-    if (g()) {
+    a.download = list.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
+    pslot.classList.add("feed"); pslot.classList.remove("hot");
+    if (g() && fromEl) {
+      const r = slotRect();
       await g().timeline()
-        .to(tapeIn, { opacity: .35, duration: .2 })
-        .to(pslot, { scale: 1.12, duration: .16, yoyo: true, repeat: 1 }, "<")
-        .to(tapeIn, { opacity: 1, duration: .3 }).then();
+        .to(fromEl, { x: "+=0", duration: .05 })
+        .to(fromEl, {                                   // po krocích, jak jedou válečky
+          left: r.left + r.width / 2 - fromEl.offsetWidth / 2 - view.getBoundingClientRect().left,
+          top: r.top - view.getBoundingClientRect().top - 10,
+          duration: .35, ease: "power2.inOut",
+        })
+        .to(fromEl, { scaleY: .04, opacity: .2, transformOrigin: "50% 100%", duration: .5, ease: "steps(8)" })
+        .then();
     }
+    pslot.classList.remove("feed");
+    if (g()) g().fromTo(pslot, { y: 6 }, { y: 0, duration: .35, ease: "elastic.out(1, .4)" });
     a.click();
-    note.textContent = "vytištěno — proužek se ti uložil";
+    note.textContent = list.length > 1 ? "proužek vytištěn" : "snímek vytištěn";
   }
 
-  /* ---- tažení pásky: jen svislý posun ---- */
+  /* ---- vtažení celého proužku: válečky ho po krocích spolknou ---- */
+  async function feedStrip() {
+    if (feeding || cutting || !vShots.length) return;
+    feeding = true; vel = 0;
+    const list = vShots.slice();
+    const made = await composeStrip(list);
+    const a = $("#fmViewSave");
+    a.href = made.url; a.download = "javy-fotomat-prouzek.jpg";
+    feedHot(false); pslot.classList.add("feed");
+    note.textContent = "podávám do tiskárny…";
+    const konec = -(tapeIn.offsetHeight + 80);
+    const tween = (to, dur, ease) => new Promise((res) => {
+      if (!g()) { scrollY = to; applyScroll(); return res(); }
+      const proxy = { v: scrollY };
+      g().to(proxy, { v: to, duration: dur, ease,
+        onUpdate: () => { scrollY = proxy.v; applyScroll(); }, onComplete: res });
+    });
+    await tween(konec, .95, "steps(14)");            // trhaně, jak jedou válečky
+    pslot.classList.remove("feed");
+    if (g()) g().fromTo(pslot, { y: 8 }, { y: 0, duration: .4, ease: "elastic.out(1, .4)" });
+    a.click();
+    note.textContent = "proužek vytištěn";
+    await tween(0, .75, "power3.out");               // a páska se vrátí nahoru
+    feeding = false;
+  }
+
+  /* ---- trhání + podávání ---- */
   {
-    let down = false, lastY = 0;
+    let mode = null;          // "tear" | "feed" | "scroll"
+    let idx = -1, startX = 0, startY = 0, frame = null, seamEl = null;
+    let handShot = null, lastY = 0;
+    const TEAR = 110;         // po kolika pixelech do strany to povolí
+
     tape.addEventListener("pointerdown", (e) => {
-      if (e.target.closest(".cutter, .grip, .pslot")) return;
-      down = true; lastY = e.clientY; vel = 0;
+      if (cutting) return;
+      const f = e.target.closest(".tf");
+      startX = e.clientX; startY = e.clientY; lastY = e.clientY; vel = 0; dragging = true;
+      mode = null; frame = f || null;
+      idx = f ? [...tapeIn.querySelectorAll(".tf")].indexOf(f) : -1;
       try { tape.setPointerCapture(e.pointerId); } catch (x) {}
     });
+
     tape.addEventListener("pointermove", (e) => {
-      if (!down) return;
-      scrollY -= e.clientY - lastY; vel = -(e.clientY - lastY); lastY = e.clientY;
-      applyScroll();
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      if (!mode) {
+        if (Math.hypot(dx, dy) < 8) return;
+        // do strany za políčko = trhání, jinak posouvání/podávání
+        mode = (frame && Math.abs(dx) > Math.abs(dy) * 1.2) ? "tear" : "scroll";
+        if (mode === "tear" && vShots.length > 1) {
+          frame.classList.add("pull");
+          seamEl = idx > 0 ? frame.previousElementSibling : frame.nextElementSibling;
+        } else if (mode === "tear") { mode = "scroll"; }
+      }
+
+      if (mode === "scroll") {
+        scrollY -= e.clientY - lastY; vel = -(e.clientY - lastY); lastY = e.clientY;
+        applyScroll();
+        feedHot(-scrollY > FEED);                    // podal jsi proužek dost hluboko?
+        return;
+      }
+
+      if (mode === "tear") {
+        const t = Math.min(1, Math.abs(dx) / TEAR);
+        const give = Math.sign(dx) * Math.abs(dx) * (1 - t * .45);      // odpor: čím dál, tím hůř
+        frame.style.transform = `translateX(${give}px) rotate(${give * .03}deg)`;
+        if (seamEl) {                                                   // perforace se natahuje
+          seamEl.style.transform = `scaleY(${1 + t * 2.6})`;
+          seamEl.style.opacity = String(1 - t * .5);
+        }
+        if (t >= 1) tearOff(e.clientX, e.clientY);
+      }
     });
-    const end = () => { down = false; };
+
+    function tearOff(x, y) {
+      if (cutting) return; cutting = true;
+      const src = vShots[idx];
+      const rest = vShots.slice(0, idx).concat(vShots.slice(idx + 1));
+      // trhnutí: zbytek pásky sebou cukne
+      if (g()) {
+        g().fromTo(tapeIn, { x: -6 }, { x: 0, duration: .45, ease: "elastic.out(1, .35)" });
+        if (frame) g().to(frame, { opacity: 0, duration: .18 });
+        if (seamEl) g().to(seamEl, { opacity: 0, duration: .15 });
+      }
+      // fotka je teď v ruce
+      hand.hidden = false;
+      hand.querySelector("img").src = src;
+      hand.style.clipPath = tornEdge(idx > 0);
+      const host = view.getBoundingClientRect();
+      hand.style.left = (x - host.left - hand.offsetWidth / 2) + "px";
+      hand.style.top = (y - host.top - hand.offsetHeight / 2) + "px";
+      if (g()) g().fromTo(hand, { scale: 1.12, rotate: 0 }, { scale: 1, rotate: -3, duration: .3, ease: "power2.out" });
+      handShot = src;
+      vShots = rest;
+      buildTape();
+      note.textContent = "utrženo — hoď to do štěrbiny, nebo pusť dolů";
+      mode = "hand";
+      cutting = false;
+    }
+
+    tape.addEventListener("pointermove", (e) => {
+      if (mode !== "hand") return;
+      const host = view.getBoundingClientRect();
+      hand.style.left = (e.clientX - host.left - hand.offsetWidth / 2) + "px";
+      hand.style.top = (e.clientY - host.top - hand.offsetHeight / 2) + "px";
+      feedHot(overSlot(e.clientX, e.clientY));
+    });
+
+    const end = async (e) => {
+      const wasMode = mode; mode = null; dragging = false;
+      if (frame) { frame.classList.remove("pull"); frame.style.transform = ""; }
+      if (seamEl) { seamEl.style.transform = ""; seamEl.style.opacity = ""; }
+      frame = null; seamEl = null;
+
+      if (wasMode === "tear") return;                       // nedotáhl — vrátí se samo
+
+      if (wasMode === "hand") {
+        const shot = handShot; handShot = null;
+        if (overSlot(e.clientX, e.clientY)) {
+          await printThing([shot], hand);
+        } else {                                            // spadne do hromady
+          const made = await composeStrip([shot]);
+          const host = pile.getBoundingClientRect();
+          dropPiece(made, [shot],
+            Math.max(40, Math.min(pile.clientWidth - 40, e.clientX - host.left)),
+            Math.max(30, e.clientY - host.top));
+          note.textContent = "spadlo dolů";
+        }
+        hand.hidden = true; hand.style.clipPath = ""; feedHot(false);
+        if (vItem && vShots.length) refreshItem(vItem, await composeStrip(vShots), vShots);
+        if (!vShots.length) { closeView(); note.textContent = "proužek je rozebraný"; }
+        return;
+      }
+
+      if (wasMode === "scroll" && pslot.classList.contains("hot")) { await feedStrip(); return; }
+      feedHot(false);
+    };
     tape.addEventListener("pointerup", end);
     tape.addEventListener("pointercancel", end);
   }
 
   /* dojezd po pustnutí */
   function tapeInertia() {
-    if (view.hidden || Math.abs(vel) < .2) return;
+    if (view.hidden || feeding || dragging || Math.abs(vel) < .2) return;
     scrollY += vel; vel *= .92;
     if (scrollY < 0) { scrollY += (0 - scrollY) * .2; vel = 0; }
     const m = maxScroll();
@@ -543,7 +597,7 @@
     vItem = it; vShots = it.data.shots.slice();
     view.hidden = false;
     buildTape();
-    parkTools();
+    hand.hidden = true;
     if (g()) {
       g().fromTo(view, { opacity: 0 }, { opacity: 1, duration: .28 });
       // POZOR: transform na pásce si řídí applyScroll, takže GSAP nesmí sahat

@@ -582,7 +582,10 @@ body.beta-on .beta { display: block; }
   color: var(--ink); opacity: .1; pointer-events: none; z-index: 0; will-change: transform;
 }
 
-.viewport { position: relative; z-index: 2; width: 100vw; height: 100vh; display: flex; align-items: center; overflow: hidden; }
+.viewport {
+  position: relative; z-index: 2; width: 100vw; height: 100vh; display: flex; align-items: center; overflow: hidden;
+  touch-action: none;   /* ať prohlížeč gesto vteřinu nezvažuje, jestli je to scroll — chceme ho hned my */
+}
 .reel { position: relative; display: inline-block; white-space: nowrap; will-change: transform; }
 .reel.unrolling { animation: reelIn .5s ease; }
 @keyframes reelIn { from { opacity: 0; } to { opacity: 1; } }

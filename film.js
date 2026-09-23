@@ -1167,10 +1167,41 @@ viewport.addEventListener("wheel", (e) => {
   targetX = clamp(targetX - (d + dx) * 1.15);
   scheduleSnap();
 }, { passive: false });
-let dragging = false, dragStartX = 0, dragStartTarget = 0, dragMoved = false, lastDX = 0, vel = 0;
-viewport.addEventListener("pointerdown", (e) => { if (stage.hidden) return; dragging = true; dragMoved = false; dragStartX = e.clientX; dragStartTarget = targetX; vel = 0; lastDX = 0; viewport.setPointerCapture(e.pointerId); });
-viewport.addEventListener("pointermove", (e) => { if (!dragging) return; const dx = e.clientX - dragStartX; if (Math.abs(dx) > 4) dragMoved = true; vel = dx - lastDX; lastDX = dx; targetX = clamp(dragStartTarget + dx); });
-function endDrag() { if (!dragging) return; dragging = false; targetX = clamp(targetX + vel * 6); scheduleSnap(); }
+/* rychlost švihnutí se POČÍTÁ Z OKÉNKA posledních ~120 ms pohybu, ne z jednoho
+   posledního pointermove — na mobilu touchmove chodí nepravidelně (často
+   řidčeji než mousemove na desktopu), takže poslední událost před puštěním
+   prstu měla často drobný posun, i když samotné švihnutí bylo rychlé. Odtud
+   "rychlé sjetí posune jen o jednu fotku": endDrag() četl jen tenhle
+   poslední, uměle malý krok. */
+let dragging = false, dragStartX = 0, dragStartTarget = 0, dragMoved = false, vel = 0, velSamples = [];
+viewport.addEventListener("pointerdown", (e) => {
+  if (stage.hidden) return;
+  dragging = true; dragMoved = false; dragStartX = e.clientX; dragStartTarget = targetX; vel = 0;
+  velSamples = [{ t: performance.now(), x: e.clientX }];
+  try { viewport.setPointerCapture(e.pointerId); } catch (er) {}
+});
+viewport.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  const dx = e.clientX - dragStartX;
+  if (Math.abs(dx) > 4) dragMoved = true;
+  targetX = clamp(dragStartTarget + dx);
+  const now = performance.now();
+  velSamples.push({ t: now, x: e.clientX });
+  while (velSamples.length > 2 && now - velSamples[0].t > 120) velSamples.shift();
+});
+function endDrag() {
+  if (!dragging) return;
+  dragging = false;
+  const now = performance.now();
+  const recent = velSamples.filter((sp) => now - sp.t < 140);
+  if (recent.length >= 2) {
+    const first = recent[0], last = recent[recent.length - 1];
+    const dt = Math.max(1, last.t - first.t);
+    vel = ((last.x - first.x) / dt) * 16.667;   // normalizováno na px/16.667ms, stejné měřítko jako dřív dx - lastDX
+  } else vel = 0;
+  targetX = clamp(targetX + vel * 6);
+  scheduleSnap();
+}
 viewport.addEventListener("pointerup", endDrag);
 viewport.addEventListener("pointercancel", endDrag);
 

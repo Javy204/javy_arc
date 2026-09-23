@@ -312,8 +312,16 @@
   /* ============================================================
      FOCENÍ
      ============================================================ */
+  const shutBars = document.querySelectorAll("#fmShut i");
+  function shutter() {                                  // clony sjedou k sobě a zase pryč
+    if (!g() || !shutBars.length) return;
+    g().timeline()
+      .to(shutBars, { scaleY: 1, duration: .09, ease: "power2.in" })
+      .to(shutBars, { scaleY: 0, duration: .17, ease: "power2.out" }, "+=.03");
+  }
   function grab() {
     draw();
+    shutter();
     if (g()) g().fromTo(flash, { opacity: .9 }, { opacity: 0, duration: .4, ease: "power2.out" });
     return cv.toDataURL("image/jpeg", .93);
   }
@@ -321,10 +329,12 @@
     count.hidden = false;
     for (let i = n; i > 0; i--) {
       count.textContent = String(i);
-      if (g()) g().fromTo(count, { scale: .7, opacity: 0 }, { scale: 1, opacity: 1, duration: .3, ease: "back.out(2)" });
+      count.classList.remove("tick"); void count.offsetWidth; count.classList.add("tick");
+      if (g()) g().fromTo(count, { scale: .7, opacity: 0, rotationX: -70 },
+        { scale: 1, opacity: 1, rotationX: 0, duration: .34, ease: "back.out(2)" });
       await wait(850);
     }
-    count.hidden = true;
+    count.hidden = true; count.classList.remove("tick");
   }
   async function runStrip() {
     if (busy || live) return; busy = true;
@@ -353,8 +363,12 @@
      ============================================================ */
   const SKINS = ["flat", "typo", "dark", "film"];
   const skinsEl = $("#fmSkins"), big = $("#fmBig"), frameNo = $("#fmFrameNo");
-  let skins = [];
-  try { skins = (JSON.parse(localStorage.getItem("javy-fmskin") || "[]") || []).filter((x) => SKINS.includes(x)); } catch (e) {}
+  // výchozí podoba webu: jednodušší plátno, černá scéna, text dole
+  let skins = ["flat", "dark", "typo"];
+  try {
+    const ulozeno = localStorage.getItem("javy-fmskin");
+    if (ulozeno) skins = (JSON.parse(ulozeno) || []).filter((x) => SKINS.includes(x));
+  } catch (e) {}
 
   function applySkins() {
     SKINS.forEach((k) => scene.classList.toggle("sk-" + k, skins.includes(k)));   // scene = sekce .s-lab
@@ -362,7 +376,26 @@
     try { localStorage.setItem("javy-fmskin", JSON.stringify(skins)); } catch (e) {}
     fitBig();
   }
-  function bigText(t) { if (!big) return; big.textContent = t; fitBig(); }
+  /* Velký text se nemění střihem, ale ždímáním: písmena se po řadě
+     přetočí kolem vodorovné osy ven a nová se stejně přetočí zpátky —
+     jako když se ždíme ručník. */
+  function setLetters(t) {
+    big.innerHTML = [...t].map((ch) => (ch === " " ? '<i class="sp"></i>' : `<i>${ch}</i>`)).join("");
+  }
+  function bigText(t) {
+    if (!big || big.dataset.t === t) return;
+    big.dataset.t = t;
+    if (!g() || !skins.includes("typo")) { setLetters(t); fitBig(); return; }
+    const ven = [...big.children];
+    const dovnitr = () => {                            // nová písmena se přitočí zpátky
+      setLetters(big.dataset.t); fitBig();
+      g().fromTo([...big.children], { rotationX: -96, opacity: 0 },
+        { rotationX: 0, opacity: 1, duration: .5, ease: "back.out(1.5)", stagger: .022, overwrite: true });
+    };
+    if (!ven.length) { dovnitr(); return; }
+    g().to(ven, { rotationX: 96, opacity: 0, duration: .34, ease: "power2.in",
+      stagger: .022, overwrite: true, onComplete: dovnitr });
+  }
   function fitBig() {                                  // roztažení na šířku jako .fit na zbytku webu
     if (!big || !skins.includes("typo")) return;
     big.style.transform = "none";
@@ -438,15 +471,25 @@
   let cordRest = 0, cordDrag = false, cordSY = 0;
 
   function cordSet(d) { cordLine.style.height = (cordRest + d).toFixed(1) + "px"; }
+  let sway = null;
+  function cordIdle() {                                  // šňůra se sama lehce houpe, ať láká
+    if (!g()) return;
+    if (sway) sway.kill();
+    g().set(cord, { transformOrigin: "50% 0%" });
+    sway = g().fromTo(cord, { rotation: -1.4 }, { rotation: 1.4, duration: 2.8, ease: "sine.inOut", yoyo: true, repeat: -1 });
+  }
   function cordReset() {
     cord.classList.remove("pull");
     cordLine.style.height = "";
     bHint.textContent = "ZATÁHNI ZA ŠŇŮRU";
+    cordIdle();
   }
   cordKnob.addEventListener("pointerdown", (e) => {
     if (boothBusy || booth.dataset.step !== "curtain") return;
     cordDrag = true; cordSY = e.clientY; cordRest = CORD_REST();
     cord.classList.add("pull");
+    if (sway) { sway.kill(); sway = null; }
+    if (g()) g().set(cord, { rotation: 0 });
     bHint.textContent = "TÁHNI DOLŮ ↓";
     try { cordKnob.setPointerCapture(e.pointerId); } catch (x) {}
   });
@@ -461,7 +504,8 @@
     if (!cordDrag) return; cordDrag = false;
     cord.classList.remove("pull");
     const tazeno = parseFloat(cordLine.style.height || 0) - cordRest;
-    cordLine.style.height = "";                        // šňůra cukne nahoru
+    cordLine.style.height = "";                        // šňůra cukne nahoru a dokývá se
+    if (g()) g().fromTo(cord, { rotation: -5.5 }, { rotation: 0, duration: 1.3, ease: "elastic.out(1, .22)", onComplete: cordIdle });
     if (tazeno >= PULL * .82) { closeCurtain(); return; }
     curtSet(OPEN, true);
     bHint.textContent = "AŽ NA DORAZ ↓";
@@ -661,6 +705,13 @@
 
 
   boothReset();
+
+  // hláška v liště se nemění střihem — nová vyjede zespodu
+  try {
+    new MutationObserver(() => {
+      if (g()) g().fromTo(note, { y: 7, opacity: .15 }, { y: 0, opacity: 1, duration: .32, ease: "power3.out" });
+    }).observe(note, { childList: true, characterData: true, subtree: true });
+  } catch (e) {}
 
   /* ============================================================
      DETAIL PROUŽKU — páska: svisle se posouvá tahem,
@@ -1068,7 +1119,13 @@
 
   addEventListener("resize", () => { if (engine) buildWalls(); });
   new IntersectionObserver((es) => es.forEach((e) => {
+    const bylo = visible;
     visible = e.isIntersecting;
+    // text se při příchodu do obrazu vyždímá dovnitř
+    if (visible && !bylo && g() && big && big.children.length && skins.includes("typo")) {
+      g().fromTo([...big.children], { rotationX: -96, opacity: 0 },
+        { rotationX: 0, opacity: 1, duration: .55, ease: "back.out(1.5)", stagger: .024, overwrite: true });
+    }
     if (!visible && live) { closeCam(); note.textContent = HINT; busy = false; boothReset(); }
   }), { threshold: .15 }).observe(scene);
 })();

@@ -914,15 +914,20 @@ body.beta-on .beta { display: block; }
 .sk-flat .tape-in .tf.pull { box-shadow: 6px 6px 0 rgba(12, 11, 9, .5); }
 
 /* --- 2) OBŘÍ TYPOGRAFIE: pokyn nese verzálka přes celou šířku --- */
-.fm-big { display: none; overflow: hidden; margin-top: 1.4vh; }
+.fm-big { display: none; overflow: hidden; margin-top: 1.4vh; perspective: 900px; }
 .sk-typo .fm-big { display: block; }
+.fm-big-i i {                                    /* každé písmeno zvlášť — ždímání jde po řadě */
+  display: inline-block; font-style: normal;
+  transform-origin: 50% 50%; backface-visibility: hidden;
+}
+.fm-big-i i.sp { width: .26em; }
 .fm-big-i {
-  display: inline-block; white-space: nowrap;
+  display: inline-block; white-space: nowrap; transform-style: preserve-3d;
   font-weight: 900; font-size: 9.5vh; line-height: 1; letter-spacing: -.02em;
   text-transform: uppercase; transform-origin: left top; color: var(--ink);
 }
 .sk-typo .fm-bar #fmNote { display: none; }                      /* malý popisek už je zbytečný */
-.sk-typo .fm-say { display: none; }
+.sk-typo .fm-say span { display: none; }         /* pokyny nese velký text, nadpis ať zůstane */
 .sk-typo .pcord-lbl { display: none; }
 
 /* --- 3) ČERNÁ SCÉNA: invertovaná jako KONTAKT --- */
@@ -935,6 +940,15 @@ body.beta-on .beta { display: block; }
 .sk-dark .coin { background: var(--bg); color: var(--ink); border-color: var(--ink); }
 .sk-dark .fm-pile .pc { background: var(--bg); }
 .sk-dark .tape-in { background: var(--bg); }
+/* v černé se slabé šedivé texty ztrácely — přitvrdit */
+.sk-dark .fm-say span { opacity: .62; }
+.sk-dark .fm-bar { opacity: .78; }
+.sk-dark #fmLooks button { opacity: .55; }
+.sk-dark #fmLooks button.on { opacity: 1; }
+.sk-dark .fm-slot .tag { opacity: .6; }
+.sk-dark .pcord-lbl { opacity: .8; }
+.sk-dark .cplate-sub { opacity: .58; }
+.sk-dark .skins, .sk-dark .grade { border-color: rgba(243, 241, 234, .38); }
 
 /* --- 4) FILMOVÝ SLOVNÍK: perforace, počítadlo, kód --- */
 .film-hud { display: none; }
@@ -973,7 +987,43 @@ body.beta-on .beta { display: block; }
 .skins-body button.on { background: #f3f1ea; color: #0d0d0c; border-color: #f3f1ea; }
 .skins-foot { margin-top: 9px; font: 700 8px/1 var(--sans); letter-spacing: .14em; opacity: .4; }
 
-/* ---------- hromada proužků ---------- *//* ---------- hromada proužků ---------- */
+/* závěrka: při každém snímku sjedou dvě clony k sobě a zase pryč */
+.shut { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.shut i { position: absolute; left: 0; right: 0; height: 52%; background: #0b0a08; transform: scaleY(0); }
+.shut i:first-child { top: 0; transform-origin: 50% 0; }
+.shut i:last-child { bottom: 0; transform-origin: 50% 100%; }
+
+/* odpočet: kolem čísla se stáhne kroužek */
+.fm-count::after {
+  content: ""; position: absolute; width: 26vh; height: 26vh;
+  border: 2px solid currentColor; border-radius: 50%; opacity: 0;
+}
+.fm-count.tick::after { animation: ringIn .9s ease-out; }
+@keyframes ringIn { from { transform: scale(1.45); opacity: .75; } to { transform: scale(.82); opacity: 0; } }
+
+/* filmová perforace se za chodu posouvá, jako by film běžel */
+.sk-film .fm.live::before, .sk-film .fm.live::after { animation: sprock 1.1s linear infinite; }
+@keyframes sprock { to { background-position-x: 22px; } }
+
+/* ---------- hromada proužků ---------- *//* závěrka: při každém snímku sjedou dvě clony k sobě a zase pryč */
+.shut { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.shut i { position: absolute; left: 0; right: 0; height: 52%; background: #0b0a08; transform: scaleY(0); }
+.shut i:first-child { top: 0; transform-origin: 50% 0; }
+.shut i:last-child { bottom: 0; transform-origin: 50% 100%; }
+
+/* odpočet: kolem čísla se stáhne kroužek */
+.fm-count::after {
+  content: ""; position: absolute; width: 26vh; height: 26vh;
+  border: 2px solid currentColor; border-radius: 50%; opacity: 0;
+}
+.fm-count.tick::after { animation: ringIn .9s ease-out; }
+@keyframes ringIn { from { transform: scale(1.45); opacity: .75; } to { transform: scale(.82); opacity: 0; } }
+
+/* filmová perforace se za chodu posouvá, jako by film běžel */
+.sk-film .fm.live::before, .sk-film .fm.live::after { animation: sprock 1.1s linear infinite; }
+@keyframes sprock { to { background-position-x: 22px; } }
+
+/* ---------- hromada proužků ---------- */
 /* hromada leží nad závěsem, ale nesmí brát kliknutí celé ploše —
    myš pouští dál a chytá jen na samotných proužcích */
 .fm-pile { position: absolute; inset: 0; overflow: hidden; z-index: 6; pointer-events: none; }

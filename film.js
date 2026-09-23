@@ -1150,6 +1150,38 @@ groupEl.addEventListener("wheel", (e) => {
   }, 130);
 }, { passive: false });
 
+/* Buben se na dotyku ovládá jen ťukáním na jednotlivé shooty — svislý tah
+   je tu volný a slouží stejně jako všude jinde: stáhni to dolů a jsi zpátky
+   ve WORKu (na telefonu by nikdo neměl muset trefit šipku zpět). */
+(function swipeToDismissGroup() {
+  let down = false, sy = 0, dyLast = 0, moved = false;
+  groupEl.addEventListener("pointerdown", (e) => {
+    if (groupEl.hidden) return;
+    down = true; moved = false; sy = e.clientY; dyLast = 0;
+  });
+  groupEl.addEventListener("pointermove", (e) => {
+    if (!down) return;
+    const dy = e.clientY - sy;
+    if (!moved && dy > 8) moved = true;
+    if (!moved) return;
+    dyLast = dy;
+    const t = Math.min(1, dy / 340);
+    groupList.style.cssText = `transition:none; transform:translateY(${dy}px); opacity:${(1 - t * .6).toFixed(3)};`;
+  });
+  function end() {
+    if (!down) return;
+    down = false;
+    if (moved && dyLast > 130) { groupList.style.cssText = ""; backFromGroup(); return; }
+    if (moved) {
+      groupList.style.cssText = "transition: transform .32s cubic-bezier(.2,.8,.3,1), opacity .32s ease;";
+      requestAnimationFrame(() => (groupList.style.cssText += "transform:none; opacity:1;"));
+      setTimeout(() => (groupList.style.cssText = ""), 340);
+    }
+  }
+  groupEl.addEventListener("pointerup", end);
+  groupEl.addEventListener("pointercancel", end);
+})();
+
 back.addEventListener("click", () => {
   if (!light.hidden) { closeLight(); return; }
   if (!stage.hidden) { backFromStrip(); return; }
@@ -1236,25 +1268,49 @@ function withGive(x) {                      // 1:1 v mezích, za hranou postupn�
   if (x < minX) return minX - rubberband(minX - x, vw || 1, .55);
   return x;
 }
+/* Na telefonu by nikdy nemělo být jediné cesty ven jen kliknutí na šipku
+   zpět — svislý tah dolů (osa, kterou vodorovné listování fotek stejně
+   nepoužívá) proužek pustí a vrátí tě, odkud jsi přišel: do WORKu, nebo
+   zpátky do bubnu skupiny, pokud jsi přišel odtud (řeší to backFromStrip). */
+let dragStartY = 0, dragAxis = null;   // null dokud se nerozhodne, "x" | "dismiss"
+const DISMISS_TH = 130;
 viewport.addEventListener("pointerdown", (e) => {
   if (stage.hidden) return;
-  dragging = true; dragMoved = false; dragStartX = e.clientX; dragStartTarget = targetX;
+  dragging = true; dragMoved = false; dragAxis = null;
+  dragStartX = e.clientX; dragStartY = e.clientY; dragStartTarget = targetX;
   velSamples = [{ t: performance.now(), x: e.clientX }];
   try { viewport.setPointerCapture(e.pointerId); } catch (er) {}
 });
 viewport.addEventListener("pointermove", (e) => {
   if (!dragging) return;
-  const dx = e.clientX - dragStartX;
-  if (Math.abs(dx) > 4) dragMoved = true;
+  const dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
+  if (!dragAxis) {
+    if (Math.hypot(dx, dy) < 6) return;
+    dragAxis = (dy > 0 && Math.abs(dy) > Math.abs(dx) * 1.15) ? "dismiss" : "x";
+  }
+  dragMoved = true;                            // ať to bylo tažení do strany nebo dolů — nikdy ne klik
+  if (dragAxis === "dismiss") {
+    const t = Math.min(1, dy / 340);
+    viewport.style.cssText = `transition:none; transform:translateY(${dy}px) scale(${(1 - t * .1).toFixed(3)}); opacity:${(1 - t * .55).toFixed(3)};`;
+    return;
+  }
   const raw = withGive(dragStartTarget + dx);
   targetX = raw; currentX = raw;             // žádné zpoždění za prstem — spring nastupuje až při puštění
   const now = performance.now();
   velSamples.push({ t: now, x: e.clientX });
   while (velSamples.length > 2 && now - velSamples[0].t > 120) velSamples.shift();
 });
-function endDrag() {
+function endDrag(e) {
   if (!dragging) return;
   dragging = false;
+  if (dragAxis === "dismiss") {
+    const dy = e ? e.clientY - dragStartY : 0;
+    if (dy > DISMISS_TH) { viewport.style.cssText = ""; backFromStrip(); return; }
+    viewport.style.cssText = "transition: transform .32s cubic-bezier(.2,.8,.3,1), opacity .32s ease;";
+    requestAnimationFrame(() => (viewport.style.cssText += "transform:none; opacity:1;"));
+    setTimeout(() => (viewport.style.cssText = ""), 340);
+    return;
+  }
   const now = performance.now();
   const recent = velSamples.filter((sp) => now - sp.t < 140);
   let velPxPerSec = 0;
@@ -1342,9 +1398,39 @@ function step(dt) {
 function openLight(fi) { lightIndex = fi; paintLight(); light.hidden = false; }
 function paintLight() { const it = FRAMES[lightIndex]; lightImg.src = it.full; const cr = (it.set.credit || "").toUpperCase(); lightId.textContent = `${it.set.title.toUpperCase()} · ${pad2(it.i + 1)}/${pad2(it.set.count)}${cr ? " · " + cr : ""}`; }
 function stepLight(d) { lightIndex = (lightIndex + d + FRAMES.length) % FRAMES.length; paintLight(); }
-function closeLight() { light.hidden = true; }
+function closeLight() { light.hidden = true; lightImg.style.cssText = ""; light.style.background = ""; }
 lightClose.addEventListener("click", closeLight);
 lightImg.addEventListener("click", () => stepLight(1));
+
+/* Na telefonu by nikdo neměl muset trefit křížek — vytáhni fotku prstem
+   nahoru nebo dolů a zavře se to samo, jako v nativní galerii. Tap dál
+   funguje beze změny: click se u krátkého pohybu synteticky vygeneruje
+   sám, jen ho tenhle listener nesmí zkazit preventDefaultem. */
+(function swipeToDismissLight() {
+  let dragging = false, moved = false, sx = 0, sy = 0, dy = 0;
+  const THRESH = 110;
+  lightImg.addEventListener("pointerdown", (e) => {
+    dragging = true; moved = false; sx = e.clientX; sy = e.clientY; dy = 0;
+    try { lightImg.setPointerCapture(e.pointerId); } catch (er) {}
+  });
+  lightImg.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - sx; dy = e.clientY - sy;
+    if (!moved && Math.hypot(dx, dy) > 6) moved = Math.abs(dy) > Math.abs(dx) * 1.15;
+    if (!moved) return;
+    const t = Math.min(1, Math.abs(dy) / 320);
+    lightImg.style.cssText = `transition:none; transform:translateY(${dy}px) scale(${(1 - t * .16).toFixed(3)});`;
+    light.style.background = `rgba(10,9,8,${(.97 * (1 - t * .75)).toFixed(3)})`;
+  });
+  function end() {
+    if (!dragging) return;
+    dragging = false;
+    if (moved && Math.abs(dy) > THRESH) { closeLight(); return; }
+    if (moved) { lightImg.style.cssText = "transition: transform .3s cubic-bezier(.2,.8,.3,1);"; requestAnimationFrame(() => (lightImg.style.transform = "")); light.style.background = ""; }
+  }
+  lightImg.addEventListener("pointerup", end);
+  lightImg.addEventListener("pointercancel", end);
+})();
 
 /* ---- loader: ultra minimal (progress linka) ---- */
 function initLoader() {

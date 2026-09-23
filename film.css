@@ -632,7 +632,7 @@ body.beta-on .beta { display: block; }
 .light { position: fixed; inset: 0; z-index: 100; background: rgba(10,9,8,.97); display: flex; flex-direction: column; animation: fade .2s ease; }
 .light[hidden] { display: none; }
 @keyframes fade { from{opacity:0} to{opacity:1} }
-.light img { flex: 1 1 auto; min-height: 0; width: 100%; object-fit: contain; padding: 54px 20px 12px; }
+.light img { flex: 1 1 auto; min-height: 0; width: 100%; object-fit: contain; padding: 54px 20px 12px; touch-action: none; }
 .light-bar { display: flex; align-items: center; gap: 1ch; padding: 14px 20px; color: #fff; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
 .light-bar button { background: none; border: none; color: #fff; font-family: var(--sans); font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
 .light-bar button:hover { opacity: .6; }

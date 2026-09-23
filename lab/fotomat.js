@@ -763,7 +763,16 @@
        do strany za políčko  = perforace se natáhne a fotka se utrhne
        dolů celým proužkem   = podáváš ho do štěrbiny, ta ho vtáhne
      ============================================================ */
-  const pslot = $("#fmPslot"), hand = $("#fmHand");
+  const pslot = $("#fmPslot"), hand = $("#fmHand"), viewBar = $(".fm-view-bar");
+  // Tiskárna byla přišpendlená na pevných "8 % odspodu" plochy — na mobilu,
+  // kde se nápověda pod ní zalomí na dva tři řádky, je ta lišta vyšší než
+  // těch 8 % a tiskárna jí prostě leze do cesty (odtud "text se překrývá").
+  // Místo procenta ji posadíme přesně nad skutečnou výšku lišty pod ní.
+  function positionPslot() {
+    if (!viewBar) return;
+    pslot.style.bottom = (viewBar.offsetHeight + 14) + "px";
+  }
+  addEventListener("resize", positionPslot);
   const slotLbl = pslot.querySelector(".lbl"), slotSt = pslot.querySelector(".pst");
   const FEED = 62;                                  // o kolik musíš podat, než to tiskárna chytne
   function feedHot(on) {
@@ -986,6 +995,7 @@
     vItem = it; vShots = it.data.shots.slice();
     view.hidden = false;
     buildTape();
+    positionPslot();
     hand.hidden = true;
     if (g()) {
       g().fromTo(view, { opacity: 0 }, { opacity: 1, duration: .28 });

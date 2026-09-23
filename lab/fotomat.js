@@ -330,8 +330,10 @@
     for (let i = n; i > 0; i--) {
       count.textContent = String(i);
       count.classList.remove("tick"); void count.offsetWidth; count.classList.add("tick");
-      if (g()) g().fromTo(count, { scale: .7, opacity: 0, rotationX: -70 },
-        { scale: 1, opacity: 1, rotationX: 0, duration: .34, ease: "back.out(2)" });
+      // 2D náhrada za rotationX — 3D transform tady nepřidával nic vizuálně
+      // podstatného a bylo lepší mít v celém FOTOMATu jednotný, bezpečný přístup
+      if (g()) g().fromTo(count, { scale: .55, opacity: 0 },
+        { scale: 1, opacity: 1, duration: .34, ease: "back.out(2)" });
       await wait(850);
     }
     count.hidden = true; count.classList.remove("tick");
@@ -382,18 +384,21 @@
   function setLetters(t) {
     big.innerHTML = [...t].map((ch) => (ch === " " ? '<i class="sp"></i>' : `<i>${ch}</i>`)).join("");
   }
+  // Ždímání ("wring"): písmeno se svisle stlačí a zkroutí do strany jako
+  // vyždímaný cíp ručníku, zmizí, vymění se a stejně se "rozkroutí" zpátky.
+  // Čistě 2D (scaleY + skewX) — bezpečné napříč prohlížeči, viz poznámka v CSS.
   function bigText(t) {
     if (!big || big.dataset.t === t) return;
     big.dataset.t = t;
     if (!g() || !skins.includes("typo")) { setLetters(t); fitBig(); return; }
     const ven = [...big.children];
-    const dovnitr = () => {                            // nová písmena se přitočí zpátky
+    const dovnitr = () => {                            // nová písmena se rozkroutí dovnitř
       setLetters(big.dataset.t); fitBig();
-      g().fromTo([...big.children], { rotationX: -96, opacity: 0 },
-        { rotationX: 0, opacity: 1, duration: .5, ease: "back.out(1.5)", stagger: .022, overwrite: true });
+      g().fromTo([...big.children], { scaleY: 0, skewX: 26, opacity: 0 },
+        { scaleY: 1, skewX: 0, opacity: 1, duration: .46, ease: "back.out(1.6)", stagger: .022, overwrite: true });
     };
     if (!ven.length) { dovnitr(); return; }
-    g().to(ven, { rotationX: 96, opacity: 0, duration: .34, ease: "power2.in",
+    g().to(ven, { scaleY: 0, skewX: -26, opacity: 0, duration: .3, ease: "power2.in",
       stagger: .022, overwrite: true, onComplete: dovnitr });
   }
   function fitBig() {                                  // roztažení na šířku jako .fit na zbytku webu
@@ -1123,8 +1128,8 @@
     visible = e.isIntersecting;
     // text se při příchodu do obrazu vyždímá dovnitř
     if (visible && !bylo && g() && big && big.children.length && skins.includes("typo")) {
-      g().fromTo([...big.children], { rotationX: -96, opacity: 0 },
-        { rotationX: 0, opacity: 1, duration: .55, ease: "back.out(1.5)", stagger: .024, overwrite: true });
+      g().fromTo([...big.children], { scaleY: 0, skewX: 26, opacity: 0 },
+        { scaleY: 1, skewX: 0, opacity: 1, duration: .55, ease: "back.out(1.6)", stagger: .024, overwrite: true });
     }
     if (!visible && live) { closeCam(); note.textContent = HINT; busy = false; boothReset(); }
   }), { threshold: .15 }).observe(scene);

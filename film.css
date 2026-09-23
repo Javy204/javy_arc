@@ -71,12 +71,16 @@ html, body {
 /* ============================================================
    JOURNEY
    ============================================================ */
-.journey { position: fixed; inset: 0; z-index: 10; height: 100vh; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
+/* 100vh na iOS Safari = "velký" viewport s pryč schovanou lištou adresy —
+   dokud je lišta vidět (běžný stav), je skutečně viditelná plocha nižší
+   a obsah dole se ořízne. 100dvh se přizpůsobí, dopadá jen jako vylepšení
+   tam, kde to prohlížeč umí (Safari 15.4+), jinde beze změny. */
+.journey { position: fixed; inset: 0; z-index: 10; height: 100vh; height: 100dvh; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; }
 .journey[hidden] { display: none; }
 .journey::-webkit-scrollbar { display: none; }
 
 .scene {
-  position: sticky; top: 0; height: 100vh; width: 100%;
+  position: sticky; top: 0; height: 100vh; height: 100dvh; width: 100%;
   overflow: hidden; display: flex; align-items: center;
   background: var(--bg); color: var(--ink);
   box-shadow: 0 -20px 50px rgba(0,0,0,.12);
@@ -84,7 +88,7 @@ html, body {
 .scene.inv { background: var(--ink); color: var(--bg); }
 
 .scene-inner { position: relative; z-index: 2; width: 100%; max-width: 1280px; margin: 0 auto; padding: 96px 40px; will-change: transform, opacity; }
-.scene-inner.poster { display: flex; flex-direction: column; justify-content: center; min-height: 100vh; }
+.scene-inner.poster { display: flex; flex-direction: column; justify-content: center; min-height: 100vh; min-height: 100dvh; }
 
 .par { will-change: transform; }
 
@@ -914,15 +918,18 @@ body.beta-on .beta { display: block; }
 .sk-flat .tape-in .tf.pull { box-shadow: 6px 6px 0 rgba(12, 11, 9, .5); }
 
 /* --- 2) OBŘÍ TYPOGRAFIE: pokyn nese verzálka přes celou šířku --- */
-.fm-big { display: none; overflow: hidden; margin-top: 1.4vh; perspective: 900px; }
+.fm-big { display: none; overflow: hidden; margin-top: 1.4vh; }
 .sk-typo .fm-big { display: block; }
+/* Ždímání je schválně 2D (scaleY + skewX), ne skutečná 3D rotace.
+   `backface-visibility: hidden` + `perspective` je na iOS Safari nespolehlivé —
+   dokáže se to zaseknout jako neviditelná / bílá ploška přes text, přesně tam,
+   kde ho čteš. Stejný "vykroucený ručník" pocit jde udělat bezpečně i bez 3D. */
 .fm-big-i i {                                    /* každé písmeno zvlášť — ždímání jde po řadě */
-  display: inline-block; font-style: normal;
-  transform-origin: 50% 50%; backface-visibility: hidden;
+  display: inline-block; font-style: normal; transform-origin: 50% 50%;
 }
 .fm-big-i i.sp { width: .26em; }
 .fm-big-i {
-  display: inline-block; white-space: nowrap; transform-style: preserve-3d;
+  display: inline-block; white-space: nowrap;
   font-weight: 900; font-size: 9.5vh; line-height: 1; letter-spacing: -.02em;
   text-transform: uppercase; transform-origin: left top; color: var(--ink);
 }

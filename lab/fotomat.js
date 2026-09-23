@@ -365,17 +365,28 @@
      ============================================================ */
   const SKINS = ["flat", "typo", "dark", "film"];
   const skinsEl = $("#fmSkins"), big = $("#fmBig"), frameNo = $("#fmFrameNo");
+  // POZOR: dřív se pod "javy-fmskin" ukládalo úplně KAŽDÉ načtení stránky
+  // (applySkins() píše do localStorage vždycky, i při počátečním nastavení),
+  // a to i v době, kdy byl výchozí stav "nic zapnuté" — tehdy se každému
+  // návštěvníkovi natrvalo uložilo []. Když se pak výchozí podoba změnila na
+  // flat+dark+typo, tahle stará prázdná hodnota ji navěky přebíjela — proto
+  // telefon, co na stránce byl dřív, viděl pořád bílé plátno a málo textu
+  // schované za giant typografií, i když nový návštěvník vidí správně.
+  // Nový klíč tohle jednou provždy zneplatní; stará hodnota zůstane ležet
+  // ladem a nikoho už neovlivní.
+  const SKIN_KEY = "javy-fmskin2";
+  try { localStorage.removeItem("javy-fmskin"); } catch (e) {}
   // výchozí podoba webu: jednodušší plátno, černá scéna, text dole
   let skins = ["flat", "dark", "typo"];
   try {
-    const ulozeno = localStorage.getItem("javy-fmskin");
+    const ulozeno = localStorage.getItem(SKIN_KEY);
     if (ulozeno) skins = (JSON.parse(ulozeno) || []).filter((x) => SKINS.includes(x));
   } catch (e) {}
 
   function applySkins() {
     SKINS.forEach((k) => scene.classList.toggle("sk-" + k, skins.includes(k)));   // scene = sekce .s-lab
     skinsEl.querySelectorAll("button[data-skin]").forEach((b) => b.classList.toggle("on", skins.includes(b.dataset.skin)));
-    try { localStorage.setItem("javy-fmskin", JSON.stringify(skins)); } catch (e) {}
+    try { localStorage.setItem(SKIN_KEY, JSON.stringify(skins)); } catch (e) {}
     fitBig();
   }
   /* Velký text se nemění střihem, ale ždímáním: písmena se po řadě

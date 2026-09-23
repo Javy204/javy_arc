@@ -34,6 +34,47 @@ let whMeta = [], whBase = 0;   // předpočítané středy panelů (ať se v ka�
 /* dojezd nezávislý na Hz: `base` je krok při 60 FPS, tady se přepočítá na
    skutečný delta čas — na 120Hz displeji pak animace neběží dvakrát rychleji */
 function ease(base, dt) { return 1 - Math.pow(1 - base, dt / 16.667); }
+
+/* ============================================================
+   PRUŽINOVÁ FYZIKA (Apple, WWDC 2018 "Designing Fluid Interfaces")
+   Vlastní implementace — web bez bundleru, takže se sem knihovna typu
+   Motion/Framer nedá přirozeně zapojit skriptem přes CDN a napojit na
+   tenhle rAF loop; princip je ale stejný, jen psaný na dvě desítky
+   řádků: Apple místo hmotnosti/tuhosti/tlumení nabízí dva srozumitelné
+   parametry — `damping` (0–1, 1 = bez přeběhnutí) a `response`
+   (kolik sekund pružina potřebuje na dojetí). Pružina je z podstaty
+   přerušitelná: kdykoli jí lze změnit cíl i rychlost a pokračuje
+   plynule odtud, kde právě je — ne od nuly.
+   ============================================================ */
+function makeSpring(damping, response) {
+  const s = { x: 0, v: 0, target: 0, k: 0, c: 0 };
+  s.configure = (d, r) => {
+    const omega = (2 * Math.PI) / Math.max(0.01, r);
+    s.k = omega * omega;              // tuhost (hmotnost = 1)
+    s.c = 2 * d * omega;              // tlumení
+  };
+  s.step = (dt) => {
+    const dtS = Math.min(0.032, dt / 1000);   // pojistka proti skoku po přepnutí tabu
+    const a = -s.k * (s.x - s.target) - s.c * s.v;
+    s.v += a * dtS; s.x += s.v * dtS;
+    return s.x;
+  };
+  s.configure(damping, response);
+  return s;
+}
+/* Kam by švihnutí doklouzalo samo, kdyby nic nebrzdilo — Applin přesný
+   vzorec z ukázkového kódu k WWDC talku (ne učebnicové v²/2a). */
+function projectMomentum(velocityPxPerSec, decelerationRate) {
+  const rate = decelerationRate || 0.998;
+  return (velocityPxPerSec / 1000) * rate / (1 - rate);
+}
+/* Měkká hranice: čím dál za okraj, tím větší odpor — misto tvrdého
+   stopu, který "působí zamrzle" (WWDC terminologie), se to dál hejbe,
+   jen čím dál míň. */
+function rubberband(overshoot, dimension, constant) {
+  const k = constant || 0.55;
+  return (overshoot * dimension * k) / (dimension + k * Math.abs(overshoot));
+}
 const sWork = $("#sWork");
 const workMeta = $("#workMeta");
 const light = $("#light");
@@ -50,6 +91,7 @@ let workMode = localStorage.getItem("javy-workmode3") || "C";   // "A" film/over
 let SCENES = [], SCENE_NAMES = [], SCENE_INNER = [], SCENE_PARS = [];
 let ITEMS = [], FRAMES = [], centers = [];
 let targetX = 0, currentX = 0, minX = 0, maxX = 0;
+const stripSpring = makeSpring(1, .4);   // Applin hodnoty pro "Move / reposition" (PiP okno)
 let vw = window.innerWidth || document.documentElement.clientWidth;
 let lightIndex = -1;
 
@@ -1003,6 +1045,8 @@ function enterStrip() {
   measure();
   const startX = clamp(vw / 2 - (centers[0] || 0));
   currentX = startX - 720; targetX = startX;
+  stripSpring.configure(1, .5); stripSpring.x = currentX; stripSpring.v = 0;   // pružina musí startovat odsud, ne odkud skončila minule
+  magnetPending = false; if (snapTimer) { clearTimeout(snapTimer); snapTimer = null; }
   reel.classList.remove("unrolling"); void reel.offsetWidth; reel.classList.add("unrolling");
   setTimeout(() => { measure(); targetX = clamp(vw / 2 - (centers[0] || 0)); }, 140);
 }
@@ -1140,15 +1184,24 @@ function measure() {
 }
 function clamp(x) { return Math.max(minX, Math.min(maxX, x)); }
 
-/* jemný snap na nejbližší snímek po zastavení */
+/* jemný snap na nejbližší snímek po zastavení. Pro kolečko (spojitý proud
+   drobných kroků bez jediného okamžiku "puštění") dává smysl debounce —
+   360 ms ticha od posledního kroku. Po švihnutí prstem ale ŠVIHNUTÍ MÁ
+   DOJET SAMO: s Applinou projekcí umí let trvat přes sekundu, a pevných
+   360 ms by ho uřízlo v polovině letu a strhlo na nejbližší fotku hned
+   po startu — přesně to, co dřív dělalo "rychlé sjetí jede jen o jednu
+   fotku". Po švihnutí se místo časovače čeká, až pružina SKUTEČNĚ dojede
+   (viz step()), a teprve pak přijde jemné doštelování. */
 let snapTimer = null;
 function scheduleSnap() { if (snapTimer) clearTimeout(snapTimer); snapTimer = setTimeout(snapToNearest, 360); }
+let magnetPending = false;
+function armMagnetSnap() { if (snapTimer) { clearTimeout(snapTimer); snapTimer = null; } magnetPending = true; }
 function snapToNearest() {
   if (stage.hidden || !ITEMS.length || dragging) return;
   const screenC = vw / 2 - currentX;
   let best = -1, bd = Infinity;
   for (let k = 0; k < centers.length; k++) { const d = Math.abs(centers[k] - screenC); if (d < bd) { bd = d; best = k; } }
-  if (best >= 0) targetX = clamp(vw / 2 - centers[best]);
+  if (best >= 0) { stripSpring.configure(1, .4); targetX = clamp(vw / 2 - centers[best]); }
 }
 
 /* ---- strip input ---- */
@@ -1167,16 +1220,25 @@ viewport.addEventListener("wheel", (e) => {
   targetX = clamp(targetX - (d + dx) * 1.15);
   scheduleSnap();
 }, { passive: false });
-/* rychlost švihnutí se POČÍTÁ Z OKÉNKA posledních ~120 ms pohybu, ne z jednoho
+/* Přímá manipulace (WWDC "touch and content should move together"): během
+   tahu se pás lepí na prst 1:1, žádné dobíhání přes ease — za krajem jen
+   povoluje čím dál míň (rubberband), místo aby tvrdě narazil. Rychlost
+   švihnutí se počítá z OKÉNKA posledních ~120 ms pohybu, ne z jednoho
    posledního pointermove — na mobilu touchmove chodí nepravidelně (často
    řidčeji než mousemove na desktopu), takže poslední událost před puštěním
-   prstu měla často drobný posun, i když samotné švihnutí bylo rychlé. Odtud
-   "rychlé sjetí posune jen o jednu fotku": endDrag() četl jen tenhle
-   poslední, uměle malý krok. */
-let dragging = false, dragStartX = 0, dragStartTarget = 0, dragMoved = false, vel = 0, velSamples = [];
+   prstu měla často jen drobný posun, i když samotné švihnutí bylo rychlé.
+   Po puštění dostane pružina tuhle skutečnou rychlost a Applin vzorec
+   spočítá, kam by švihnutí doklouzalo samo — ne kam ho odhadem hodí
+   fixní násobek. */
+let dragging = false, dragStartX = 0, dragStartTarget = 0, dragMoved = false, velSamples = [];
+function withGive(x) {                      // 1:1 v mezích, za hranou postupně tuhne
+  if (x > maxX) return maxX + rubberband(x - maxX, vw || 1, .55);
+  if (x < minX) return minX - rubberband(minX - x, vw || 1, .55);
+  return x;
+}
 viewport.addEventListener("pointerdown", (e) => {
   if (stage.hidden) return;
-  dragging = true; dragMoved = false; dragStartX = e.clientX; dragStartTarget = targetX; vel = 0;
+  dragging = true; dragMoved = false; dragStartX = e.clientX; dragStartTarget = targetX;
   velSamples = [{ t: performance.now(), x: e.clientX }];
   try { viewport.setPointerCapture(e.pointerId); } catch (er) {}
 });
@@ -1184,7 +1246,8 @@ viewport.addEventListener("pointermove", (e) => {
   if (!dragging) return;
   const dx = e.clientX - dragStartX;
   if (Math.abs(dx) > 4) dragMoved = true;
-  targetX = clamp(dragStartTarget + dx);
+  const raw = withGive(dragStartTarget + dx);
+  targetX = raw; currentX = raw;             // žádné zpoždění za prstem — spring nastupuje až při puštění
   const now = performance.now();
   velSamples.push({ t: now, x: e.clientX });
   while (velSamples.length > 2 && now - velSamples[0].t > 120) velSamples.shift();
@@ -1194,13 +1257,24 @@ function endDrag() {
   dragging = false;
   const now = performance.now();
   const recent = velSamples.filter((sp) => now - sp.t < 140);
+  let velPxPerSec = 0;
   if (recent.length >= 2) {
     const first = recent[0], last = recent[recent.length - 1];
     const dt = Math.max(1, last.t - first.t);
-    vel = ((last.x - first.x) / dt) * 16.667;   // normalizováno na px/16.667ms, stejné měřítko jako dřív dx - lastDX
-  } else vel = 0;
-  targetX = clamp(targetX + vel * 6);
-  scheduleSnap();
+    velPxPerSec = ((last.x - first.x) / dt) * 1000;
+  }
+  stripSpring.x = currentX; stripSpring.v = velPxPerSec;   // předání rychlosti — žádný šev mezi tahem a animací
+  if (currentX > maxX || currentX < minX) {
+    // pustil za hranou — nikam to neletí, jen se to elasticky vrátí na okraj
+    stripSpring.configure(.78, .32);
+    targetX = clamp(currentX);
+  } else {
+    const projected = currentX + projectMomentum(velPxPerSec);
+    stripSpring.configure(1, .4);            // Applin "Move / reposition"
+    targetX = clamp(projected);
+  }
+  window.__lastDrag = { velPxPerSec, minX, maxX, currentX, targetX };   // ladicí přístup (kalibrace momentum/rubberbandu bez skutečného čekání na hodiny)
+  armMagnetSnap();
 }
 viewport.addEventListener("pointerup", endDrag);
 viewport.addEventListener("pointercancel", endDrag);
@@ -1233,8 +1307,14 @@ function step(dt) {
   if (!groupEl.hidden) { stepDrum(dt); return; }
   if (stage.hidden || !ITEMS.length) return;
   vw = window.innerWidth || document.documentElement.clientWidth;
-  currentX += (targetX - currentX) * ease(0.18, dt);
-  if (Math.abs(targetX - currentX) < 0.1) currentX = targetX;
+  if (!dragging) {                                  // při tahu currentX řídí přímo prst (1:1), sem se nesahá
+    stripSpring.target = targetX;
+    currentX = stripSpring.step(dt);
+    if (Math.abs(targetX - currentX) < .05 && Math.abs(stripSpring.v) < 2) {
+      currentX = targetX; stripSpring.x = targetX; stripSpring.v = 0;
+      if (magnetPending) { magnetPending = false; snapToNearest(); }   // doštelovat až po SKUTEČNÉM dojetí letu
+    }
+  }
   reel.style.transform = `translate3d(${currentX}px,0,0)`;
   stripBg.style.transform = `translate(${(currentX * 0.4).toFixed(1)}px, -50%)`;   // type-parallax (pomaleji)
   const screenC = vw / 2 - currentX;

@@ -60,6 +60,27 @@ html, body {
 }
 .mark.big { font-size: 22px; border-width: 3px; }
 
+/* ============================================================
+   OKAMŽITÁ ODEZVA NA DOTEK (Apple WWDC 2018 "Designing Fluid
+   Interfaces" — "respond on pointer-down, not on release")
+   :hover na dotykových zařízeních vůbec nenaskočí, takže tlačítko
+   bez :active je do puštění prstu úplně mrtvé. Jen tam, kde si
+   transform neřídí JS (fotky ve WORKu a roztažená typografie mají
+   svůj vlastní inline transform každý snímek — tam by se to prostě
+   přepsalo a nic by nebylo vidět), proto je seznam vybraný ručně.
+   ============================================================ */
+.back, .ix-rail button, .beta-tag, .beta-item, .light-bar button,
+.fm-view-bar button, .fm-view-bar a, .fm-bar button, .fm-bar a,
+#fmLooks button, .skins-body button, .grade-head button, .wh-item {
+  transition: transform .12s cubic-bezier(.2, .8, .3, 1);
+}
+.back:active, .ix-rail button:active, .beta-tag:active, .beta-item:active,
+.light-bar button:active, .fm-view-bar button:active, .fm-view-bar a:active,
+.fm-bar button:active, .fm-bar a:active, #fmLooks button:active,
+.skins-body button:active, .grade-head button:active, .wh-item:active {
+  transform: scale(.96);
+}
+
 /* ---- dots ---- */
 .dots { position: fixed; right: 20px; top: 50%; transform: translateY(-50%); z-index: 60; display: flex; flex-direction: column; gap: 13px; mix-blend-mode: difference; }
 .dots[hidden] { display: none; }

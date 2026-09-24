@@ -808,12 +808,41 @@
     return x > r.left - 40 && x < r.right + 40 && y > r.top - 50 && y < r.bottom + 40;
   }
 
+  /* ============================================================
+     ULOŽENÍ FOTKY
+       data: URI + <a download> na iOS Safari nespolehlivě funguje —
+       buď to jen otevře obrázek, nebo ukáže "stáhnout?" a nic se
+       neuloží. Na dotykových zařízeních použij Web Share API: nabídne
+       systémový sheet, kde "Uložit obrázek" jde rovnou do Photos —
+       přesně to, co chce. Na desktopu (myš) necháme fungující tichý
+       download beze změny. Volá se HNED po composeStrip(), ne až po
+       dojetí animace tiskárny — Safari sdílení povoluje jen krátce
+       po skutečném gestu uživatele, dlouhé čekání by ho zablokovalo.
+     ============================================================ */
+  const touchPrimary = matchMedia("(pointer: coarse)").matches;
+  async function saveImage(dataUrl, filename) {
+    let blob = null;
+    try { blob = await (await fetch(dataUrl)).blob(); } catch (e) {}
+    if (blob && touchPrimary && navigator.canShare) {
+      try {
+        const file = new File([blob], filename, { type: blob.type || "image/jpeg" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file] });
+          return;                                    // uloženo (nebo uživatel sheet zavřel — obojí je v pořádku)
+        }
+      } catch (e) { if (e && e.name === "AbortError") return; }   // zavřel sheet sám — nezkoušet náhradní stažení
+    }
+    const url = blob ? URL.createObjectURL(blob) : dataUrl;       // blob URL je na iOS spolehlivější než data:
+    const a = $("#fmViewSave");
+    a.href = url; a.download = filename; a.click();
+    if (blob) setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
+
   /* ---- vytištění: válečky si to vtáhnou ---- */
   async function printThing(list, fromEl) {
     const made = await composeStrip(list);
-    const a = $("#fmViewSave");
-    a.href = made.url;
-    a.download = list.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
+    const filename = list.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
+    const saved = saveImage(made.url, filename);       // spustit hned, neblokovat animací
     pslot.classList.add("feed"); pslot.classList.remove("hot");
     slotSt.textContent = "TISKNE…";
     if (g() && fromEl) {
@@ -832,7 +861,7 @@
     if (g()) g().fromTo(pslot, { y: 6 }, { y: 0, duration: .35, ease: "elastic.out(1, .4)" });
     paperOut(); slotSt.textContent = "HOTOVO";
     setTimeout(() => { if (!pslot.classList.contains("feed")) slotSt.textContent = "READY"; }, 1600);
-    a.click();
+    await saved;
     note.textContent = list.length > 1 ? "proužek vytištěn" : "snímek vytištěn";
   }
 
@@ -842,8 +871,7 @@
     feeding = true; vel = 0;
     const list = vShots.slice();
     const made = await composeStrip(list);
-    const a = $("#fmViewSave");
-    a.href = made.url; a.download = "javy-fotomat-prouzek.jpg";
+    const saved = saveImage(made.url, "javy-fotomat-prouzek.jpg");   // spustit hned, neblokovat animací
     feedHot(false); pslot.classList.add("feed");
     slotSt.textContent = "TISKNE…";
     note.textContent = "podávám do tiskárny…";
@@ -859,7 +887,7 @@
     if (g()) g().fromTo(pslot, { y: 8 }, { y: 0, duration: .4, ease: "elastic.out(1, .4)" });
     paperOut(); slotSt.textContent = "HOTOVO";
     setTimeout(() => { if (!pslot.classList.contains("feed")) slotSt.textContent = "READY"; }, 1600);
-    a.click();
+    await saved;
     note.textContent = "proužek vytištěn";
     await tween(0, .75, "power3.out");               // a páska se vrátí nahoru
     feeding = false;

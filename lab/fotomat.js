@@ -40,11 +40,9 @@
     { k: "ditherSize", t: "VELIKOST BODU", min: 1, max: 6, step: .1, v: 2 },
   ];
   const DEFAULTS = Object.fromEntries(PARAMS.map((p) => [p.k, p.v]));
-  const LOOKS = {
-    "TERMO": { dither: 1, ditherSize: 2, exposure: .3, contrast: 1.5, sat: 0, grain: .05, halation: .15, vignette: .5 },
-    "KLUB": { dither: 0, exposure: .35, contrast: 1.7, sat: 0, grain: .22, halation: .5, vignette: 1, scurve: .5 },
-    "BLESK": { dither: 0, exposure: .7, contrast: 1.5, sat: 0, grain: .12, halation: .9, vignette: .5, white: 1, gain: 1.2 },
-  };
+  // jediný look webu — návštěvník si mezi ničím nepřepíná, admin (viz níž
+  // tajný panel) mu může doladit libovolný parametr, RESET vrací sem
+  const LOOK = { dither: 1, ditherSize: 2, exposure: .3, contrast: 1.5, sat: 0, grain: .05, halation: .15, vignette: .5 };
 
   const VERT = `attribute vec2 p; varying vec2 vUv;
     void main(){ vUv = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }`;
@@ -130,11 +128,11 @@
   /* Uložené hodnoty: dřív se do localStorage psalo CELÉ G, takže jedno šáhnutí
      do skrytého panelu (nebo RESET, který spadl na holé DEFAULTS bez ditheru)
      přebilo look napořád — prohlížeč pak ukazoval TERMO, ale termo tam nebylo.
-     Teď se pamatuje zvolený look zvlášť a z posuvníků jen odchylky od něj. */
-  const LOOK_KEY = "javy-look2", GRADE_KEY = "javy-grade2";
-  let lookName = "TERMO";
-  try { const l = localStorage.getItem(LOOK_KEY); if (l && LOOKS[l]) lookName = l; } catch (e) {}
-  const baseLook = () => ({ ...DEFAULTS, ...LOOKS[lookName] });
+     Teď se z posuvníků pamatují jen odchylky od jediného looku (LOOK), ne
+     celé G — RESET se tak vždycky vrátí přesně sem, ne na holé DEFAULTS. */
+  const GRADE_KEY = "javy-grade2";
+  try { localStorage.removeItem("javy-look2"); } catch (e) {}   // starý klíč pro přepínání looků už nikam neukazuje
+  const baseLook = () => ({ ...DEFAULTS, ...LOOK });
   let G = baseLook();
   try {
     const saved = JSON.parse(localStorage.getItem(GRADE_KEY) || "{}");
@@ -1067,16 +1065,7 @@
     }
   }
 
-  /* ---- presety + tajný panel ---- */
-  const looks = $("#fmLooks");
-  looks.innerHTML = Object.keys(LOOKS).map((n) => `<button type="button" data-look="${n}"${n === lookName ? ' class="on"' : ""}>${n}</button>`).join("");
-  looks.addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-look]"); if (!b) return;
-    lookName = b.dataset.look;
-    G = baseLook(); syncPanel();                       // volba looku zahodí ruční doladění
-    try { localStorage.setItem(LOOK_KEY, lookName); localStorage.removeItem(GRADE_KEY); } catch (x) {}
-    [...looks.children].forEach((x) => x.classList.toggle("on", x === b));
-  });
+  /* ---- tajný panel (žádný veřejný přepínač looků — jen jeden, TERMO) ---- */
   const panel = $("#grade"), body = $("#gradeBody");
   body.innerHTML = PARAMS.map((p) =>
     `<div class="grade-row"><label for="g_${p.k}"><span>${p.t}</span><span id="v_${p.k}">${G[p.k]}</span></label>

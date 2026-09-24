@@ -103,6 +103,7 @@
 
   /* ---- WebGL ---- */
   const cv = $("#fmGL");
+  const gradePrevCv = $("#gradePrevCv");   // malý živý náhled uvnitř gradingového panelu
   const gl = cv.getContext("webgl", { preserveDrawingBuffer: true, antialias: false });
   let U = {}, glOK = false;
   if (gl) {
@@ -1160,6 +1161,13 @@
     PARAMS.forEach((p) => gl.uniform1f(U[p.k], G[p.k]));
     gl.uniform1f(U.sat, 0);   // vynuceno tady, ne jen v presetech — nejde to obejít žádným posuvníkem
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // širokému panelu se sliders se vejde přes celé plátno — bez tohohle
+    // náhledu by admin ladil naslepo, protože by vlastní fotku neviděl
+    if (gradePrevCv && !panel.hidden) {
+      const pc = gradePrevCv.getContext("2d");
+      pc.clearRect(0, 0, gradePrevCv.width, gradePrevCv.height);
+      pc.drawImage(cv, 0, 0, gradePrevCv.width, gradePrevCv.height);
+    }
   }
   let last = 0;
   function loop(ts) {

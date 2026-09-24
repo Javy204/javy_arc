@@ -1050,7 +1050,7 @@ body.beta-on .beta { display: block; }
    se do víc sloupců vedle sebe */
 .grade {
   position: fixed; right: 16px; top: 64px; bottom: 16px; z-index: 95;
-  width: min(94vw, 860px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+  width: min(96vw, 980px); overflow-y: auto; -webkit-overflow-scrolling: touch;
   background: #0d0d0c; color: #f3f1ea; border: 1px solid rgba(243, 241, 234, .2);
   padding: 14px 18px 20px; font-family: var(--sans); box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
 }
@@ -1066,7 +1066,16 @@ body.beta-on .beta { display: block; }
   font: 700 10px/1 var(--sans); letter-spacing: .08em; padding: 6px 10px; cursor: pointer;
 }
 .grade-head button:hover { background: rgba(243, 241, 234, .12); }
-.grade-looks { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
+/* náhled fotky vlevo, sliders vpravo — široký panel by jinak fotku zakryl
+   úplně a šlo by se ladit naslepo; sticky, ať zůstane vidět i při scrollu */
+.grade-main { display: flex; gap: 22px; align-items: flex-start; margin-top: 4px; }
+.grade-preview {
+  position: sticky; top: 0; flex: 0 0 auto; width: 230px;
+  border: 1px solid rgba(243, 241, 234, .22); background: #000; overflow: hidden;
+}
+.grade-preview canvas { display: block; width: 100%; height: auto; }
+.grade-controls { flex: 1 1 auto; min-width: 0; }
+.grade-looks { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 2px; }
 .grade-looks button {
   appearance: none; border: 1px solid rgba(243, 241, 234, .25); background: none; color: inherit;
   font: 700 10px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; padding: 7px 13px; cursor: pointer;
@@ -1074,8 +1083,8 @@ body.beta-on .beta { display: block; }
 .grade-looks button:hover { background: rgba(243, 241, 234, .12); }
 .grade-looks button.on { background: #f3f1ea; color: #0d0d0c; border-color: #f3f1ea; }
 .grade-body {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  column-gap: 26px; margin-top: 16px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  column-gap: 22px; margin-top: 16px;
 }
 .grade-row { margin: 0; padding: 7px 0; }
 .grade-row label { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; opacity: .78; }
@@ -1339,4 +1348,6 @@ body.beta-on .beta { display: block; }
   .fm-view-bar button, .fm-view-bar a { padding: 7px 8px; font-size: 9px; letter-spacing: .08em; }
 
   .grade, .skins { right: 8px; left: 8px; width: auto; bottom: 8px; }
+  .grade-main { flex-direction: column; }
+  .grade-preview { position: static; width: 100%; max-width: 260px; margin: 0 auto; }
 }

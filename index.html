@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=126" />
+  <link rel="stylesheet" href="film.css?v=127" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -186,8 +186,13 @@
         <!-- tajný panel: klávesa G nebo trojklik na "03 — FOTOMAT" -->
         <div class="grade" id="grade" hidden>
           <div class="grade-head"><span>GRADING · JEN ADMIN</span><span class="r"><button type="button" id="gradeTest">TEST</button><button type="button" id="gradeCopy">KOPÍROVAT</button><button type="button" id="gradeReset">RESET</button><button type="button" id="gradeClose">✕</button></span></div>
-          <div class="grade-looks" id="gradeLooks"></div>
-          <div class="grade-body" id="gradeBody"></div>
+          <div class="grade-main">
+            <div class="grade-preview"><canvas id="gradePrevCv" width="270" height="360"></canvas></div>
+            <div class="grade-controls">
+              <div class="grade-looks" id="gradeLooks"></div>
+              <div class="grade-body" id="gradeBody"></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -257,7 +262,7 @@
   <script src="film.js?v=87"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=54" defer></script>
+  <script src="lab/fotomat.js?v=55" defer></script>
   <script src="arc.js?v=3"></script>
 </body>
 </html>

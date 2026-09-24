@@ -1045,6 +1045,43 @@ body.beta-on .beta { display: block; }
 }
 .sk-film .fm-slot { display: none; }                              /* proužek vyjede mezi perforacemi */
 
+/* tajný gradingový panel — na desktopu je vpravo hodně místa, tak ať se
+   parametry nemačkají do jednoho úzkého sloupce se scrollem, ale rozlijí
+   se do víc sloupců vedle sebe */
+.grade {
+  position: fixed; right: 16px; top: 64px; bottom: 16px; z-index: 95;
+  width: min(94vw, 860px); overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: #0d0d0c; color: #f3f1ea; border: 1px solid rgba(243, 241, 234, .2);
+  padding: 14px 18px 20px; font-family: var(--sans); box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+}
+.grade[hidden] { display: none; }
+.grade-head {
+  display: flex; justify-content: space-between; align-items: center;
+  font: 700 11px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; opacity: .8;
+  padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(243, 241, 234, .15);
+}
+.grade-head .r { display: flex; gap: 8px; }
+.grade-head button {
+  appearance: none; border: 1px solid rgba(243, 241, 234, .3); background: none; color: inherit;
+  font: 700 10px/1 var(--sans); letter-spacing: .08em; padding: 6px 10px; cursor: pointer;
+}
+.grade-head button:hover { background: rgba(243, 241, 234, .12); }
+.grade-looks { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
+.grade-looks button {
+  appearance: none; border: 1px solid rgba(243, 241, 234, .25); background: none; color: inherit;
+  font: 700 10px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; padding: 7px 13px; cursor: pointer;
+}
+.grade-looks button:hover { background: rgba(243, 241, 234, .12); }
+.grade-looks button.on { background: #f3f1ea; color: #0d0d0c; border-color: #f3f1ea; }
+.grade-body {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  column-gap: 26px; margin-top: 16px;
+}
+.grade-row { margin: 0; padding: 7px 0; }
+.grade-row label { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; opacity: .78; }
+.grade-row label span:last-child { font-variant-numeric: tabular-nums; opacity: .6; }
+.grade-row input[type=range] { width: 100%; margin: 6px 0 0; accent-color: #f3f1ea; }
+
 /* panel s podobami — stejný kabát jako grading */
 .skins {
   position: fixed; left: 16px; bottom: 16px; z-index: 95; width: min(92vw, 260px);

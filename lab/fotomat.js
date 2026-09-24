@@ -26,8 +26,7 @@
     { k: "scurve", t: "S-KŘIVKA", min: 0, max: 1, step: .01, v: .35 },
     { k: "black", t: "ČERNÝ BOD", min: 0, max: .3, step: .005, v: .03 },
     { k: "white", t: "BÍLÝ BOD", min: .7, max: 1.1, step: .005, v: .97 },
-    { k: "sat", t: "SYTOST", min: 0, max: 1.6, step: .01, v: 0 },
-    { k: "temp", t: "TEPLOTA", min: -.3, max: .3, step: .005, v: 0 },
+    { k: "temp", t: "TEPLOTA (JAKO FILTR PŘED ČB)", min: -.3, max: .3, step: .005, v: 0 },
     { k: "tint", t: "ODSTÍN", min: -.3, max: .3, step: .005, v: 0 },
     { k: "grain", t: "ZRNO", min: 0, max: .6, step: .005, v: .16 },
     { k: "grainSize", t: "VELIKOST ZRNA", min: .5, max: 4, step: .1, v: 1.4 },
@@ -40,14 +39,22 @@
     { k: "ditherSize", t: "VELIKOST BODU", min: 1, max: 6, step: .1, v: 2 },
   ];
   const DEFAULTS = Object.fromEntries(PARAMS.map((p) => [p.k, p.v]));
-  // jediný look webu — návštěvník si mezi ničím nepřepíná, admin (viz níž
-  // tajný panel) mu může doladit libovolný parametr, RESET vrací sem
-  const LOOK = { dither: 1, ditherSize: 2, exposure: .3, contrast: 1.5, sat: 0, grain: .05, halation: .15, vignette: .5 };
+  // Efekty (jen pro admina — žádný veřejný přepínač). Návštěvník vždycky
+  // vidí TERMO; ostatní jsou startovní body pro doladění v tajném panelu.
+  // sat tu je jen pro čitelnost — o to, že výstup zůstane černobílý i při
+  // sáhnutí do kódu, se stará natvrdo draw() (gl.uniform1f(U.sat, 0)).
+  const LOOKS = {
+    TERMO: { dither: 1, ditherSize: 2, exposure: .3, contrast: 1.5, sat: 0, grain: .05, halation: .15, vignette: .5 },
+    FILM: { dither: 0, exposure: .15, contrast: 1.2, sat: 0, grain: .3, grainSize: 1.8, halation: .35, vignette: .7, scurve: .25 },
+    TVRDÝ: { dither: 0, exposure: .1, contrast: 2, sat: 0, grain: .12, halation: .2, vignette: .9, scurve: .55, black: .05 },
+    JEMNÝ: { dither: 0, exposure: .35, contrast: .9, sat: 0, grain: .08, halation: .1, vignette: .25, scurve: .1, white: 1.02 },
+  };
 
   const VERT = `attribute vec2 p; varying vec2 vUv;
     void main(){ vUv = p * .5 + .5; gl_Position = vec4(p, 0., 1.); }`;
   const FRAG = `precision highp float;
     uniform sampler2D tVid; uniform vec2 uCover, uVidRes; uniform float uTime, uHasVid;
+    uniform float u_sat;   // není v PARAMS (žádný posuvník) — jen vynucená 0 z draw()
     ${PARAMS.map((p) => `uniform float u_${p.k};`).join(" ")}
     varying vec2 vUv;
     float hash(vec2 q){ return fract(sin(dot(q, vec2(127.1, 311.7))) * 43758.5453); }
@@ -112,6 +119,7 @@
     const loc = gl.getAttribLocation(prog, "p");
     gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     ["tVid", "uCover", "uVidRes", "uTime", "uHasVid"].forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
+    U.sat = gl.getUniformLocation(prog, "u_sat");   // napevno 0 — web je čistě černobílý, žádný posuvník to nesmí obejít
     PARAMS.forEach((p) => (U[p.k] = gl.getUniformLocation(prog, "u_" + p.k)));
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -128,11 +136,15 @@
   /* Uložené hodnoty: dřív se do localStorage psalo CELÉ G, takže jedno šáhnutí
      do skrytého panelu (nebo RESET, který spadl na holé DEFAULTS bez ditheru)
      přebilo look napořád — prohlížeč pak ukazoval TERMO, ale termo tam nebylo.
-     Teď se z posuvníků pamatují jen odchylky od jediného looku (LOOK), ne
-     celé G — RESET se tak vždycky vrátí přesně sem, ne na holé DEFAULTS. */
-  const GRADE_KEY = "javy-grade2";
-  try { localStorage.removeItem("javy-look2"); } catch (e) {}   // starý klíč pro přepínání looků už nikam neukazuje
-  const baseLook = () => ({ ...DEFAULTS, ...LOOK });
+     Teď se z posuvníků pamatují jen odchylky od zvoleného looku, ne celé G —
+     RESET se tak vždycky vrátí přesně na look, ne na holé DEFAULTS.
+     lookName se pamatuje JEN v tomhle prohlížeči (je to admin pohodlí při
+     zkoušení, ne veřejné nastavení) — každý nový návštěvník pořád vidí TERMO,
+     dokud tenhle soubor nezmění a nenahraje TERMO jinak. */
+  const GRADE_KEY = "javy-grade2", LOOK_KEY = "javy-look3";
+  let lookName = "TERMO";
+  try { const l = localStorage.getItem(LOOK_KEY); if (l && LOOKS[l]) lookName = l; } catch (e) {}
+  const baseLook = () => ({ ...DEFAULTS, ...LOOKS[lookName] });
   let G = baseLook();
   try {
     const saved = JSON.parse(localStorage.getItem(GRADE_KEY) || "{}");
@@ -1065,8 +1077,17 @@
     }
   }
 
-  /* ---- tajný panel (žádný veřejný přepínač looků — jen jeden, TERMO) ---- */
-  const panel = $("#grade"), body = $("#gradeBody");
+  /* ---- tajný panel (žádný veřejný přepínač — jen admin, po trojkliku/G) ---- */
+  const panel = $("#grade"), body = $("#gradeBody"), looksBar = $("#gradeLooks");
+  looksBar.innerHTML = Object.keys(LOOKS).map((n) =>
+    `<button type="button" data-look="${n}"${n === lookName ? ' class="on"' : ""}>${n}</button>`).join("");
+  looksBar.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-look]"); if (!b) return;
+    lookName = b.dataset.look;
+    G = baseLook(); syncPanel();                       // volba looku zahodí ruční doladění
+    try { localStorage.setItem(LOOK_KEY, lookName); localStorage.removeItem(GRADE_KEY); } catch (x) {}
+    [...looksBar.children].forEach((x) => x.classList.toggle("on", x === b));
+  });
   body.innerHTML = PARAMS.map((p) =>
     `<div class="grade-row"><label for="g_${p.k}"><span>${p.t}</span><span id="v_${p.k}">${G[p.k]}</span></label>
      <input type="range" id="g_${p.k}" min="${p.min}" max="${p.max}" step="${p.step}" value="${G[p.k]}"></div>`).join("");
@@ -1079,15 +1100,20 @@
     for (const k of Object.keys(base)) if (G[k] !== base[k]) diff[k] = G[k];
     try { localStorage.setItem(GRADE_KEY, JSON.stringify(diff)); } catch (e) {}
   }
-  $("#gradeTest").addEventListener("click", async () => {
-    if (testImg) { testImg = null; if (!live) host.classList.remove("live"); $("#gradeTest").textContent = "TEST"; return; }
+  // náhledový obrázek: náhodná reálná fotka z portfolia místo kamery
+  async function loadPreview() {
     try {
       const m = await fetch("photos/manifest.json", { cache: "no-cache" }).then((r) => r.json());
       const all = (m.sets || []).flatMap((x) => x.images || []);
+      if (!all.length) return;
       const im = new Image();
       im.onload = () => { testImg = im; host.classList.add("live"); $("#gradeTest").textContent = "TEST ✕"; draw(); };
       im.src = all[Math.floor(Math.random() * all.length)];
     } catch (e) {}
+  }
+  $("#gradeTest").addEventListener("click", () => {
+    if (testImg) { testImg = null; if (!live) host.classList.remove("live"); $("#gradeTest").textContent = "TEST"; return; }
+    loadPreview();
   });
   $("#gradeClose").addEventListener("click", () => (panel.hidden = true));
   // RESET = zpátky na zvolený look (dřív padal na holé DEFAULTS, což shodilo dither)
@@ -1099,13 +1125,18 @@
     try { await navigator.clipboard.writeText(JSON.stringify(G, null, 2)); $("#gradeCopy").textContent = "ZKOPÍROVÁNO"; setTimeout(() => ($("#gradeCopy").textContent = "KOPÍROVAT"), 1400); }
     catch (e) { console.log(JSON.stringify(G, null, 2)); }
   });
+  // otevření panelu ať rovnou nabídne náhled — nečekat, až si admin sám vzpomene na TEST
+  function openPanel() {
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden && !testImg) loadPreview();
+  }
   addEventListener("keydown", (e) => {
-    if ((e.key === "g" || e.key === "G") && !e.metaKey && !e.ctrlKey && !/input|textarea/i.test(e.target.tagName || "")) panel.hidden = !panel.hidden;
+    if ((e.key === "g" || e.key === "G") && !e.metaKey && !e.ctrlKey && !/input|textarea/i.test(e.target.tagName || "")) openPanel();
   });
   const label = $(".s-lab .p-row span");
   if (label) { let n = 0, t0 = 0; label.addEventListener("click", () => {
     const now = Date.now(); n = now - t0 < 700 ? n + 1 : 1; t0 = now;
-    if (n >= 3) { n = 0; panel.hidden = !panel.hidden; } }); }
+    if (n >= 3) { n = 0; openPanel(); } }); }
   syncPanel();
 
   /* ---- kreslení ---- */
@@ -1127,6 +1158,7 @@
     } else gl.uniform1f(U.uHasVid, 0);
     gl.uniform1f(U.uTime, t);
     PARAMS.forEach((p) => gl.uniform1f(U[p.k], G[p.k]));
+    gl.uniform1f(U.sat, 0);   // vynuceno tady, ne jen v presetech — nejde to obejít žádným posuvníkem
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
   let last = 0;

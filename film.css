@@ -45,6 +45,16 @@ html, body {
 .dim { opacity: .65; }
 .spacer { flex: 1 1 auto; }
 .counter { font-variant-numeric: tabular-nums; }
+/* přepínač pás/mřížka — vidět jen když je otevřený konkrétní shoot */
+.browse-toggle { display: flex; gap: 10px; pointer-events: auto; }
+.browse-toggle[hidden] { display: none; }
+.browse-toggle button {
+  appearance: none; border: 0; background: none; color: inherit; cursor: pointer;
+  font: inherit; font-weight: 700; letter-spacing: inherit; text-transform: inherit;
+  opacity: .5; padding: 2px 0; transition: opacity .15s ease;
+}
+.browse-toggle button.on { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+.browse-toggle button:hover { opacity: .8; }
 .back {
   background: none; border: 2px solid #fff; color: #fff;
   font-family: var(--sans); font-weight: 900; font-size: 12px; line-height: 1; cursor: pointer;
@@ -607,6 +617,7 @@ body.beta-on .beta { display: block; }
   position: relative; z-index: 2; width: 100vw; height: 100vh; display: flex; align-items: center; overflow: hidden;
   touch-action: none;   /* ať prohlížeč gesto vteřinu nezvažuje, jestli je to scroll — chceme ho hned my */
 }
+.viewport[hidden] { display: none; }
 .reel { position: relative; display: inline-block; white-space: nowrap; will-change: transform; }
 .reel.unrolling { animation: reelIn .5s ease; }
 @keyframes reelIn { from { opacity: 0; } to { opacity: 1; } }
@@ -627,6 +638,38 @@ body.beta-on .beta { display: block; }
   color: #fff; mix-blend-mode: difference; pointer-events: none;
 }
 .frame .dot { display: none; }
+
+/* ============================================================
+   MŘÍŽKA — alternativa k vodorovnému pásu (přepínač PÁS/MŘÍŽKA v HUD)
+   Přirozený svislý scroll (žádná vlastní fyzika — prohlížeč to umí
+   sám, zadarmo, včetně momentum a rubber-bandu). Masonry přes CSS
+   columns: každá fotka si nese svůj přirozený poměr stran, nikdy
+   se neořízne.
+   ============================================================ */
+/* POZOR: columns nejde dát rovnou na scrollovatelný kontejner — když má
+   pevnou výšku (position:absolute; inset:0), CSS multi-column layout
+   přetékající obsah řeší DALŠÍMI SLOUPCI vodorovně, ne svislým scrollem
+   (overflow-y na to nemá vliv, sloupce jsou svojí podstatou stránkovací).
+   Scroll je na vnějším .grid-browse, columns až na vnitřním .gtiles,
+   který smí růst do přirozené výšky. */
+.grid-browse {
+  position: absolute; inset: 0; z-index: 2; overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; background: var(--bg);
+}
+.grid-browse[hidden] { display: none; }
+.gtiles { padding: 88px 4vw 10vh; columns: 2; column-gap: 3vw; }
+.gtile {
+  display: block; break-inside: avoid; margin: 0 0 3vw; cursor: pointer;
+  background: #1a1916;
+}
+.gtile img {
+  display: block; width: 100%; height: auto;
+  filter: saturate(.55) contrast(1.04) brightness(.99);
+  transition: filter .3s ease; user-select: none; -webkit-user-drag: none;
+}
+.gtile:hover img { filter: saturate(1.05) contrast(1.02); }
+@media (min-width: 640px) { .gtiles { columns: 3; } }
+@media (min-width: 1080px) { .gtiles { columns: 4; } }
 
 /* lightbox */
 .light { position: fixed; inset: 0; z-index: 100; background: rgba(10,9,8,.97); display: flex; flex-direction: column; animation: fade .2s ease; }
@@ -694,6 +737,9 @@ body.beta-on .beta { display: block; }
   .fit { font-size: 22vw; }
   .wi { font-size: 19vw; }
   .dots { display: none; }
+  .hud { flex-wrap: wrap; row-gap: 4px; }
+  .browse-toggle { gap: 7px; font-size: 9px; order: 3; flex-basis: 100%; justify-content: flex-end; }
+  .counter { font-size: 10px; }
   .fit-load { font-size: 40vw; }
 
   /* WORK na telefonu: hero i náhledy v přirozeném poměru = žádné ořezávání.

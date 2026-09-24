@@ -15,6 +15,10 @@ const viewport = $("#viewport");
 const reel = $("#reel");
 const strip = $("#strip");
 const stripBg = $("#stripBg");
+const gridBrowse = $("#gridBrowse");
+const browseToggle = $("#browseToggle");
+let browseMode = "strip";
+try { browseMode = localStorage.getItem("javy-browsemode") || "strip"; } catch (er) {}
 const groupEl = $("#group");
 const groupList = $("#groupList");
 const groupReveal = $("#groupReveal");
@@ -1029,6 +1033,7 @@ function updateJourney() {
 
 /* ---- WORK -> pás ---- */
 let currentGroup = null;
+let currentSet = null;   // aktuálně otevřený shoot — ať to ví i applyBrowseMode() při přepnutí
 let coverEls = [], gFocus = -1, zoomOutAccum = 0;
 let drum = null, itemEls = [], gTargetAngle = 0, gCurrentAngle = 0, gSnapT = 0;
 const STEP = 52, DRUMR = "42vh";
@@ -1041,7 +1046,8 @@ function openShoot(idx) {
 }
 function enterStrip() {
   journey.hidden = true; dotsNav.hidden = true; groupEl.hidden = true;
-  stage.hidden = false; back.hidden = false;
+  stage.hidden = false; back.hidden = false; browseToggle.hidden = false;
+  applyBrowseMode();
   measure();
   const startX = clamp(vw / 2 - (centers[0] || 0));
   currentX = startX - 720; targetX = startX;
@@ -1051,7 +1057,7 @@ function enterStrip() {
   setTimeout(() => { measure(); targetX = clamp(vw / 2 - (centers[0] || 0)); }, 140);
 }
 function backFromStrip() {
-  stage.hidden = true;
+  stage.hidden = true; browseToggle.hidden = true;
   if (currentGroup) openGroup(currentGroup);
   else { journey.hidden = false; dotsNav.hidden = false; back.hidden = true; updateJourney(); }
 }
@@ -1183,15 +1189,19 @@ groupEl.addEventListener("wheel", (e) => {
 })();
 
 back.addEventListener("click", () => {
-  if (!light.hidden) { closeLight(); return; }
+  if (!light.hidden) { closeLightTo(currentOriginEl()); return; }
   if (!stage.hidden) { backFromStrip(); return; }
   if (!groupEl.hidden) { backFromGroup(); return; }
 });
 
 /* ---- build strip ---- */
 function buildStrip(set) {
+  currentSet = set;
   strip.innerHTML = ""; ITEMS = []; FRAMES = [];
   stripBg.textContent = set.title;   // parallax název za fotkami
+  // pevně, ne z step()'s "nejbližší fotka" — v mřížce se totiž step() vůbec nespouští
+  crumb.textContent = set.title.toUpperCase();
+  counter.textContent = `${pad2(set.count)} FOTEK`;
   for (let i = 0; i < set.count; i++) {
     const f = document.createElement("div");
     f.className = "frame"; f.style.minWidth = "26vh";
@@ -1200,10 +1210,48 @@ function buildStrip(set) {
     const item = { type: "frame", set, i, full: set.images[i], el: f, global: i + 1, total: set.count };
     ITEMS.push(item); FRAMES.push(item);
     const fi = FRAMES.length - 1;
-    f.addEventListener("click", () => { if (!dragMoved) openLight(fi); });
+    f.addEventListener("click", () => { if (!dragMoved) openLight(fi, f); });
     f.querySelector("img").addEventListener("load", scheduleMeasure);
   }
+  buildGrid(set);
 }
+/* ============================================================
+   MŘÍŽKA — druhý způsob procházení téhož shootu (přepínač v HUD).
+   Sdílí ITEMS/FRAMES z buildStrip(), jen navíc vlastní dlaždici
+   pro každou fotku — přirozený svislý scroll místo vodorovné pásky,
+   žádná fyzika navíc (to už prohlížeč umí sám, zadarmo).
+   ============================================================ */
+function buildGrid(set) {
+  const inner = document.createElement("div");
+  inner.className = "gtiles";
+  FRAMES.forEach((item, fi) => {
+    const t = document.createElement("figure");
+    t.className = "gtile";
+    t.innerHTML = `<img decoding="async" loading="lazy" src="${item.full}" alt="${set.title} ${pad2(item.i + 1)}">`;
+    t.addEventListener("click", () => openLight(fi, t));
+    inner.appendChild(t);
+    item.gridEl = t;
+  });
+  gridBrowse.innerHTML = ""; gridBrowse.appendChild(inner);
+}
+function applyBrowseMode() {
+  const grid = browseMode === "grid";
+  viewport.hidden = grid; gridBrowse.hidden = !grid;
+  browseToggle.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.mode === browseMode));
+  if (currentSet) {
+    // v pásu si "· SCROLL →" a "NN/NN" dopočítá step() sám podle polohy;
+    // v mřížce step() vůbec neběží, takže hlášku vrátíme na klidový stav
+    crumb.textContent = currentSet.title.toUpperCase();
+    counter.textContent = `${pad2(currentSet.count)} FOTEK`;
+  }
+  if (!grid) setTimeout(measure, 0);   // pás si po návratu musí přeměřit středy fotek
+}
+browseToggle.addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-mode]"); if (!b) return;
+  browseMode = b.dataset.mode;
+  try { localStorage.setItem("javy-browsemode", browseMode); } catch (er) {}
+  applyBrowseMode();
+});
 let measureQueued = false;
 function scheduleMeasure() { if (measureQueued) return; measureQueued = true; setTimeout(() => { measureQueued = false; measure(); }, 30); }
 function measure() {
@@ -1340,7 +1388,7 @@ document.addEventListener("keydown", (e) => {
   if ((e.key === "b" || e.key === "B") && devKeys) { toggleBeta(); return; }
   if ((e.key === "v" || e.key === "V") && devKeys && betaOn()) { cycleWorkMode(); return; }
   if ((e.key === "l" || e.key === "L") && devKeys && betaOn()) { cycleWorkLayout(); return; }
-  if (!light.hidden) { if (e.key === "Escape") closeLight(); else if (e.key === "ArrowRight") stepLight(1); else if (e.key === "ArrowLeft") stepLight(-1); return; }
+  if (!light.hidden) { if (e.key === "Escape") closeLightTo(currentOriginEl()); else if (e.key === "ArrowRight") stepLight(1); else if (e.key === "ArrowLeft") stepLight(-1); return; }
   if (!groupEl.hidden) {
     if (e.key === "Escape") backFromGroup();
     else if (e.key === "ArrowRight") gMove(1);
@@ -1361,7 +1409,7 @@ let curNearest = -1;
 function step(dt) {
   stepWorkH(dt);
   if (!groupEl.hidden) { stepDrum(dt); return; }
-  if (stage.hidden || !ITEMS.length) return;
+  if (stage.hidden || !ITEMS.length || browseMode === "grid") return;   // mřížka scrolluje nativně, tohle nepočítá nic navíc
   vw = window.innerWidth || document.documentElement.clientWidth;
   if (!dragging) {                                  // při tahu currentX řídí přímo prst (1:1), sem se nesahá
     stripSpring.target = targetX;
@@ -1394,39 +1442,107 @@ function step(dt) {
   }
 }
 
-/* ---- lightbox ---- */
-function openLight(fi) { lightIndex = fi; paintLight(); light.hidden = false; }
+/* ============================================================
+   LIGHTBOX — teď s "FLIP": fotka vyroste přesně z dlaždice, na
+   kterou jsi klikl (pás nebo mřížka, podle aktivního režimu), a při
+   zavření se do stejné dlaždice zase vrátí. Vodorovný tah = další/
+   předchozí fotka (stejný pocit jako WORK pás, jen na jednu fotku).
+   Svislý tah = pryč, ať dolů, ať nahoru — beze stopy po křížku.
+   ============================================================ */
+function openLight(fi, originEl) { lightIndex = fi; paintLight(); light.hidden = false; flipFrom(originEl || currentOriginEl()); }
 function paintLight() { const it = FRAMES[lightIndex]; lightImg.src = it.full; const cr = (it.set.credit || "").toUpperCase(); lightId.textContent = `${it.set.title.toUpperCase()} · ${pad2(it.i + 1)}/${pad2(it.set.count)}${cr ? " · " + cr : ""}`; }
 function stepLight(d) { lightIndex = (lightIndex + d + FRAMES.length) % FRAMES.length; paintLight(); }
-function closeLight() { light.hidden = true; lightImg.style.cssText = ""; light.style.background = ""; }
-lightClose.addEventListener("click", closeLight);
+function currentOriginEl() { const it = FRAMES[lightIndex]; return it ? (browseMode === "grid" ? it.gridEl : it.el) : null; }
+function closeLight() { light.hidden = true; lightImg.style.cssText = ""; light.style.background = ""; light.style.transition = ""; }
+function closeLightTo(el) {
+  if (!el) { closeLight(); return; }
+  const to = el.getBoundingClientRect(), from = lightImg.getBoundingClientRect();
+  const sx = to.width / from.width, sy = to.height / from.height;
+  const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+  const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+  lightImg.style.transition = "transform .34s cubic-bezier(.3,0,.4,1), opacity .3s ease";
+  lightImg.style.transform = `translate(${dx}px,${dy}px) scale(${sx},${sy})`;
+  lightImg.style.opacity = "0";
+  light.style.transition = "background .34s ease"; light.style.background = "rgba(10,9,8,0)";
+  setTimeout(closeLight, 340);
+}
+// FLIP (First-Last-Invert-Play): začni přesně na místě a velikosti dlaždice,
+// pak to nech doletět do plného zobrazení — vstup a výstup stejnou cestou.
+function flipFrom(el) {
+  if (!el) return;
+  const from = el.getBoundingClientRect();
+  // getBoundingClientRect() si layout vynutí samo, žádný rAF navíc netřeba;
+  // mezi počáteční (obrácenou) a cílovou transformací stačí vynutit reflow
+  // čtením layoutové vlastnosti (stejný trik jako .reel.unrolling jinde v
+  // souboru) — spolehlivější než dvojitý rAF a funguje i na skryté kartě.
+  const to = lightImg.getBoundingClientRect();
+  if (!to.width || !to.height) return;
+  const sx = from.width / to.width, sy = from.height / to.height;
+  const dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+  const dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+  lightImg.style.transition = "none";
+  lightImg.style.transform = `translate(${dx}px,${dy}px) scale(${sx},${sy})`;
+  lightImg.style.opacity = ".5";
+  void lightImg.offsetWidth;
+  lightImg.style.transition = "transform .42s cubic-bezier(.2,.85,.25,1), opacity .3s ease";
+  lightImg.style.transform = "none"; lightImg.style.opacity = "1";
+}
+lightClose.addEventListener("click", () => closeLightTo(currentOriginEl()));
 lightImg.addEventListener("click", () => stepLight(1));
 
-/* Na telefonu by nikdo neměl muset trefit křížek — vytáhni fotku prstem
-   nahoru nebo dolů a zavře se to samo, jako v nativní galerii. Tap dál
-   funguje beze změny: click se u krátkého pohybu synteticky vygeneruje
-   sám, jen ho tenhle listener nesmí zkazit preventDefaultem. */
-(function swipeToDismissLight() {
-  let dragging = false, moved = false, sx = 0, sy = 0, dy = 0;
-  const THRESH = 110;
+/* Jeden gestový router pro obě osy — stejný princip jako u FOTOMAT pásky:
+   směr se uzamkne na začátku tahu (~6px), takže vodorovné listování
+   fotek se nikdy neplete se svislým odchodem. Na telefonu tak nikdo
+   nemusí trefit křížek: vytáhni fotku pryč a zavře se, přesně tam,
+   odkud vznikla. */
+(function lightGestures() {
+  let down = false, axis = null, sx = 0, sy = 0, dx = 0, dy = 0;
+  const V_THRESH = 110, H_THRESH = 70;
   lightImg.addEventListener("pointerdown", (e) => {
-    dragging = true; moved = false; sx = e.clientX; sy = e.clientY; dy = 0;
+    down = true; axis = null; sx = e.clientX; sy = e.clientY; dx = 0; dy = 0;
     try { lightImg.setPointerCapture(e.pointerId); } catch (er) {}
   });
   lightImg.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    const dx = e.clientX - sx; dy = e.clientY - sy;
-    if (!moved && Math.hypot(dx, dy) > 6) moved = Math.abs(dy) > Math.abs(dx) * 1.15;
-    if (!moved) return;
-    const t = Math.min(1, Math.abs(dy) / 320);
-    lightImg.style.cssText = `transition:none; transform:translateY(${dy}px) scale(${(1 - t * .16).toFixed(3)});`;
-    light.style.background = `rgba(10,9,8,${(.97 * (1 - t * .75)).toFixed(3)})`;
+    if (!down) return;
+    dx = e.clientX - sx; dy = e.clientY - sy;
+    if (!axis) {
+      if (Math.hypot(dx, dy) < 6) return;
+      axis = Math.abs(dy) > Math.abs(dx) * 1.15 ? "v" : "h";
+    }
+    if (axis === "v") {
+      const t = Math.min(1, Math.abs(dy) / 320);
+      lightImg.style.cssText = `transition:none; transform:translateY(${dy}px) scale(${(1 - t * .16).toFixed(3)});`;
+      light.style.background = `rgba(10,9,8,${(.97 * (1 - t * .75)).toFixed(3)})`;
+    } else {
+      lightImg.style.cssText = `transition:none; transform:translateX(${dx}px);`;
+    }
   });
   function end() {
-    if (!dragging) return;
-    dragging = false;
-    if (moved && Math.abs(dy) > THRESH) { closeLight(); return; }
-    if (moved) { lightImg.style.cssText = "transition: transform .3s cubic-bezier(.2,.8,.3,1);"; requestAnimationFrame(() => (lightImg.style.transform = "")); light.style.background = ""; }
+    if (!down) return; down = false;
+    if (axis === "v") {
+      if (Math.abs(dy) > V_THRESH) { closeLightTo(currentOriginEl()); return; }
+      // cssText bez transform = spadne zpátky na none, transition to odanimuje
+      // (transform tu už byl vykreslený z reálného tahu, žádný rAF netřeba)
+      lightImg.style.cssText = "transition: transform .3s cubic-bezier(.2,.8,.3,1);";
+      light.style.background = "";
+    } else if (axis === "h") {
+      if (Math.abs(dx) > H_THRESH) {
+        const w = window.innerWidth || 800, sign = Math.sign(dx), dir = sign < 0 ? 1 : -1;
+        lightImg.style.cssText = `transition: transform .24s ease-in, opacity .24s ease-in; transform:translateX(${sign * (w + 100)}px);`;
+        setTimeout(() => {
+          stepLight(dir);
+          // tady se OBĚ hodnoty mění v tomtéž tiku (žádný mezikrok jako u tahu) —
+          // nový obrázek se musí nejdřív reálně vykreslit mimo obraz, jinak by
+          // prohlížeč přechod přeskočil; void .offsetWidth vynutí reflow místo rAF
+          lightImg.style.cssText = `transition:none; transform:translateX(${-sign * (w + 100) * .5}px); opacity:0;`;
+          void lightImg.offsetWidth;
+          lightImg.style.cssText = "transition: transform .32s cubic-bezier(.2,.8,.3,1), opacity .28s ease;";
+          lightImg.style.transform = "none"; lightImg.style.opacity = "1";
+        }, 240);
+      } else {
+        lightImg.style.cssText = "transition: transform .3s cubic-bezier(.2,.8,.3,1);";
+      }
+    }
   }
   lightImg.addEventListener("pointerup", end);
   lightImg.addEventListener("pointercancel", end);

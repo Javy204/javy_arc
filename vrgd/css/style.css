@@ -51,13 +51,13 @@
   /* WORK spotlight — tunable live from ?panel=1 (see js/tune-panel.js).
      Plain numbers, not clamp(), so a slider can drive each one directly;
      the panel writes these same custom properties inline on :root. */
-  --deco-w: 52;       /* vw, preferred width of the ribbon render */
-  --deco-max: 1180;   /* px, width ceiling */
-  --deco-offset: -7;  /* vw, outer-edge offset (negative = off-canvas) */
-  --deco-opacity: .92;
-  --item-w: 46;        /* vw, preferred width of the active carousel frame */
-  --item-max: 760;     /* px, width ceiling */
-  --section-h: 130;    /* vh, .section--work min-height */
+  --deco-w: 30;         /* vw, preferred width of the ribbon render */
+  --deco-max: 1030;     /* px, width ceiling */
+  --deco-offset: -8.5;  /* vw, outer-edge offset (negative = off-canvas) */
+  --deco-opacity: 1;
+  --item-w: 45;         /* vw, preferred width of the active carousel frame */
+  --item-max: 920;      /* px, width ceiling */
+  --section-h: 120;     /* vh, .section--work min-height */
 }
 
 /* Dark mode — the same two values, swapped. */

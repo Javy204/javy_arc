@@ -349,7 +349,14 @@
       onDrag: paint,
       onThrowUpdate: paint,
       cursor: 'grab',
-      activeCursor: 'grabbing'
+      activeCursor: 'grabbing',
+      // A card is a click target, not just a drag surface — onClick only
+      // fires when the press never crossed the drag threshold, so a real
+      // drag never accidentally opens a project.
+      onClick(e) {
+        const slug = e.target.closest('.card')?.getAttribute('data-project');
+        if (slug) location.href = `project.html?p=${slug}`;
+      }
     })[0];
 
     window.addEventListener('resize', () => {
@@ -636,12 +643,6 @@
         ease: 'expo.out',
         scrollTrigger: { trigger: el, start: 'top 88%', once: true }
       });
-    });
-
-    // List rows nudge in from the left.
-    gsap.from('.about__list li', {
-      x: -28, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.07,
-      scrollTrigger: { trigger: '.about__list', start: 'top 85%', once: true }
     });
 
     // Typespec rows and contact columns arrive on a stagger.

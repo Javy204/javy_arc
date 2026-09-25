@@ -1,0 +1,154 @@
+{
+  "_comment": "WORK slider -> project detail pages. project.html?p=<slug> reads this file and renders one entry. 'hero'/'media' items are {src, kind, caption} — kind is 'image' (default) or 'video'; missing/null src falls back to the halftone placeholder, same convention as the gallery. 'media' items may set 'full': true to span the full width instead of sitting in the 2-up grid. 'credits' is a flat label/value list.",
+  "projects": [
+    {
+      "slug": "night-shift",
+      "title": "Night Shift",
+      "meta": "FILM / 2025",
+      "headline": "Handheld takes from a single night, cut to the sound of the room.",
+      "body": [
+        "We shot on a single permit, one night, no second unit. The brief was simple: nothing that couldn't have happened if the camera weren't there. Available light, a rain machine for one scene, and a crew small enough to fit in the frame without meaning to.",
+        "The edit keeps every wobble and every dead second between takes that mattered. The grade is muted on purpose — Prague after midnight reads better slightly underexposed than corrected into daylight."
+      ],
+      "hero": { "src": null },
+      "media": [
+        { "src": null, "caption": "Call sheet, 21:40" },
+        { "src": null, "caption": "Gaffer, second unit" },
+        { "src": null, "caption": "Rain machine", "full": true },
+        { "src": null, "caption": "Take 14" },
+        { "src": null, "caption": "Wrap, 05:12" }
+      ],
+      "credits": [
+        { "label": "Client", "value": "—" },
+        { "label": "Role", "value": "Direction, DP, Edit" },
+        { "label": "Format", "value": "16mm & handheld digital" },
+        { "label": "Year", "value": "2025" }
+      ]
+    },
+    {
+      "slug": "snake-height",
+      "title": "Snake Height",
+      "meta": "IDENTITY / 2025",
+      "headline": "A logotype pulled apart until the counters break, then printed badly on purpose.",
+      "body": [
+        "The brand asked for something that could survive a bad print run better than a good one. We built the mark from a single continuous stroke, then let it distort under pressure — literally, by running early proofs through a broken riso drum until the registration slipped in a way worth keeping.",
+        "The final system keeps that slip as a rule, not an accident: every application carries a small, deliberate misalignment. It reads as handmade at any size, from a business card to a hoarding."
+      ],
+      "hero": { "src": null },
+      "media": [
+        { "src": null, "caption": "Sketch wall" },
+        { "src": null, "caption": "Counter tests" },
+        { "src": null, "caption": "Proof, pass one" },
+        { "src": null, "caption": "Proof, pass four" },
+        { "src": null, "caption": "Applied", "full": true },
+        { "src": null, "caption": "Street, week two" }
+      ],
+      "credits": [
+        { "label": "Client", "value": "—" },
+        { "label": "Role", "value": "Identity, Type design" },
+        { "label": "Format", "value": "Logotype + guidelines" },
+        { "label": "Year", "value": "2025" }
+      ]
+    },
+    {
+      "slug": "halftone-atlas",
+      "title": "Halftone Atlas",
+      "meta": "PRINT / 2024",
+      "headline": "A hundred plates at increasing dot density — the point is the moment it stops reading.",
+      "body": [
+        "Same photograph, printed a hundred times, each pass pushed further into the halftone grid until the image gives up and becomes pure pattern. It's less a print run than a stress test for how much information an audience actually needs to recognise a face.",
+        "Bound as a small run of hand-numbered atlases, riso-printed two colours at a time. No two copies register quite the same way."
+      ],
+      "hero": { "src": null },
+      "media": [
+        { "src": null, "caption": "Plate 04" },
+        { "src": null, "caption": "Plate 27" },
+        { "src": null, "caption": "Plate 51" },
+        { "src": null, "caption": "Plate 68" },
+        { "src": null, "caption": "Plate 92" },
+        { "src": null, "caption": "Binding", "full": true }
+      ],
+      "credits": [
+        { "label": "Client", "value": "Self-initiated" },
+        { "label": "Role", "value": "Print, Binding" },
+        { "label": "Format", "value": "Riso, hand-bound, edition of 60" },
+        { "label": "Year", "value": "2024" }
+      ]
+    },
+    {
+      "slug": "s-burban",
+      "title": "S*burban",
+      "meta": "FILM / 2024",
+      "headline": "A fashion film shot on the edge of the city, mostly at dusk.",
+      "body": [
+        "We scouted the last blocks before the ring road gives up and becomes field — half-built facades, empty forecourts, the kind of light that only lasts twenty minutes. The collection was built around movement, so we shot it running, mostly handheld, mostly against the clock.",
+        "No studio, no lighting rig bigger than what fit in a hatchback. What's on screen is what golden hour actually gave us that evening, graded to hold onto it a little longer than it lasted."
+      ],
+      "hero": { "src": null },
+      "media": [
+        { "src": null, "caption": "Location scout" },
+        { "src": null, "caption": "Fitting" },
+        { "src": null, "caption": "Golden hour", "full": true },
+        { "src": null, "caption": "Handheld, run" },
+        { "src": null, "caption": "Last light" },
+        { "src": null, "caption": "Crew" }
+      ],
+      "credits": [
+        { "label": "Client", "value": "—" },
+        { "label": "Role", "value": "Direction, Styling direction, Edit" },
+        { "label": "Format", "value": "Digital, 4K" },
+        { "label": "Year", "value": "2024" }
+      ]
+    },
+    {
+      "slug": "legacy-project",
+      "title": "Legacy Project",
+      "meta": "CAMPAIGN / 2024",
+      "headline": "A campaign built entirely from archive material and a scanner.",
+      "body": [
+        "No new photography. The brief was to make forty years of filed-away contact sheets, slides and internal memos feel like a present-tense campaign rather than a retrospective — so everything you see was scanned flatbed, at full grain, off whatever the client's basement actually held.",
+        "Layout follows the logic of a contact sheet rather than a moodboard: nothing cropped, nothing retouched, sequence numbers left visible on purpose."
+      ],
+      "hero": { "src": null },
+      "media": [
+        { "src": null, "caption": "Archive boxes" },
+        { "src": null, "caption": "Scanner rig" },
+        { "src": null, "caption": "Contact sheet", "full": true },
+        { "src": null, "caption": "Selects" },
+        { "src": null, "caption": "Layout" },
+        { "src": null, "caption": "Press check" }
+      ],
+      "credits": [
+        { "label": "Client", "value": "—" },
+        { "label": "Role", "value": "Art direction, Layout" },
+        { "label": "Format", "value": "Print + OOH" },
+        { "label": "Year", "value": "2024" }
+      ]
+    },
+    {
+      "slug": "raw-archive",
+      "title": "Raw Archive",
+      "meta": "WEB / 2023",
+      "headline": "An index that refuses to explain itself — scroll is the only interface.",
+      "body": [
+        "No menu, no filters, no captions. Everything the studio has ever shot lives on one continuously scrolling page, ordered by nothing more meaningful than when it was uploaded. Finding something specific is not really the point.",
+        "Built as a way to keep raw footage circulating instead of sitting on a drive — a living contact sheet that grows every time something new gets shot."
+      ],
+      "hero": { "src": null },
+      "media": [
+        { "src": null, "caption": "Paper prototype" },
+        { "src": null, "caption": "Grid study" },
+        { "src": null, "caption": "Type in situ", "full": true },
+        { "src": null, "caption": "Build, day 3" },
+        { "src": null, "caption": "Launch" },
+        { "src": null, "caption": "Postmortem" }
+      ],
+      "credits": [
+        { "label": "Client", "value": "Self-initiated" },
+        { "label": "Role", "value": "Design, Build" },
+        { "label": "Format", "value": "Website" },
+        { "label": "Year", "value": "2023" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+/* ============================================================
+   JAVY — FOTOMAT, samostatná stránka (přímý sdílený odkaz)
+   Sdílí film.css a lab/fotomat.js s hlavním webem beze změny —
+   tenhle soubor jen doplňuje to, co hlavní web nepotřebuje:
+   odkaz na portfolio jako "překvapení" po prvním vytištěném proužku.
+   ============================================================ */
+
+.fm-reveal {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translate(-50%, 10px);
+  z-index: 70;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .7s ease, transform .7s ease;
+  /* jako HUD: invertuje se přes cokoliv pod ním, ať je zapnutá jakákoliv
+     podoba fotomatu (světlá, tmavá, filmová…) */
+  color: #fff;
+  mix-blend-mode: difference;
+}
+.fm-reveal.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+
+@media (max-width: 640px) {
+  .fm-reveal { bottom: max(16px, env(safe-area-inset-bottom)); font-size: 10px; }
+}

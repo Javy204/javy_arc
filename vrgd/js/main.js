@@ -451,18 +451,17 @@
 
     window.addEventListener('resize', () => { measure(); layout(false); });
 
-    // Hovering the carousel gets out of its own way: the fixed navbar
-    // slides off, and the ribbon render grows into the room that leaves.
+    // Hovering the carousel gets the fixed navbar out of the way.
     if (CAN_HOVER && !REDUCED) {
       const navbar = $('.navbar');
-      root.addEventListener('mouseenter', () => {
-        root.setAttribute('data-focused', 'true');
-        if (navbar) gsap.to(navbar, { yPercent: -140, autoAlpha: 0, duration: 0.5, ease: 'power3.inOut' });
-      });
-      root.addEventListener('mouseleave', () => {
-        root.setAttribute('data-focused', 'false');
-        if (navbar) gsap.to(navbar, { yPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.inOut' });
-      });
+      if (navbar) {
+        root.addEventListener('mouseenter', () => {
+          gsap.to(navbar, { yPercent: -140, autoAlpha: 0, duration: 0.5, ease: 'power3.inOut' });
+        });
+        root.addEventListener('mouseleave', () => {
+          gsap.to(navbar, { yPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.inOut' });
+        });
+      }
     }
 
     if (!REDUCED) {

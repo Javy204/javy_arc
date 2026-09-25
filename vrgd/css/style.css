@@ -831,7 +831,7 @@ html:not(.js) .loader { display: none; }
 .spotlight__deco {
   position: absolute;
   top: 50%;
-  width: clamp(280px, 38vw, 780px);
+  width: clamp(320px, 52vw, 1180px);
   aspect-ratio: 5 / 12;
   transform: translateY(-50%);
   opacity: .92;
@@ -839,8 +839,8 @@ html:not(.js) .loader { display: none; }
   z-index: 0;
 }
 .spotlight__deco img { width: 100%; height: 100%; object-fit: contain; }
-.spotlight__deco--left { left: clamp(-6rem, -5vw, -1rem); }
-.spotlight__deco--right { right: clamp(-6rem, -5vw, -1rem); }
+.spotlight__deco--left { left: clamp(-8rem, -7vw, -1rem); }
+.spotlight__deco--right { right: clamp(-8rem, -7vw, -1rem); }
 :root[data-theme="dark"] .spotlight__deco { filter: invert(1); }
 
 .spotlight__title {

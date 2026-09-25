@@ -472,16 +472,31 @@
       // moment it takes over.
       const section = root.closest('.section--work');
       const navbar = $('[data-navbar]');
-      if (section && navbar) {
+      // Whichever nav mode is actually live at this width — topnav rides
+      // inside .navbar already, so only sidenav and jumpbar need their own
+      // handling too.
+      const sidenav = $('.sidenav');
+      const jumpbar = $('.jumpbar');
+      if (section && (navbar || sidenav || jumpbar)) {
         ScrollTrigger.create({
           trigger: section,
           start: 'top top',
           end: 'bottom top',
-          onToggle: (self) => gsap.to(navbar, {
-            yPercent: self.isActive ? -140 : 0,
-            autoAlpha: self.isActive ? 0 : 1,
-            duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
-          })
+          onToggle: (self) => {
+            const hide = self.isActive;
+            if (navbar) gsap.to(navbar, {
+              yPercent: hide ? -140 : 0, autoAlpha: hide ? 0 : 1,
+              duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
+            });
+            if (sidenav) gsap.to(sidenav, {
+              xPercent: hide ? 140 : 0, autoAlpha: hide ? 0 : 1,
+              duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
+            });
+            if (jumpbar) gsap.to(jumpbar, {
+              yPercent: hide ? 140 : 0, autoAlpha: hide ? 0 : 1,
+              duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
+            });
+          }
         });
       }
 

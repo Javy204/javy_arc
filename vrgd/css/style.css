@@ -786,9 +786,13 @@ html:not(.js) .loader { display: none; }
 .section__head .mono:nth-child(2) { color: var(--fg); }
 
 /* Work takes over the whole screen once it's the thing in view — see
-   initSpotlight's ScrollTrigger for the matching navbar-hide + settle. */
+   initSpotlight's ScrollTrigger for the matching navbar-hide + settle.
+   Taller than the viewport on purpose: the extra run gives the magnet
+   snap and the nav-hide trigger room to fire before/after the section
+   edge exactly meets the viewport edge, instead of needing pixel-
+   perfect scroll alignment. */
 .section--work {
-  min-height: 100vh;
+  min-height: 130vh;
   display: flex;
   flex-direction: column;
   justify-content: center;

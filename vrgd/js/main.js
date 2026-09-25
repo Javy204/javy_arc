@@ -478,10 +478,14 @@
       const sidenav = $('.sidenav');
       const jumpbar = $('.jumpbar');
       if (section && (navbar || sidenav || jumpbar)) {
+        // A 160px buffer on both edges — the section is tall enough (see
+        // .section--work) to afford it — so the chrome hides/returns a
+        // beat before/after the exact pixel where the section meets the
+        // viewport edge, instead of needing pixel-perfect scroll landing.
         ScrollTrigger.create({
           trigger: section,
-          start: 'top top',
-          end: 'bottom top',
+          start: 'top top+=160',
+          end: 'bottom top-=160',
           onToggle: (self) => {
             const hide = self.isActive;
             if (navbar) gsap.to(navbar, {
@@ -497,6 +501,20 @@
               duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
             });
           }
+        });
+
+        // The magnet: once scrolling brings the section within 400px of
+        // sitting flush with the viewport (from either direction), Lenis
+        // pulls the rest of the way to a clean alignment — a brief snap
+        // when you're already basically there, not a jump from afar.
+        // Fires once per crossing (onEnter/onEnterBack), never mid-browse.
+        const magnetize = () => lenis.scrollTo(section, { offset: 0, duration: 0.8 });
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top top+=400',
+          end: 'bottom top-=400',
+          onEnter: magnetize,
+          onEnterBack: magnetize
         });
       }
 

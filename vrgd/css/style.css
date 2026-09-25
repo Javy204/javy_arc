@@ -785,6 +785,15 @@ html:not(.js) .loader { display: none; }
 }
 .section__head .mono:nth-child(2) { color: var(--fg); }
 
+/* Work takes over the whole screen once it's the thing in view — see
+   initSpotlight's ScrollTrigger for the matching navbar-hide + settle. */
+.section--work {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 /* ---------- About ---------- */
 .about__grid {
   display: grid;

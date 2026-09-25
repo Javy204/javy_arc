@@ -451,19 +451,6 @@
 
     window.addEventListener('resize', () => { measure(); layout(false); });
 
-    // Hovering the carousel gets the fixed navbar out of the way.
-    if (CAN_HOVER && !REDUCED) {
-      const navbar = $('.navbar');
-      if (navbar) {
-        root.addEventListener('mouseenter', () => {
-          gsap.to(navbar, { yPercent: -140, autoAlpha: 0, duration: 0.5, ease: 'power3.inOut' });
-        });
-        root.addEventListener('mouseleave', () => {
-          gsap.to(navbar, { yPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.inOut' });
-        });
-      }
-    }
-
     if (!REDUCED) {
       // Deliberately no 'wheel' here — the carousel used to hijack the
       // mouse wheel to turn projects, which fought the page's own
@@ -478,9 +465,29 @@
         onRight: () => go(index - 1)
       });
 
+      // Work fills the screen once it's the thing actually in view (see
+      // .section--work's min-height: 100vh) — the fixed navbar steps
+      // aside for as long as that's true, in either scroll direction,
+      // and the carousel settles into its resting position once, the
+      // moment it takes over.
+      const section = root.closest('.section--work');
+      const navbar = $('[data-navbar]');
+      if (section && navbar) {
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top top',
+          end: 'bottom top',
+          onToggle: (self) => gsap.to(navbar, {
+            yPercent: self.isActive ? -140 : 0,
+            autoAlpha: self.isActive ? 0 : 1,
+            duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
+          })
+        });
+      }
+
       gsap.from(root, {
-        autoAlpha: 0, y: 40, duration: 1, ease: 'expo.out',
-        scrollTrigger: { trigger: root, start: 'top 80%', once: true }
+        autoAlpha: 0, y: 40, scale: 0.94, duration: 1.1, ease: 'expo.out',
+        scrollTrigger: { trigger: section || root, start: 'top 75%', once: true }
       });
     }
   }

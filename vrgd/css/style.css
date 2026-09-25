@@ -4,6 +4,19 @@
    occasional inverted block, red used sparingly.
    ========================================================= */
 
+/* Opts every same-origin navigation into a cross-document view
+   transition. Unsupported browsers just ignore this and navigate as
+   normal — nothing here depends on it. The WORK spotlight and the
+   project page share one view-transition-name (project-hero, set on
+   the clicked frame in main.js and always on .project__hero) so
+   clicking a project grows its thumbnail into the page's hero, the
+   same box-grow language the boot loader opens the site with. */
+@view-transition { navigation: auto; }
+::view-transition-group(project-hero) {
+  animation-duration: .65s;
+  animation-timing-function: cubic-bezier(.16, 1, .3, 1);
+}
+
 :root {
   /* "paper" is always the page ground, "ink" always the mark. Dark mode simply
      swaps their values, so every rule below keeps working unchanged. */
@@ -786,74 +799,106 @@ html:not(.js) .loader { display: none; }
   font-size: clamp(.9rem, 1.05vw, 1.05rem);
   line-height: 1.62;
 }
-/* ---------- Work slider ---------- */
-.slider { position: relative; }
-.slider__track {
-  display: flex;
-  gap: clamp(1rem, 1.6vw, 1.6rem);
-  cursor: grab;
-  will-change: transform;
-}
-.slider__track:active { cursor: grabbing; }
-.card {
-  flex: 0 0 auto;
-  width: clamp(240px, 26vw, 400px);
-  user-select: none;
-}
-.card__thumb {
+/* ---------- Work — a full-bleed spotlight carousel ----------
+   One project centred and large, its neighbours peeking in at the
+   viewport edges. Bleeds past .section's own side padding on purpose
+   (negative margin) — the whole point is that it reads edge to edge,
+   not boxed in like the rest of the page. */
+.spotlight {
   position: relative;
-  aspect-ratio: 4 / 5;
+  width: calc(100% + var(--pad) * 2);
+  margin: clamp(2rem, 5vh, 3.5rem) calc(var(--pad) * -1) 0;
+  padding: clamp(2rem, 5vh, 3rem) 0 clamp(1.5rem, 4vh, 2.5rem);
+  overflow: hidden;
+}
+
+/* The ribbon render — decorative, never the subject. Multiply/screen
+   (same --blend token the grain uses) lets its white canvas vanish
+   into the page; dark mode also inverts it so the ribbons stay light
+   ink on a light page instead of turning invisible-black-on-black.
+   Hovering the carousel hides the navbar (see initSpotlight) and
+   these grow into the space it leaves, anchored at their own outer
+   edge so they expand outward rather than from the centre. */
+.spotlight__deco {
+  position: absolute;
+  top: 50%;
+  width: clamp(220px, 26vw, 480px);
+  aspect-ratio: 917 / 2200;
+  transform: translateY(-50%);
+  mix-blend-mode: var(--blend);
+  opacity: .9;
+  pointer-events: none;
+  z-index: 0;
+  transition: width .6s cubic-bezier(.16, 1, .3, 1), top .6s cubic-bezier(.16, 1, .3, 1);
+}
+.spotlight__deco img { width: 100%; height: 100%; object-fit: contain; }
+.spotlight__deco--left { left: clamp(-4rem, -3vw, 0px); transform-origin: left center; }
+.spotlight__deco--right { right: clamp(-4rem, -3vw, 0px); transform-origin: right center; }
+:root[data-theme="dark"] .spotlight__deco { filter: invert(1); }
+[data-spotlight][data-focused="true"] .spotlight__deco {
+  width: clamp(260px, 32vw, 620px);
+  top: calc(50% - var(--nav-h) * .35);
+}
+
+.spotlight__title {
+  position: relative;
+  z-index: 2;
+  display: block;
+  text-align: center;
+  padding-bottom: clamp(1.2rem, 3vh, 2rem);
+  min-height: 1.4em;
+}
+
+/* The stage is the camera's view into a small 3D scene: a ring of
+   16:9 frames rotated around one shared vertical axis. The active
+   frame sits at rotationY:0, pushed toward the viewer by the ring's
+   own radius; everything else recedes around the far side of the
+   cylinder, still faintly visible — the point of the whole exercise. */
+.spotlight__stage {
+  position: relative;
+  z-index: 1;
+  height: clamp(169px, 25.88vw, 427.5px);
+  perspective: 1800px;
+}
+.spotlight__ring {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+}
+.spotlight__item {
+  position: absolute;
+  top: 0; left: 50%;
+  width: clamp(300px, 46vw, 760px);
+  height: 100%;
+  margin-left: clamp(-380px, -23vw, -150px);
+  cursor: pointer;
+}
+.spotlight__frame {
+  position: relative;
+  width: 100%; height: 100%;
   overflow: hidden;
   background: var(--plate);
-  transition: filter .5s ease;
 }
-/* Halftone plate: an ink dot grid faded by a mask, varied per card. */
-.card__thumb::before {
-  content: "";
-  position: absolute; inset: 0;
-  background-image: radial-gradient(circle at center, var(--dotink) 1px, transparent 1.2px);
-  background-size: var(--dot, 7px) var(--dot, 7px);
-  -webkit-mask-image: radial-gradient(var(--shape, 70% 55% at 50% 45%), #000 0%, transparent 74%);
-          mask-image: radial-gradient(var(--shape, 70% 55% at 50% 45%), #000 0%, transparent 74%);
-  transition: transform .8s cubic-bezier(.16, 1, .3, 1);
-}
-.card:hover .card__thumb::before { transform: scale(1.09); }
-.card:hover .card__thumb { filter: contrast(1.15); }
+.spotlight__frame img { width: 100%; height: 100%; object-fit: cover; }
 
-.card__thumb[data-thumb="1"] { --dot: 6px;  --shape: 60% 45% at 45% 40%; }
-.card__thumb[data-thumb="2"] { --dot: 9px;  --shape: 80% 60% at 60% 55%; }
-.card__thumb[data-thumb="3"] { --dot: 5px;  --shape: 55% 70% at 40% 60%; }
-.card__thumb[data-thumb="4"] { --dot: 8px;  --shape: 70% 50% at 55% 35%; }
-.card__thumb[data-thumb="5"] { --dot: 7px;  --shape: 65% 65% at 50% 55%; }
-.card__thumb[data-thumb="6"] { --dot: 11px; --shape: 85% 45% at 40% 45%; }
-
-.card__idx { position: absolute; z-index: 2; top: .8rem; left: .8rem; color: var(--ink); }
-.card__meta {
+.spotlight__nav {
+  position: relative;
+  z-index: 2;
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-  padding-top: .85rem;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding-top: clamp(1.2rem, 3vh, 2rem);
 }
-.card__meta h3 {
+.spotlight__arrow {
   font-family: var(--f-inter);
-  font-size: clamp(1rem, 1.3vw, 1.2rem);
-  font-weight: 600;
-  letter-spacing: -.02em;
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: color .3s ease, transform .3s ease;
 }
-.slider__hint { position: absolute; top: -2.2rem; right: 0; }
-.slider__progress {
-  margin-top: clamp(1.5rem, 4vh, 2.5rem);
-  height: 1px;
-  background: var(--line);
-}
-.slider__progress i {
-  display: block;
-  height: 100%;
-  width: 18%;
-  background: var(--ink);
-  transform-origin: left;
-}
+.spotlight__arrow:hover { color: var(--dim); transform: translateX(0); }
+.spotlight__nav .spotlight__arrow:first-child:hover { transform: translateX(-3px); }
+.spotlight__nav .spotlight__arrow:last-child:hover { transform: translateX(3px); }
 
 /* ---------- Events — vertical carousel, three synced columns ---------- */
 .events {
@@ -1392,6 +1437,12 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
   .reader__side { width: 48%; }
 }
 
+/* The deco render is sized for a wide corner peek — at phone width its
+   220px floor was swallowing more than half the screen. */
+@media (max-width: 600px) {
+  .spotlight__deco { width: clamp(90px, 24vw, 200px); opacity: .7; }
+}
+
 /* =========================================================
    Project detail — one work item, its own page. Structure and
    pacing (full-bleed hero, sticky headline against running body
@@ -1415,6 +1466,7 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
   background: var(--plate);
   overflow: hidden;
   margin: 0 var(--pad);
+  view-transition-name: project-hero;
 }
 .project__hero .project__frame { position: absolute; inset: 0; }
 .project__hero .project__frame img,

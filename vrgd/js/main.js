@@ -315,61 +315,162 @@
   }
 
   /* =======================================================
-     6. Work slider — drag with inertia + progress bar
+     6. Work spotlight — a ring of 16:9 frames on a shared vertical
+     axis, like projects mounted on a giant slow-turning cylinder:
+     the active one faces the camera dead-on, the rest recede around
+     the far side, still faintly visible. Data comes straight from
+     work.json (the same file project.js reads), so the index and
+     the project pages can never list a different set of projects.
      ======================================================= */
-  function initSlider() {
-    const track = $('[data-slider-track]');
-    const wrap = $('[data-slider]');
-    const progress = $('[data-slider-progress]');
-    if (!track || !wrap) return;
+  async function initSpotlight() {
+    const root = $('[data-spotlight]');
+    const stage = $('[data-spotlight-stage]', root || document);
+    if (!root || !stage) return;
 
-    let bounds = { minX: 0, maxX: 0 };
+    // Arriving back from a project page: name this whole block so the
+    // page's hero (always named project-hero, see project.html's CSS)
+    // shrinks back into it — the same pairing the outward click sets up
+    // on just the one clicked frame, mirrored for the return trip. The
+    // container is used (not a single carousel item) because it exists
+    // immediately, before work.json has even loaded.
+    if (document.referrer.includes('project.html')) {
+      root.style.viewTransitionName = 'project-hero';
+    }
 
+    let projects = [];
+    try {
+      const res = await fetch('assets/work.json');
+      if (res.ok) projects = (await res.json()).projects || [];
+    } catch { /* leaves the stage empty rather than break the page */ }
+    if (!projects.length) return;
+
+    const workCount = $('[data-work-count]');
+    if (workCount) workCount.textContent = `[${String(projects.length).padStart(2, '0')}]`;
+
+    stage.innerHTML = `<div class="spotlight__ring" data-spotlight-ring>${projects.map((p, i) => `
+      <div class="spotlight__item" role="listitem" data-index="${i}" data-cursor-hover data-cursor-text="VIEW">
+        <div class="spotlight__frame"${p.hero?.src ? '' : ` data-placeholder="${(i % 6) + 1}"`}>
+          ${p.hero?.src ? `<img src="${p.hero.src}" alt="">` : ''}
+        </div>
+      </div>`).join('')}</div>`;
+
+    const items = $$('.spotlight__item', stage);
+    const titleEl = $('[data-spotlight-title]');
+    const countEl = $('[data-spotlight-count]');
+    const N = items.length;
+    const STEP = 360 / N;
+    let index = 0;
+    let radius = 0;
+
+    // A regular N-gon's circumradius for faces of this width — neighbours'
+    // edges roughly meet, the way flat panels bolted around a cylinder would.
     const measure = () => {
-      const overflow = track.scrollWidth - wrap.clientWidth;
-      bounds = { minX: -Math.max(0, overflow), maxX: 0 };
-      return bounds;
+      const w = items[0].getBoundingClientRect().width;
+      radius = (w / 2) / Math.tan(Math.PI / N);
     };
+
+    // GSAP's named transform props (rotationY, z, …) always compose as
+    // translate-then-rotate on a single element, which — for a ring —
+    // spins each item in place instead of swinging it around the shared
+    // axis. Tweening a plain proxy and writing the CSS `transform`
+    // string by hand keeps the order we actually want: rotate, then
+    // push out to the radius, then scale.
+    function place(item, angle, scale, animate) {
+      const proxy = item._ring || (item._ring = { angle, scale });
+      gsap.to(proxy, {
+        angle, scale,
+        duration: animate ? 1.1 : 0,
+        ease: 'power3.inOut',
+        overwrite: 'auto',
+        onUpdate() {
+          item.style.transform = `rotateY(${proxy.angle}deg) translateZ(${radius}px) scale(${proxy.scale})`;
+        }
+      });
+    }
+
+    function layout(animate) {
+      items.forEach((item, i) => {
+        const wrapped = ((i - index) % N + N) % N;
+        const signed = wrapped > N / 2 ? wrapped - N : wrapped;
+        const away = Math.abs(signed);
+        item.setAttribute('data-active', String(signed === 0));
+        place(item, -signed * STEP, signed === 0 ? 1 : Math.max(0.62, 1 - away * 0.16), animate);
+        gsap.to(item, {
+          autoAlpha: Math.max(0.22, 1 - away * 0.26),
+          zIndex: N - away,
+          duration: animate ? 1.1 : 0,
+          ease: 'power3.inOut',
+          overwrite: 'auto'
+        });
+      });
+      window.VRGD.scramble(titleEl, `PROJECT ${projects[index].title}`.toUpperCase(), 0.6);
+      if (countEl) countEl.textContent = `${String(index + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
+    }
+
+    // The ring wraps — "next" past the last project turns back to the first,
+    // the cylinder just keeps spinning rather than hitting a wall.
+    function go(next) {
+      index = ((next % N) + N) % N;
+      layout(true);
+    }
+
     measure();
+    layout(false);
 
-    // The thumb is 18% wide, so a full pass is (100-18)/18 = 455.6% of itself.
-    const TRAVEL = ((100 - 18) / 18) * 100;
-    const paint = () => {
-      if (!progress) return;
-      const span = Math.abs(bounds.minX) || 1;
-      const p = Math.min(1, Math.abs(gsap.getProperty(track, 'x')) / span);
-      progress.style.transform = `translateX(${p * TRAVEL}%)`;
-    };
+    $('[data-spotlight-prev]')?.addEventListener('click', () => go(index - 1));
+    $('[data-spotlight-next]')?.addEventListener('click', () => go(index + 1));
 
-    const drag = Draggable.create(track, {
-      type: 'x',
-      inertia: true,
-      edgeResistance: 0.9,
-      bounds,
-      onDrag: paint,
-      onThrowUpdate: paint,
-      cursor: 'grab',
-      activeCursor: 'grabbing',
-      // A card is a click target, not just a drag surface — onClick only
-      // fires when the press never crossed the drag threshold, so a real
-      // drag never accidentally opens a project.
-      onClick(e) {
-        const slug = e.target.closest('.card')?.getAttribute('data-project');
-        if (slug) location.href = `project.html?p=${slug}`;
-      }
-    })[0];
-
-    window.addEventListener('resize', () => {
-      measure();
-      gsap.set(track, { x: gsap.utils.clamp(bounds.minX, 0, gsap.getProperty(track, 'x')) });
-      drag.applyBounds(bounds);
-      paint();
+    items.forEach((item) => {
+      item.addEventListener('click', () => {
+        const i = Number(item.getAttribute('data-index'));
+        if (i !== index) { go(i); return; }
+        // The active frame carries its own box into the project page's
+        // hero — same box-grow language the boot loader opens with.
+        const frame = item.querySelector('.spotlight__frame');
+        if (frame) frame.style.viewTransitionName = 'project-hero';
+        location.href = `project.html?p=${projects[i].slug}`;
+      });
     });
 
+    document.addEventListener('keydown', (e) => {
+      if (!CAN_HOVER) return;
+      if (e.key === 'ArrowRight') go(index + 1);
+      if (e.key === 'ArrowLeft') go(index - 1);
+    });
+
+    window.addEventListener('resize', () => { measure(); layout(false); });
+
+    // Hovering the carousel gets out of its own way: the fixed navbar
+    // slides off, and the ribbon render grows into the room that leaves.
+    if (CAN_HOVER && !REDUCED) {
+      const navbar = $('.navbar');
+      root.addEventListener('mouseenter', () => {
+        root.setAttribute('data-focused', 'true');
+        if (navbar) gsap.to(navbar, { yPercent: -140, autoAlpha: 0, duration: 0.5, ease: 'power3.inOut' });
+      });
+      root.addEventListener('mouseleave', () => {
+        root.setAttribute('data-focused', 'false');
+        if (navbar) gsap.to(navbar, { yPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.inOut' });
+      });
+    }
+
     if (!REDUCED) {
-      gsap.from($$('.card', track), {
-        y: 60, autoAlpha: 0, duration: 1, ease: 'expo.out', stagger: 0.08,
-        scrollTrigger: { trigger: wrap, start: 'top 80%', once: true }
+      // Deliberately no 'wheel' here — the carousel used to hijack the
+      // mouse wheel to turn projects, which fought the page's own
+      // scroll. Browsing is now just the arrows, or press-and-drag
+      // (mouse or touch) sideways across the stage.
+      Observer.create({
+        target: root,
+        type: 'touch,pointer',
+        tolerance: 50,
+        preventDefault: false,
+        onLeft: () => go(index + 1),
+        onRight: () => go(index - 1)
+      });
+
+      gsap.from(root, {
+        autoAlpha: 0, y: 40, duration: 1, ease: 'expo.out',
+        scrollTrigger: { trigger: root, start: 'top 80%', once: true }
       });
     }
   }
@@ -635,7 +736,7 @@
     if (REDUCED) return;
 
     // Plates wipe up instead of just fading.
-    $$('.card__thumb, .asset__stage').forEach((el) => {
+    $$('.asset__stage').forEach((el) => {
       el.setAttribute('data-clip', '');
       gsap.to(el, {
         clipPath: 'inset(0% 0 0 0)',
@@ -672,7 +773,7 @@
        into nothing and the page looked blank. */
     const modules = [
       ['dither', initDither], ['heroVideo', initHeroVideo], ['hero', initHero],
-      ['slider', initSlider], ['logoBlend', initLogoBlend], ['nav', initNav],
+      ['spotlight', initSpotlight], ['logoBlend', initLogoBlend], ['nav', initNav],
       ['chrome', initChrome], ['navSwitch', initNavSwitch], ['spine', initSpine],
       ['microMotion', initMicroMotion], ['reveals', initReveals], ['loader', initLoader]
     ];

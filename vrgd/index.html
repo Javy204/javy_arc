@@ -24,7 +24,7 @@ document.documentElement.classList.add('js');
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=32">
+<link rel="stylesheet" href="css/style.css?v=36">
 </head>
 <body data-loading="true">
 
@@ -221,36 +221,23 @@ document.documentElement.classList.add('js');
       <span class="mono is-dim" data-work-count>[06]</span>
     </div>
 
-    <div class="slider" data-slider>
-      <div class="slider__track" data-slider-track>
-        <!-- work items -->
-        <article class="card" data-project="night-shift" data-cursor-hover data-cursor-text="VIEW">
-          <div class="card__thumb" data-thumb="1"><span class="card__idx mono">[01]</span></div>
-          <div class="card__meta"><h3>Night Shift</h3><span class="mono is-dim">FILM / 2025</span></div>
-        </article>
-        <article class="card" data-project="snake-height" data-cursor-hover data-cursor-text="VIEW">
-          <div class="card__thumb" data-thumb="2"><span class="card__idx mono">[02]</span></div>
-          <div class="card__meta"><h3>Snake Height</h3><span class="mono is-dim">IDENTITY / 2025</span></div>
-        </article>
-        <article class="card" data-project="halftone-atlas" data-cursor-hover data-cursor-text="VIEW">
-          <div class="card__thumb" data-thumb="3"><span class="card__idx mono">[03]</span></div>
-          <div class="card__meta"><h3>Halftone Atlas</h3><span class="mono is-dim">PRINT / 2024</span></div>
-        </article>
-        <article class="card" data-project="s-burban" data-cursor-hover data-cursor-text="VIEW">
-          <div class="card__thumb" data-thumb="4"><span class="card__idx mono">[04]</span></div>
-          <div class="card__meta"><h3>S*burban</h3><span class="mono is-dim">FILM / 2024</span></div>
-        </article>
-        <article class="card" data-project="legacy-project" data-cursor-hover data-cursor-text="VIEW">
-          <div class="card__thumb" data-thumb="5"><span class="card__idx mono">[05]</span></div>
-          <div class="card__meta"><h3>Legacy Project</h3><span class="mono is-dim">CAMPAIGN / 2024</span></div>
-        </article>
-        <article class="card" data-project="raw-archive" data-cursor-hover data-cursor-text="VIEW">
-          <div class="card__thumb" data-thumb="6"><span class="card__idx mono">[06]</span></div>
-          <div class="card__meta"><h3>Raw Archive</h3><span class="mono is-dim">WEB / 2023</span></div>
-        </article>
+    <div class="spotlight" data-spotlight>
+      <div class="spotlight__deco spotlight__deco--left" aria-hidden="true">
+        <img src="assets/work-deco-left.webp" alt="">
       </div>
-      <div class="slider__hint mono is-dim">DRAG</div>
-      <div class="slider__progress"><i data-slider-progress></i></div>
+      <div class="spotlight__deco spotlight__deco--right" aria-hidden="true">
+        <img src="assets/work-deco-right.webp" alt="">
+      </div>
+
+      <span class="spotlight__title mono" data-spotlight-title></span>
+
+      <div class="spotlight__stage" data-spotlight-stage role="list"></div>
+
+      <div class="spotlight__nav">
+        <button class="spotlight__arrow" data-spotlight-prev aria-label="Previous project" data-cursor-hover data-cursor-text="PREV">←</button>
+        <span class="spotlight__count mono is-dim" data-spotlight-count></span>
+        <button class="spotlight__arrow" data-spotlight-next aria-label="Next project" data-cursor-hover data-cursor-text="NEXT">→</button>
+      </div>
     </div>
   </section>
 
@@ -382,6 +369,6 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/InertiaPlugin.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=3"></script>
-<script src="js/main.js?v=20"></script>
+<script src="js/main.js?v=23"></script>
 </body>
 </html>

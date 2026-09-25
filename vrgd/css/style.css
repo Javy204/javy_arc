@@ -812,32 +812,34 @@ html:not(.js) .loader { display: none; }
   overflow: hidden;
 }
 
-/* The ribbon render — decorative, never the subject. Multiply/screen
-   (same --blend token the grain uses) lets its white canvas vanish
-   into the page; dark mode also inverts it so the ribbons stay light
-   ink on a light page instead of turning invisible-black-on-black.
-   Hovering the carousel hides the navbar (see initSpotlight) and
-   these grow into the space it leaves, anchored at their own outer
-   edge so they expand outward rather than from the centre. */
+/* The ribbon render — decorative, never the subject. Pre-cut with a
+   real alpha channel (luminosity-keyed off the original white-canvas
+   render) so it just sits on the page as ink, no mix-blend-mode
+   compositing trick — that combined with the hover resize below into
+   a visible pulse/flash in some engines. Dark mode inverts the RGB
+   channels only, which flips the black ribbon to white and leaves the
+   already-transparent canvas untouched. Hovering the carousel hides
+   the navbar (see initSpotlight) and this grows into the freed space,
+   anchored at its own outer edge so it expands outward, not from the
+   centre — genuinely fullscreen-scaled, not a small corner accent. */
 .spotlight__deco {
   position: absolute;
   top: 50%;
-  width: clamp(220px, 26vw, 480px);
-  aspect-ratio: 917 / 2200;
+  width: clamp(280px, 38vw, 780px);
+  aspect-ratio: 5 / 12;
   transform: translateY(-50%);
-  mix-blend-mode: var(--blend);
-  opacity: .9;
+  opacity: .92;
   pointer-events: none;
   z-index: 0;
-  transition: width .6s cubic-bezier(.16, 1, .3, 1), top .6s cubic-bezier(.16, 1, .3, 1);
+  transition: width .7s cubic-bezier(.16, 1, .3, 1), top .7s cubic-bezier(.16, 1, .3, 1);
 }
 .spotlight__deco img { width: 100%; height: 100%; object-fit: contain; }
-.spotlight__deco--left { left: clamp(-4rem, -3vw, 0px); transform-origin: left center; }
-.spotlight__deco--right { right: clamp(-4rem, -3vw, 0px); transform-origin: right center; }
+.spotlight__deco--left { left: clamp(-6rem, -5vw, -1rem); transform-origin: left center; }
+.spotlight__deco--right { right: clamp(-6rem, -5vw, -1rem); transform-origin: right center; }
 :root[data-theme="dark"] .spotlight__deco { filter: invert(1); }
 [data-spotlight][data-focused="true"] .spotlight__deco {
-  width: clamp(260px, 32vw, 620px);
-  top: calc(50% - var(--nav-h) * .35);
+  width: clamp(420px, 58vw, 1180px);
+  top: calc(50% - var(--nav-h) * .3);
 }
 
 .spotlight__title {

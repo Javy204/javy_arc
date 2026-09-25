@@ -358,23 +358,33 @@
     const titleEl = $('[data-spotlight-title]');
     const countEl = $('[data-spotlight-count]');
     const N = items.length;
-    const STEP = 360 / N;
+    // A shallow step, not 360/N — the point is a cylinder so big that
+    // the active frame and its neighbours read as almost flat, and only
+    // several steps out does the curve become obvious (still faintly
+    // visible in the distance, never a wall you can tell is bent).
+    const STEP = 16;
     let index = 0;
     let radius = 0;
 
-    // A regular N-gon's circumradius for faces of this width — neighbours'
-    // edges roughly meet, the way flat panels bolted around a cylinder would.
+    // The circumradius that keeps flat panels of this width, spaced STEP
+    // degrees apart, roughly edge to edge — a small STEP forces a huge
+    // radius, which is exactly the "giant cylinder" this is going for.
     const measure = () => {
       const w = items[0].getBoundingClientRect().width;
-      radius = (w / 2) / Math.tan(Math.PI / N);
+      radius = (w / 2) / Math.tan((STEP / 2) * Math.PI / 180);
     };
 
     // GSAP's named transform props (rotationY, z, …) always compose as
     // translate-then-rotate on a single element, which — for a ring —
     // spins each item in place instead of swinging it around the shared
     // axis. Tweening a plain proxy and writing the CSS `transform`
-    // string by hand keeps the order we actually want: rotate, then
-    // push out to the radius, then scale.
+    // string by hand keeps the order we actually want: rotate, then push
+    // out to the radius, then pull the whole ring back by that same
+    // radius (an outer, unrotated translateZ) so the ACTIVE frame — the
+    // only one at angle 0 — lands back at z:0 instead of ballooning
+    // toward the camera. Only the frames rotated away from centre end up
+    // behind that resting plane, receding exactly like the far side of
+    // a cylinder should.
     function place(item, angle, scale, animate) {
       const proxy = item._ring || (item._ring = { angle, scale });
       gsap.to(proxy, {
@@ -383,7 +393,8 @@
         ease: 'power3.inOut',
         overwrite: 'auto',
         onUpdate() {
-          item.style.transform = `rotateY(${proxy.angle}deg) translateZ(${radius}px) scale(${proxy.scale})`;
+          item.style.transform =
+            `translateZ(${-radius}px) rotateY(${proxy.angle}deg) translateZ(${radius}px) scale(${proxy.scale})`;
         }
       });
     }

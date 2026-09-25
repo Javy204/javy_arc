@@ -47,6 +47,17 @@
   --pad: clamp(1rem, 2.6vw, 2.25rem);
   --nav-h: 4.5rem;
   --gutter: clamp(8rem, 12vw, 13rem);
+
+  /* WORK spotlight — tunable live from ?panel=1 (see js/tune-panel.js).
+     Plain numbers, not clamp(), so a slider can drive each one directly;
+     the panel writes these same custom properties inline on :root. */
+  --deco-w: 52;       /* vw, preferred width of the ribbon render */
+  --deco-max: 1180;   /* px, width ceiling */
+  --deco-offset: -7;  /* vw, outer-edge offset (negative = off-canvas) */
+  --deco-opacity: .92;
+  --item-w: 46;        /* vw, preferred width of the active carousel frame */
+  --item-max: 760;     /* px, width ceiling */
+  --section-h: 130;    /* vh, .section--work min-height */
 }
 
 /* Dark mode — the same two values, swapped. */
@@ -792,7 +803,7 @@ html:not(.js) .loader { display: none; }
    edge exactly meets the viewport edge, instead of needing pixel-
    perfect scroll alignment. */
 .section--work {
-  min-height: 130vh;
+  min-height: calc(var(--section-h) * 1vh);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -818,11 +829,27 @@ html:not(.js) .loader { display: none; }
    (negative margin) — the whole point is that it reads edge to edge,
    not boxed in like the rest of the page. */
 .spotlight {
+  /* Cancels .section's own padding on both sides so this bleeds edge
+     to edge. A plain 100vw + left:50%/margin:-50vw breakout was tried
+     here first and looks right almost everywhere — but that trick only
+     works when the containing block sits centred in the viewport, and
+     in sidenav nav mode .section carries an EXTRA padding-right
+     (--gutter, to clear the rail) that .section alone doesn't have,
+     which throws the box off-centre and reintroduces a real gap on the
+     right specifically in that mode. Cancelling the exact padding
+     instead, with a matching override below for the gutter case,
+     works regardless of how (a)symmetric .section's padding is. */
   position: relative;
   width: calc(100% + var(--pad) * 2);
   margin: clamp(2rem, 5vh, 3.5rem) calc(var(--pad) * -1) 0;
   padding: clamp(2rem, 5vh, 3rem) 0 clamp(1.5rem, 4vh, 2.5rem);
   overflow: hidden;
+}
+@media (min-width: 768px) {
+  [data-nav="sidenav"] .spotlight {
+    width: calc(100% + var(--pad) * 2 + var(--gutter));
+    margin-right: calc((var(--pad) + var(--gutter)) * -1);
+  }
 }
 
 /* The ribbon render — decorative, never the subject. Pre-cut with a
@@ -835,16 +862,16 @@ html:not(.js) .loader { display: none; }
 .spotlight__deco {
   position: absolute;
   top: 50%;
-  width: clamp(320px, 52vw, 1180px);
+  width: clamp(320px, calc(var(--deco-w) * 1vw), calc(var(--deco-max) * 1px));
   aspect-ratio: 5 / 12;
   transform: translateY(-50%);
-  opacity: .92;
+  opacity: var(--deco-opacity);
   pointer-events: none;
   z-index: 0;
 }
 .spotlight__deco img { width: 100%; height: 100%; object-fit: contain; }
-.spotlight__deco--left { left: clamp(-8rem, -7vw, -1rem); }
-.spotlight__deco--right { right: clamp(-8rem, -7vw, -1rem); }
+.spotlight__deco--left { left: clamp(-8rem, calc(var(--deco-offset) * 1vw), -1rem); }
+.spotlight__deco--right { right: clamp(-8rem, calc(var(--deco-offset) * 1vw), -1rem); }
 :root[data-theme="dark"] .spotlight__deco { filter: invert(1); }
 
 .spotlight__title {
@@ -864,7 +891,7 @@ html:not(.js) .loader { display: none; }
 .spotlight__stage {
   position: relative;
   z-index: 1;
-  height: clamp(169px, 25.88vw, 427.5px);
+  height: calc(clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px)) * 9 / 16);
   perspective: 1800px;
 }
 .spotlight__ring {
@@ -875,9 +902,9 @@ html:not(.js) .loader { display: none; }
 .spotlight__item {
   position: absolute;
   top: 0; left: 50%;
-  width: clamp(300px, 46vw, 760px);
+  width: clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px));
   height: 100%;
-  margin-left: clamp(-380px, -23vw, -150px);
+  margin-left: calc(clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px)) / -2);
   cursor: pointer;
 }
 .spotlight__frame {

@@ -405,7 +405,7 @@
         const signed = wrapped > N / 2 ? wrapped - N : wrapped;
         const away = Math.abs(signed);
         item.setAttribute('data-active', String(signed === 0));
-        place(item, -signed * STEP, signed === 0 ? 1 : Math.max(0.62, 1 - away * 0.16), animate);
+        place(item, signed * STEP, signed === 0 ? 1 : Math.max(0.62, 1 - away * 0.16), animate);
         gsap.to(item, {
           autoAlpha: Math.max(0.22, 1 - away * 0.26),
           zIndex: N - away,

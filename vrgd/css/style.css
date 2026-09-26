@@ -1486,12 +1486,23 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
    ========================================================= */
 .project__top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 1rem;
   padding: calc(var(--nav-h) + clamp(1.2rem, 4vh, 2.2rem)) var(--pad) clamp(1.2rem, 3vh, 1.8rem);
 }
-.project__back { cursor: pointer; transition: color .3s ease; }
+/* Fixed, not just top-of-page — the whole point is a way back that
+   doesn't need scrolling to the top first, wherever you are on a long
+   project page. Sits under the navbar's own z-index so the fullscreen
+   menu (600) still draws over both. */
+.project__back {
+  position: fixed;
+  top: calc(var(--nav-h) + .4rem);
+  left: var(--pad);
+  z-index: 590;
+  cursor: pointer;
+  transition: color .3s ease;
+}
 .project__back:hover { color: var(--dim); }
 
 .project__hero {

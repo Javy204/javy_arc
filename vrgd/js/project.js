@@ -14,6 +14,12 @@
   const root = $('[data-project]');
   if (!root) return;
 
+  // Same convention as the gallery reader's CLOSE — Escape backs out,
+  // no need to find and click the fixed link.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') $('.project__back')?.click();
+  });
+
   if (window.Lenis) {
     const lenis = new Lenis({ anchors: false, allowNestedScroll: true, lerp: 0.09 });
     lenis.on('scroll', ScrollTrigger.update);

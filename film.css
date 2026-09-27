@@ -594,7 +594,7 @@ body.beta-on .beta { display: block; }
 .contact-list { list-style: none; margin: 26px 0 0; padding: 0; max-width: 640px; }
 .contact-list li { display: flex; gap: 1.6ch; align-items: baseline; padding: 13px 0; border-top: 2px solid currentColor; text-transform: uppercase; }
 .contact-list li span { opacity: .6; font-size: 12px; min-width: 12ch; }
-.contact-list a { color: inherit; text-decoration: none; border-bottom: 2px solid currentColor; font-size: 20px; }
+.contact-list a { color: inherit; text-decoration: none; border-bottom: 2px solid currentColor; font-size: 20px; min-width: 0; overflow-wrap: anywhere; }
 .contact-list a:hover { opacity: .6; }
 .foot { margin-top: 36px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; }
 
@@ -784,6 +784,11 @@ body.beta-on .beta { display: block; }
   .beta-panel { width: 62vw; }
   .sheet .sph { margin-bottom: 1.5vw; }
   .act + .act { margin-top: 5vh; }
+
+  /* KONTAKT na telefonu: dlouhý mail se do jednoho řádku se štítkem
+     nevejde a lezl mimo obrazovku — štítek a hodnota tak jdou pod sebe. */
+  .contact-list li { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .contact-list a { font-size: 15px; }
 }
 
 /* ============================================================

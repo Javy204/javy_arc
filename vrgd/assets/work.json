@@ -2,152 +2,103 @@
   "_comment": "WORK slider -> project detail pages. project.html?p=<slug> reads this file and renders one entry. 'hero'/'media' items are {src, kind, caption} — kind is 'image' (default) or 'video'; missing/null src falls back to the halftone placeholder, same convention as the gallery. 'media' items may set 'full': true to span the full width instead of sitting in the 2-up grid. 'credits' is a flat label/value list.",
   "projects": [
     {
-      "slug": "night-shift",
-      "title": "Night Shift",
-      "meta": "FILM / 2025",
-      "headline": "Handheld takes from a single night, cut to the sound of the room.",
+      "slug": "young-fashion-stars",
+      "title": "Young Fashion Stars",
+      "meta": "FASHION / 2025",
+      "headline": "Fashion school portraits shot from directly above, every model looking straight up into the light.",
       "body": [
-        "We shot on a single permit, one night, no second unit. The brief was simple: nothing that couldn't have happened if the camera weren't there. Available light, a rain machine for one scene, and a crew small enough to fit in the frame without meaning to.",
-        "The edit keeps every wobble and every dead second between takes that mattered. The grade is muted on purpose — Prague after midnight reads better slightly underexposed than corrected into daylight."
+        "Mattoni's scholarship show for graduating designers needed portraits that could stand next to the runway work itself — so we shot each collection from a single fixed angle, straight down, the model looking back up into the lens. It flattens the runway pose into something closer to a mugshot, which felt right for clothes built to be examined rather than just worn.",
+        "One studio, one light, one wall — the same setup repeated for every designer in the lineup, so the only thing that changes frame to frame is the collection itself."
       ],
-      "hero": { "src": null },
+      "hero": { "src": "assets/work/young-fashion-stars/hero.webp" },
       "media": [
-        { "src": null, "caption": "Call sheet, 21:40" },
-        { "src": null, "caption": "Gaffer, second unit" },
-        { "src": null, "caption": "Rain machine", "full": true },
-        { "src": null, "caption": "Take 14" },
-        { "src": null, "caption": "Wrap, 05:12" }
+        { "src": "assets/work/young-fashion-stars/m1.webp", "caption": "Look, pass one" },
+        { "src": "assets/work/young-fashion-stars/m2.webp", "caption": "Backstage, full room", "full": true },
+        { "src": "assets/work/young-fashion-stars/m3.webp", "caption": "Close, white face" },
+        { "src": "assets/work/young-fashion-stars/m4.webp", "caption": "Tailoring, dusk grey" },
+        { "src": "assets/work/young-fashion-stars/m5.webp", "caption": "Off-camera, break" },
+        { "src": "assets/work/young-fashion-stars/m6.webp", "caption": "Close, last look" }
       ],
       "credits": [
-        { "label": "Client", "value": "—" },
-        { "label": "Role", "value": "Direction, DP, Edit" },
-        { "label": "Format", "value": "16mm & handheld digital" },
+        { "label": "Client", "value": "Mattoni" },
+        { "label": "Role", "value": "Photography" },
+        { "label": "Format", "value": "Studio, digital" },
         { "label": "Year", "value": "2025" }
       ]
     },
     {
-      "slug": "snake-height",
-      "title": "Snake Height",
-      "meta": "IDENTITY / 2025",
-      "headline": "A logotype pulled apart until the counters break, then printed badly on purpose.",
+      "slug": "bolt-food",
+      "title": "Bolt Food",
+      "meta": "CAMPAIGN / 2025",
+      "headline": "Portraits of the riders who actually deliver — shot on their own routes, not a studio.",
       "body": [
-        "The brand asked for something that could survive a bad print run better than a good one. We built the mark from a single continuous stroke, then let it distort under pressure — literally, by running early proofs through a broken riso drum until the registration slipped in a way worth keeping.",
-        "The final system keeps that slip as a rule, not an accident: every application carries a small, deliberate misalignment. It reads as handmade at any size, from a business card to a hoarding."
+        "The brief covered the whole fleet: the bag on a back, on a bike, on a scooter, crossing the same Prague streets the riders cross every shift. Nothing staged beyond asking each one to hold still for a second between drops.",
+        "Cast from real couriers rather than models, on location across the city rather than in front of a backdrop, so the campaign reads as a shift log rather than an ad."
       ],
-      "hero": { "src": null },
+      "hero": { "src": "assets/work/bolt-food/hero.webp" },
       "media": [
-        { "src": null, "caption": "Sketch wall" },
-        { "src": null, "caption": "Counter tests" },
-        { "src": null, "caption": "Proof, pass one" },
-        { "src": null, "caption": "Proof, pass four" },
-        { "src": null, "caption": "Applied", "full": true },
-        { "src": null, "caption": "Street, week two" }
+        { "src": "assets/work/bolt-food/m1.webp", "caption": "On foot, Vinohrady" },
+        { "src": "assets/work/bolt-food/m2.webp", "caption": "By bike, city park", "full": true },
+        { "src": "assets/work/bolt-food/m3.webp", "caption": "Between drops" },
+        { "src": "assets/work/bolt-food/m4.webp", "caption": "By scooter" },
+        { "src": "assets/work/bolt-food/m5.webp", "caption": "Handoff" },
+        { "src": "assets/work/bolt-food/m6.webp", "caption": "End of shift" }
       ],
       "credits": [
-        { "label": "Client", "value": "—" },
-        { "label": "Role", "value": "Identity, Type design" },
-        { "label": "Format", "value": "Logotype + guidelines" },
+        { "label": "Client", "value": "Bolt Food" },
+        { "label": "Role", "value": "Photography" },
+        { "label": "Format", "value": "On location, digital" },
         { "label": "Year", "value": "2025" }
       ]
     },
     {
-      "slug": "halftone-atlas",
-      "title": "Halftone Atlas",
-      "meta": "PRINT / 2024",
-      "headline": "A hundred plates at increasing dot density — the point is the moment it stops reading.",
+      "slug": "mattoni",
+      "title": "Mattoni",
+      "meta": "DOCUMENTARY / 2025",
+      "headline": "A day inside Mattoni's Malacky plant, following the people who bottle it rather than the water.",
       "body": [
-        "Same photograph, printed a hundred times, each pass pushed further into the halftone grid until the image gives up and becomes pure pattern. It's less a print run than a stress test for how much information an audience actually needs to recognise a face.",
-        "Bound as a small run of hand-numbered atlases, riso-printed two colours at a time. No two copies register quite the same way."
+        "For a campaign built on the word \"authentic,\" we spent the shoot on the production floor and in the break room rather than at a product table — pallets, forklifts, the same fluorescent-lit office where the interviews actually happened.",
+        "The crew stays visible in half the frames on purpose: a boom mic, a reflector, someone checking a monitor. The point was never to hide that it's a shoot, only to make sure what's in front of the camera is real."
       ],
-      "hero": { "src": null },
+      "hero": { "src": "assets/work/mattoni/hero.webp" },
       "media": [
-        { "src": null, "caption": "Plate 04" },
-        { "src": null, "caption": "Plate 27" },
-        { "src": null, "caption": "Plate 51" },
-        { "src": null, "caption": "Plate 68" },
-        { "src": null, "caption": "Plate 92" },
-        { "src": null, "caption": "Binding", "full": true }
+        { "src": "assets/work/mattoni/m1.webp", "caption": "Warehouse floor" },
+        { "src": "assets/work/mattoni/m2.webp", "caption": "Aisle, full depth", "full": true },
+        { "src": "assets/work/mattoni/m3.webp", "caption": "Crew, between takes" },
+        { "src": "assets/work/mattoni/m4.webp", "caption": "Monitor check" },
+        { "src": "assets/work/mattoni/m5.webp", "caption": "Portrait, high-vis" },
+        { "src": "assets/work/mattoni/m6.webp", "caption": "On the shop floor" }
       ],
       "credits": [
-        { "label": "Client", "value": "Self-initiated" },
-        { "label": "Role", "value": "Print, Binding" },
-        { "label": "Format", "value": "Riso, hand-bound, edition of 60" },
-        { "label": "Year", "value": "2024" }
+        { "label": "Client", "value": "Mattoni" },
+        { "label": "Role", "value": "Photography, BTS" },
+        { "label": "Format", "value": "On location, digital" },
+        { "label": "Year", "value": "2025" }
       ]
     },
     {
-      "slug": "s-burban",
-      "title": "S*burban",
-      "meta": "FILM / 2024",
-      "headline": "A fashion film shot on the edge of the city, mostly at dusk.",
+      "slug": "foodora",
+      "title": "Foodora",
+      "meta": "COMMERCIAL / 2025",
+      "headline": "A rooftop commercial shoot that ended with a gold egg by the pool.",
       "body": [
-        "We scouted the last blocks before the ring road gives up and becomes field — half-built facades, empty forecourts, the kind of light that only lasts twenty minutes. The collection was built around movement, so we shot it running, mostly handheld, mostly against the clock.",
-        "No studio, no lighting rig bigger than what fit in a hatchback. What's on screen is what golden hour actually gave us that evening, graded to hold onto it a little longer than it lasted."
+        "Half the day was riders and bikes against Prague's business district; the other half turned into whatever the art department could build on a hotel terrace, reflectors bouncing straight sun into every corner. Fisheye throughout, because the crew ended up in as many frames as the talent.",
+        "Loosest brief of the year: bring the bike, bring the bag, see where the day goes. It went to a golden egg."
       ],
-      "hero": { "src": null },
+      "hero": { "src": "assets/work/foodora/hero.webp" },
       "media": [
-        { "src": null, "caption": "Location scout" },
-        { "src": null, "caption": "Fitting" },
-        { "src": null, "caption": "Golden hour", "full": true },
-        { "src": null, "caption": "Handheld, run" },
-        { "src": null, "caption": "Last light" },
-        { "src": null, "caption": "Crew" }
+        { "src": "assets/work/foodora/m1.webp", "caption": "Rider, first light" },
+        { "src": "assets/work/foodora/m2.webp", "caption": "Set, full crew", "full": true },
+        { "src": "assets/work/foodora/m3.webp", "caption": "Cast, group take" },
+        { "src": "assets/work/foodora/m4.webp", "caption": "Reflector, fisheye" },
+        { "src": "assets/work/foodora/m5.webp", "caption": "The gold egg" },
+        { "src": "assets/work/foodora/m6.webp", "caption": "Crew, rooftop" }
       ],
       "credits": [
-        { "label": "Client", "value": "—" },
-        { "label": "Role", "value": "Direction, Styling direction, Edit" },
-        { "label": "Format", "value": "Digital, 4K" },
-        { "label": "Year", "value": "2024" }
-      ]
-    },
-    {
-      "slug": "legacy-project",
-      "title": "Legacy Project",
-      "meta": "CAMPAIGN / 2024",
-      "headline": "A campaign built entirely from archive material and a scanner.",
-      "body": [
-        "No new photography. The brief was to make forty years of filed-away contact sheets, slides and internal memos feel like a present-tense campaign rather than a retrospective — so everything you see was scanned flatbed, at full grain, off whatever the client's basement actually held.",
-        "Layout follows the logic of a contact sheet rather than a moodboard: nothing cropped, nothing retouched, sequence numbers left visible on purpose."
-      ],
-      "hero": { "src": null },
-      "media": [
-        { "src": null, "caption": "Archive boxes" },
-        { "src": null, "caption": "Scanner rig" },
-        { "src": null, "caption": "Contact sheet", "full": true },
-        { "src": null, "caption": "Selects" },
-        { "src": null, "caption": "Layout" },
-        { "src": null, "caption": "Press check" }
-      ],
-      "credits": [
-        { "label": "Client", "value": "—" },
-        { "label": "Role", "value": "Art direction, Layout" },
-        { "label": "Format", "value": "Print + OOH" },
-        { "label": "Year", "value": "2024" }
-      ]
-    },
-    {
-      "slug": "raw-archive",
-      "title": "Raw Archive",
-      "meta": "WEB / 2023",
-      "headline": "An index that refuses to explain itself — scroll is the only interface.",
-      "body": [
-        "No menu, no filters, no captions. Everything the studio has ever shot lives on one continuously scrolling page, ordered by nothing more meaningful than when it was uploaded. Finding something specific is not really the point.",
-        "Built as a way to keep raw footage circulating instead of sitting on a drive — a living contact sheet that grows every time something new gets shot."
-      ],
-      "hero": { "src": null },
-      "media": [
-        { "src": null, "caption": "Paper prototype" },
-        { "src": null, "caption": "Grid study" },
-        { "src": null, "caption": "Type in situ", "full": true },
-        { "src": null, "caption": "Build, day 3" },
-        { "src": null, "caption": "Launch" },
-        { "src": null, "caption": "Postmortem" }
-      ],
-      "credits": [
-        { "label": "Client", "value": "Self-initiated" },
-        { "label": "Role", "value": "Design, Build" },
-        { "label": "Format", "value": "Website" },
-        { "label": "Year", "value": "2023" }
+        { "label": "Client", "value": "Foodora" },
+        { "label": "Role", "value": "Photography, BTS" },
+        { "label": "Format", "value": "On location, digital" },
+        { "label": "Year", "value": "2025" }
       ]
     }
   ]

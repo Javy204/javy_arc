@@ -862,27 +862,35 @@ html:not(.js) .loader { display: none; }
   }
 }
 
-/* The ribbon render — decorative, never the subject. Pre-cut with a
-   real alpha channel (luminosity-keyed off the original white-canvas
-   render) so it just sits on the page as ink, no mix-blend-mode
-   compositing trick. Dark mode inverts the RGB channels only, which
-   flips the black ribbon to white and leaves the already-transparent
-   canvas untouched. Fixed size — it used to grow on hover but that
-   read as a jarring pop rather than anything worth the motion. */
+/* The ribbon render — decorative, never the subject. A square 3D chrome
+   loop, composited from two source videos onto a canvas each frame (see
+   initSpotlightDeco in main.js) rather than a flat pre-cut silhouette,
+   so no dark-mode invert here — it's a lit render with its own shading,
+   inverting it would just look broken. Fixed size — it used to grow on
+   hover but that read as a jarring pop rather than anything worth the
+   motion. */
 .spotlight__deco {
   position: absolute;
   top: 50%;
   width: clamp(320px, calc(var(--deco-w) * 1vw), calc(var(--deco-max) * 1px));
-  aspect-ratio: 5 / 12;
+  aspect-ratio: 1 / 1;
   transform: translateY(-50%);
   opacity: var(--deco-opacity);
   pointer-events: none;
   z-index: 0;
 }
-.spotlight__deco img { width: 100%; height: 100%; object-fit: contain; }
+.spotlight__deco canvas { width: 100%; height: 100%; display: block; }
 .spotlight__deco--left { left: clamp(-8rem, calc(var(--deco-offset) * 1vw), -1rem); }
 .spotlight__deco--right { right: clamp(-8rem, calc(var(--deco-offset) * 1vw), -1rem); }
-:root[data-theme="dark"] .spotlight__deco { filter: invert(1); }
+/* Real source videos, kept technically "visible" (not display:none) so
+   browsers don't throttle their decode — parked off-canvas instead. */
+.spotlight__deco-source {
+  position: absolute;
+  width: 2px; height: 2px;
+  top: 0; left: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 
 .spotlight__title {
   position: relative;
@@ -893,17 +901,19 @@ html:not(.js) .loader { display: none; }
   min-height: 1.4em;
 }
 
-/* The stage is Embla's viewport: one 16:9 frame wide, everything else
-   clipped rather than left peeking at the edges — a project ring used
-   to recede around a 3D cylinder here, but the neighbours-in-the-
-   background look read as clutter, not depth, so now only the active
-   frame is ever on screen. See js/vendor/embla-carousel.umd.js. */
+/* The stage is Embla's viewport — full edge-to-edge width (riding on
+   .spotlight's own bleed) rather than just the width of the frame, so
+   the swap travels the whole screen: each slide is a full-width lane
+   with the actual 16:9 frame centred inside it, and only the active
+   lane's frame is ever visible, everything else clipped rather than
+   left peeking at the edges. A project ring used to recede around a
+   3D cylinder here, but the neighbours-in-the-background look read as
+   clutter, not depth. See js/vendor/embla-carousel.umd.js. */
 .spotlight__stage {
   position: relative;
   z-index: 1;
-  width: clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px));
+  width: 100%;
   height: calc(clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px)) * 9 / 16);
-  margin: 0 auto;
   overflow: hidden;
 }
 .spotlight__ring {
@@ -915,13 +925,16 @@ html:not(.js) .loader { display: none; }
   flex: 0 0 100%;
   min-width: 0;
   height: 100%;
-  cursor: pointer;
+  display: flex;
+  justify-content: center;
   will-change: transform;
 }
 .spotlight__frame {
   position: relative;
-  width: 100%; height: 100%;
+  width: clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px));
+  height: 100%;
   overflow: hidden;
+  cursor: pointer;
   background: var(--plate);
 }
 /* Preview images are exported already grayscale (see assets/work/<slug>/

@@ -358,8 +358,8 @@
     stage.innerHTML = `<div class="spotlight__ring" data-spotlight-ring>${projects.map((p, i) => {
       const src = p.preview || p.hero?.src;
       return `
-      <div class="spotlight__item" role="listitem" data-index="${i}" data-cursor-hover data-cursor-text="VIEW">
-        <div class="spotlight__frame"${src ? '' : ` data-placeholder="${(i % 6) + 1}"`}>
+      <div class="spotlight__item" role="listitem" data-index="${i}">
+        <div class="spotlight__frame"${src ? '' : ` data-placeholder="${(i % 6) + 1}"`} data-cursor-hover data-cursor-text="VIEW">
           ${src ? `<img src="${src}" alt="">` : ''}
         </div>
       </div>`;
@@ -454,15 +454,18 @@
     $('[data-spotlight-next]')?.addEventListener('click', () => embla.scrollNext());
 
     items.forEach((item) => {
-      item.addEventListener('click', () => {
+      // Only the visible frame is clickable — the item itself is now a
+      // full-width lane (see .spotlight__stage) mostly empty space
+      // either side of it.
+      const frame = item.querySelector('.spotlight__frame');
+      frame?.addEventListener('click', () => {
         const i = Number(item.getAttribute('data-index'));
         // Embla only leaves the active slide reachable in the viewport
         // (the rest sit fully clipped offscreen), so a click here is
         // always on the current project — no "recentre first" step.
         // The active frame carries its own box into the project page's
         // hero — same box-grow language the boot loader opens with.
-        const frame = item.querySelector('.spotlight__frame');
-        if (frame) frame.style.viewTransitionName = 'project-hero';
+        frame.style.viewTransitionName = 'project-hero';
         location.href = `project.html?p=${projects[i].slug}`;
       });
     });
@@ -532,6 +535,121 @@
         scrollTrigger: { trigger: section || root, start: 'top 75%', once: true }
       });
     }
+  }
+
+  /* =======================================================
+     6b. Work deco — the two ribbon renders beside the spotlight
+     are a video, not a still: an RGB clip plus a white-on-black
+     luma matte, composited onto a canvas each frame (plain <video>
+     carries no alpha channel). Scrubbed to scroll position while
+     the section is being approached or browsed, then handed off to
+     play on its own once scrolling actually stops — the handoff is
+     seamless because playback just continues from whatever frame
+     the scrub left it on, no jump to rewind.
+     ======================================================= */
+  function initSpotlightDeco() {
+    const root = $('[data-spotlight]');
+    const canvasLeft = $('[data-deco-canvas="left"]', root || document);
+    const canvasRight = $('[data-deco-canvas="right"]', root || document);
+    const rgbVideo = $('[data-deco-rgb]', root || document);
+    const maskVideo = $('[data-deco-mask]', root || document);
+    if (!root || !canvasLeft || !canvasRight || !rgbVideo || !maskVideo) return;
+
+    const SIZE = 800; // internal render resolution — plenty for a decorative element
+    [canvasLeft, canvasRight].forEach((c) => { c.width = SIZE; c.height = SIZE; });
+    const leftCtx = canvasLeft.getContext('2d');
+    const rightCtx = canvasRight.getContext('2d');
+    const maskBuffer = document.createElement('canvas');
+    maskBuffer.width = SIZE; maskBuffer.height = SIZE;
+    const maskCtx = maskBuffer.getContext('2d');
+
+    // The matte is plain black/white video (no real alpha of its own) —
+    // read it back and copy its luminance into the alpha channel once
+    // per frame, shared by both sides before either one draws.
+    function updateMaskBuffer() {
+      maskCtx.setTransform(1, 0, 0, 1, 0, 0);
+      maskCtx.clearRect(0, 0, SIZE, SIZE);
+      maskCtx.drawImage(maskVideo, 0, 0, SIZE, SIZE);
+      const frame = maskCtx.getImageData(0, 0, SIZE, SIZE);
+      const d = frame.data;
+      for (let i = 0; i < d.length; i += 4) d[i + 3] = d[i];
+      maskCtx.putImageData(frame, 0, 0);
+    }
+
+    function drawSide(ctx, flip) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, SIZE, SIZE);
+      if (flip) { ctx.translate(SIZE, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(rgbVideo, 0, 0, SIZE, SIZE);
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.drawImage(maskBuffer, 0, 0, SIZE, SIZE);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    if (REDUCED) {
+      // No scroll-scrub, no idle autoplay — just one settled frame.
+      const paintOnce = () => {
+        updateMaskBuffer();
+        drawSide(leftCtx, false);
+        drawSide(rightCtx, true);
+      };
+      if (rgbVideo.readyState >= 2) paintOnce();
+      else rgbVideo.addEventListener('loadeddata', paintOnce, { once: true });
+      return;
+    }
+
+    (function render() {
+      updateMaskBuffer();
+      drawSide(leftCtx, false);
+      drawSide(rightCtx, true);
+      requestAnimationFrame(render);
+    })();
+
+    let playing = false;
+    let idleTimer = null;
+    function enterIdlePlay() {
+      if (playing) return;
+      playing = true;
+      rgbVideo.play().catch(() => {});
+      maskVideo.play().catch(() => {});
+    }
+    function exitIdlePlay() {
+      if (!playing) return;
+      playing = false;
+      rgbVideo.pause();
+      maskVideo.pause();
+    }
+    function scrubTo(progress) {
+      const duration = rgbVideo.duration;
+      if (!Number.isFinite(duration)) return;
+      const t = Math.max(0, Math.min(1, progress)) * duration;
+      rgbVideo.currentTime = t;
+      maskVideo.currentTime = t;
+    }
+    function armIdle() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(enterIdlePlay, 600);
+    }
+
+    // Same arrival window as the navbar-hide/magnet triggers above —
+    // scrolling anywhere through it drives the clip, going still hands
+    // it back to autoplay.
+    const section = root.closest('.section--work');
+    ScrollTrigger.create({
+      trigger: section || root,
+      start: 'top top+=160',
+      end: 'bottom top-=160',
+      onUpdate: (self) => {
+        if (!self.isActive) return;
+        exitIdlePlay();
+        scrubTo(self.progress);
+        armIdle();
+      },
+      onEnter: armIdle,
+      onEnterBack: armIdle,
+      onLeave: exitIdlePlay,
+      onLeaveBack: exitIdlePlay
+    });
   }
 
   /* =======================================================
@@ -832,7 +950,7 @@
        into nothing and the page looked blank. */
     const modules = [
       ['dither', initDither], ['heroVideo', initHeroVideo], ['hero', initHero],
-      ['spotlight', initSpotlight], ['logoBlend', initLogoBlend], ['nav', initNav],
+      ['spotlight', initSpotlight], ['spotlightDeco', initSpotlightDeco], ['logoBlend', initLogoBlend], ['nav', initNav],
       ['chrome', initChrome], ['navSwitch', initNavSwitch], ['spine', initSpine],
       ['microMotion', initMicroMotion], ['reveals', initReveals], ['loader', initLoader]
     ];

@@ -24,7 +24,7 @@ document.documentElement.classList.add('js');
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=50">
+<link rel="stylesheet" href="css/style.css?v=52">
 </head>
 <body data-loading="true">
 
@@ -221,12 +221,19 @@ document.documentElement.classList.add('js');
     </div>
 
     <div class="spotlight" data-spotlight>
+      <!-- Composited on a canvas each frame from the two hidden source
+           videos below — RGB render + a white-on-black luma matte, since
+           plain <video> has no alpha channel. See initSpotlightDeco in
+           main.js. Scroll-scrubbed while arriving/browsing, then plays
+           freely once idle. -->
       <div class="spotlight__deco spotlight__deco--left" aria-hidden="true">
-        <img src="assets/work-deco-left.webp" alt="">
+        <canvas data-deco-canvas="left"></canvas>
       </div>
       <div class="spotlight__deco spotlight__deco--right" aria-hidden="true">
-        <img src="assets/work-deco-right.webp" alt="">
+        <canvas data-deco-canvas="right"></canvas>
       </div>
+      <video class="spotlight__deco-source" data-deco-rgb src="assets/work-deco/blob-rgb.mp4" muted playsinline loop preload="auto"></video>
+      <video class="spotlight__deco-source" data-deco-mask src="assets/work-deco/blob-mask.mp4" muted playsinline loop preload="auto"></video>
 
       <span class="spotlight__title mono" data-spotlight-title></span>
 
@@ -371,7 +378,7 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/vendor/embla-carousel.umd.js"></script>
 <script src="js/shared.js?v=3"></script>
-<script src="js/main.js?v=31"></script>
+<script src="js/main.js?v=33"></script>
 <script src="js/tune-panel.js?v=1"></script>
 </body>
 </html>

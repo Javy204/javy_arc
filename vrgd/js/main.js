@@ -377,24 +377,43 @@
       return img;
     });
 
-    const SIZE = 640; // internal render resolution — plenty for this frame size
+    const SIZE = 1200; // frame is near-fullscreen now, wants a bigger source than before
     const frameCanvases = items.map((item) => item.querySelector('canvas'));
     const arrowCanvases = [$('[data-arrow-canvas="prev"]'), $('[data-arrow-canvas="next"]')];
     [...frameCanvases, ...arrowCanvases].forEach((c) => { if (c) { c.width = SIZE; c.height = SIZE; } });
+    // Scratch buffer for the sharp masked layer — kept off the visible
+    // canvas so destination-in never eats the dim base layer under it.
+    const scratch = document.createElement('canvas');
+    scratch.width = SIZE; scratch.height = SIZE;
+    const scratchCtx = scratch.getContext('2d');
+
+    // boost is 0 at rest, up to 1 mid-swipe (see tick() below) — the
+    // whole photo brightens toward full strength as you cross between
+    // projects, on top of the blob's own sharp cut, instead of the
+    // photo only ever being visible through the blob's thin strokes.
+    let boost = 0;
 
     function drawFrame(canvas, img) {
       const ctx = canvas.getContext('2d');
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, SIZE, SIZE);
-      if (img && img.complete && img.naturalWidth) {
-        // Cover-fit the (likely non-square) photo into the square canvas.
-        const scale = Math.max(SIZE / img.naturalWidth, SIZE / img.naturalHeight);
-        const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-        ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
-      }
-      ctx.globalCompositeOperation = 'destination-in';
-      ctx.drawImage(blobVideo, 0, 0, SIZE, SIZE);
-      ctx.globalCompositeOperation = 'source-over';
+      if (!(img && img.complete && img.naturalWidth)) return;
+      // Cover-fit the (likely non-square) photo into the square canvas.
+      const scale = Math.max(SIZE / img.naturalWidth, SIZE / img.naturalHeight);
+      const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+      const dx = (SIZE - w) / 2, dy = (SIZE - h) / 2;
+
+      ctx.globalAlpha = 0.22 + boost * 0.6;
+      ctx.drawImage(img, dx, dy, w, h);
+      ctx.globalAlpha = 1;
+
+      scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
+      scratchCtx.clearRect(0, 0, SIZE, SIZE);
+      scratchCtx.drawImage(img, dx, dy, w, h);
+      scratchCtx.globalCompositeOperation = 'destination-in';
+      scratchCtx.drawImage(blobVideo, 0, 0, SIZE, SIZE);
+      scratchCtx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(scratch, 0, 0);
     }
     function drawBlob(canvas) {
       if (!canvas) return;
@@ -403,10 +422,26 @@
       ctx.clearRect(0, 0, SIZE, SIZE);
       ctx.drawImage(blobVideo, 0, 0, SIZE, SIZE);
     }
+    // How mid-transition the carousel currently is — 0 with a slide
+    // resting dead centre, up to ~1 at the exact midpoint of a swipe.
+    // Pure geometry read off the DOM each tick, nothing stateful, so
+    // there's no play/pause/currentTime bookkeeping that can get stuck.
+    function updateBoost() {
+      const stageRect = stage.getBoundingClientRect();
+      if (!stageRect.width) return;
+      let minAbs = Infinity;
+      items.forEach((item) => {
+        const r = item.getBoundingClientRect();
+        const progress = (r.left - stageRect.left) / stageRect.width;
+        minAbs = Math.min(minAbs, Math.abs(progress));
+      });
+      boost = Math.min(1, minAbs * 2);
+    }
 
     if (REDUCED) {
       // One settled paint, no perpetual rAF loop.
       const paintOnce = () => {
+        updateBoost();
         frameCanvases.forEach((c, i) => drawFrame(c, photos[i]));
         arrowCanvases.forEach(drawBlob);
       };
@@ -414,6 +449,7 @@
       else blobVideo.addEventListener('loadeddata', paintOnce, { once: true });
     } else {
       (function render() {
+        updateBoost();
         frameCanvases.forEach((c, i) => drawFrame(c, photos[i]));
         arrowCanvases.forEach(drawBlob);
         requestAnimationFrame(render);

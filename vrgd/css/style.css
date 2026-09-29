@@ -841,10 +841,14 @@ html:not(.js) .loader { display: none; }
   min-height: 1.4em;
 }
 
+/* Massive on purpose — a small masked frame just read as a weird
+   abstract sticker with barely any photo showing through it. Big
+   enough to fill most of the viewport, the same blob shape reads as
+   atmosphere the photo sits inside, not a shape hiding the photo. */
 .spotlight__stage {
   position: relative;
   width: 100%;
-  height: clamp(300px, 42vw, 720px);
+  height: clamp(420px, 82vh, 1100px);
   overflow: hidden;
 }
 .spotlight__ring { display: flex; width: 100%; height: 100%; }
@@ -858,7 +862,7 @@ html:not(.js) .loader { display: none; }
 }
 .spotlight__frame {
   position: relative;
-  width: clamp(300px, 42vw, 720px);
+  width: clamp(420px, 82vh, 1100px);
   height: 100%;
   cursor: pointer;
 }

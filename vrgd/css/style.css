@@ -1212,8 +1212,28 @@ html:not(.js) .loader { display: none; }
 .contacts__col a:hover { color: var(--dim); }
 .contacts__col span:not(.mono) { font-size: clamp(1.1rem, 1.8vw, 1.6rem); }
 
-.contacts__mark { padding-bottom: 1.5rem; }
-.contacts__mark svg { width: 100%; height: auto; fill: var(--fg); }
+/* The #vrgd symbol's viewBox is a square 2048x2048 canvas, but the
+   wordmark itself only occupies a wide band roughly a third of that
+   height (bbox ~ x:351 y:739 w:1467 h:618) — at full width that empty
+   square read as a big gap above/below a small logo. <use> always fits
+   the symbol's WHOLE viewBox into the wrapper (no way to just change
+   the wrapper's own viewBox to crop it — tried that, it only changes
+   the letterboxing), so the crop happens here instead: scale the
+   square svg up until the wordmark's own width fills the container,
+   then translate it into place and clip the rest with overflow. Crop
+   rect (260,650)-(1910,1450) is the bbox plus ~6% padding. */
+.contacts__mark {
+  padding-bottom: 1.5rem;
+  overflow: hidden;
+  aspect-ratio: 1650 / 800;
+}
+.contacts__mark svg {
+  display: block;
+  width: calc(100% * 2048 / 1650);
+  height: auto;
+  fill: var(--fg);
+  transform: translate(calc(-260 / 2048 * 100%), calc(-650 / 2048 * 100%));
+}
 .contacts__legal {
   display: flex;
   justify-content: space-between;

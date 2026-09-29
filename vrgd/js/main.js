@@ -607,17 +607,38 @@
 
     let playing = false;
     let idleTimer = null;
+    let rampTween = null;
+    // Browsers refuse a playbackRate much below 1/16 (throws, doesn't
+    // clamp), so that's the floor for "as close to stopped as allowed."
+    const MIN_RATE = 0.0625;
+    function setRate(rate) {
+      try { rgbVideo.playbackRate = maskVideo.playbackRate = rate; } catch { /* out of range on this browser — leave it */ }
+    }
+
+    // Handing off to autoplay is a ramp, not a jump — playbackRate eases
+    // up over a beat so the clip visibly picks up speed rather than
+    // snapping straight to normal playback the instant scrolling stops.
     function enterIdlePlay() {
       if (playing) return;
       playing = true;
+      const proxy = { rate: MIN_RATE };
+      setRate(proxy.rate);
       rgbVideo.play().catch(() => {});
       maskVideo.play().catch(() => {});
+      rampTween?.kill();
+      rampTween = gsap.to(proxy, {
+        rate: 1, duration: 1.4, ease: 'sine.inOut',
+        onUpdate: () => setRate(proxy.rate)
+      });
     }
     function exitIdlePlay() {
       if (!playing) return;
       playing = false;
+      rampTween?.kill();
+      rampTween = null;
       rgbVideo.pause();
       maskVideo.pause();
+      setRate(1);
     }
     function scrubTo(progress) {
       const duration = rgbVideo.duration;
@@ -631,14 +652,16 @@
       idleTimer = setTimeout(enterIdlePlay, 600);
     }
 
-    // The actual approach, not the "section is dominating the screen"
-    // window used for the navbar-hide/magnet triggers above: 0 the
-    // moment .section--work's top edge appears at the bottom of the
-    // viewport, 1 once that edge reaches the top — a full viewport of
-    // scroll distance mapped straight onto the clip, so the video is
-    // genuinely under the scrollbar's control while arriving, not
-    // compressed into whatever's left of the section's own height.
     const section = root.closest('.section--work');
+
+    // The actual approach: 0 the moment .section--work's top edge
+    // appears at the bottom of the viewport, 1 once that edge reaches
+    // the top — a full viewport of scroll distance mapped straight onto
+    // the clip, so the video is genuinely under the scrollbar's control
+    // while arriving. Scrubbing only lives here; leaving/re-entering
+    // WORK is handled by the wider trigger below so that scrolling
+    // further through the (taller-than-viewport) section once already
+    // arrived doesn't read as "leaving" and cut the clip off.
     ScrollTrigger.create({
       trigger: section || root,
       start: 'top bottom',
@@ -650,10 +673,21 @@
         armIdle();
       },
       onEnter: armIdle,
-      onEnterBack: armIdle,
-      onLeave: exitIdlePlay,
-      onLeaveBack: exitIdlePlay
+      onEnterBack: armIdle
     });
+
+    // Same window as the navbar-hide/magnet triggers above — the video
+    // only actually stops once WORK has genuinely left the screen in
+    // either direction, not the moment the approach above finishes.
+    if (section) {
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top top+=160',
+        end: 'bottom top-=160',
+        onLeave: exitIdlePlay,
+        onLeaveBack: exitIdlePlay
+      });
+    }
   }
 
   /* =======================================================

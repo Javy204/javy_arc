@@ -156,160 +156,66 @@ Přidání produktu = jedno `<a class="prod" data-shop-item data-sizes="S M L">`
 do `[data-shop-grid]`. Až bude reálný obchod, tahle vrstva zůstane a napojí se
 na ni jen data a checkout.
 
-## WORK — horizontální slide s blob-masked rámečkem
+## WORK — velká fotka na tmavé scéně, chrom vzadu
 
 Sekce `#work` na indexu (`initSpotlight()` v `main.js`) + `project.html` pro
-detail jednoho projektu (`?p=<slug>`, čte `js/project.js`). **Tohle prošlo
-během jednoho sezení čtyřmi kompletně přepsanými verzemi** (3D válec →
-Embla + scroll-scrubbed video → prostý grid → zpátky Embla + blob-masked
-rámeček), takže než cokoli měnit, stojí za to vědět, proč to dřívější
-verze zahodily — je to níž.
+detail (`?p=<slug>`). Šestá verze. Předchozí WebGL „ponor" (zoom, rotace, RGB
+split) byl na pohled moc; tahle se vrací ke klidnějšímu původnímu vzhledu.
 
-### Obsah — `assets/work.json`
+**Vrstvy:** pozadí = `<canvas>` s chromovou půlkou balíčkového videa
+(`assets/work-deco/blob-packed.mp4`, 3840×1920: chrom | matte, 12 MB) → rámeček
+s fotkou (`.spotlight__frame`, vždy kontrastně černobílá, zdroj `preview` =
+landscape) → **fly vrstva** (WebGL canvas přes rámeček) → HUD. Blok je tmavý
+v obou tématech (`registerDarkSurface`).
 
-Jeden projekt = jeden objekt v `projects`:
+**Dvě smyčky (A, B) + vrstvení podle hloubky + TUNE panel:** stejný klip se
+kreslí až dvakrát; každá instance má vlastní velikost / pozici / rotaci / spin /
+zrcadlení / jas a **vlastní vrstvení** (`behind | in front | split by depth`).
+B má vlastní výchozí hodnoty; tlačítko *Re-mirror B from A* ji přepočítá jako
+zrcadlo A (x, rotace, spin, směr hloubky se překlopí).
+Pozadí: obě sečtené přes `lighter`, aby se navzájem nezakrývaly.
 
-```json
-{
-  "slug": "bolt-food", "title": "Bolt Food", "meta": "CAMPAIGN / 2025",
-  "headline": "...", "body": ["odstavec", "odstavec"],
-  "hero": { "src": "assets/work/bolt-food/hero.webp" },
-  "preview": "assets/work/bolt-food/preview.webp",
-  "media": [{ "src": "...", "caption": "...", "full": true }],
-  "credits": [{ "label": "Client", "value": "Bolt Food" }]
-}
-```
+Přední vrstva (WebGL nad fotkou, jen uvnitř rámečku) kreslí tentýž snímek s
+mattem jako alfou, jen tam, kde *hloubkové pole* dané instance říká „vpředu".
+Klip skutečnou hloubku nemá, pole je syntetické: lineární gradient přes rámeček
+(směr, posun, `Cut`, měkkost), malovaný **heightmap** (bílá = vpředu; sdílený
+pro obě) a volitelně jas chromu.
 
-- **`hero`** — barevná fotka, jen na `project.html` (velký úvodní snímek).
-- **`preview`** — černobílá, **na šířku** oříznutá verze, jen pro slide na
-  indexu. Landscape zdroj je důležitý: portrétová fotka nacpaná do
-  čtvercového plátna (viz níž) se ořízne skoro na nic. `young-fashion-stars`
-  žádný landscape zdroj nemá (disk s materiálem nebyl při zpracování
-  připojený) — jediný projekt, co na tohle doplácí.
-- Chybí-li `preview`, spadne se na `hero.src`; chybí-li úplně obojí,
-  vykreslí se halftone placeholder (`data-placeholder`, sdílená utilita).
+Panel: tlačítko **TUNE** v HUD nebo klávesa **C**. Sekce Swirl A / Swirl B,
+Depth (sdílené: zdroj, `Show depth map`, heightmap soubor), Photo (šířka, poměr,
+pozice, kontrast, jas). Hodnoty se pamatují v `localStorage` (`vrgd-work-tune`,
+tvar `{A:{…}, B:{…}, …}`; starý plochý formát se načte do A). **Copy JSON** je
+vypíše — vložit do `A_DEFAULTS` / `B_DEFAULTS` / `FRAME_DEFAULTS` v `initSpotlight`, ať jsou
+výchozí pro všechny (teď tam je ručně vyladěný vzhled ze 29. 9. 2026). Heightmap: tlačítko pro soubor, nebo
+`assets/work-deco/heightmap.png` (načte se sám; 404 v konzoli bez něj je jen
+zkouška existence). Panel jde smazat: blok `TUNE panel` v `initSpotlight`,
+`.tune` / `.spotlight__tune` v CSS.
 
-**Aktuální obsah (2026): 4 skutečné klientské projekty** (Young Fashion
-Stars pro Mattoni, Bolt Food, Mattoni Authentic, Foodora) — žádné
-placeholdery. `project.html`/`project.js` jsem během tohohle sezení
-neměnil, jede beze změny.
+**Přechod:** jeden pohyb. Další fotka se přes aktuální odkryje wipem
+(`clip-path` na vrstvě, zoom/drift na `<img>` uvnitř; směr podle prev/next), její obraz se zároveň usadí z lehkého
+zoomu, stará mírně couvne a písmena názvu se vymění. Smyčka vzadu se jen
+na chvíli zrychlí na 1.8× — nic nereaguje víc. Klik na fotku / OPEN PROJECT
+pošle rámeček přes `view-transition-name: project-hero` do hera detailu.
 
-### Slide — Embla Carousel
+Ovládání: šipky / klávesy ← → (jen když je sekce vidět), řada dole, horizontální
+drag na fotce, klik = otevřít.
 
-Carousel jede na **Embla** (embla-carousel.com), vendorovaná v
-`js/vendor/embla-carousel.umd.js`. Dřív tu byl ručně psaný 3D válec (GSAP
-proxy transform + `Observer` drag) — vypadal zajímavě, ale drag logika
-uměla nechat dva snímky rozjeté napůl tweenu naráz. Embla je zavedená
-knihovna, se kterou tohle nehrozí; mechanicky fungovala spolehlivě celou
-dobu ladění — cokoli se rozbíjelo, bylo vždycky ve vrstvě okolo (video),
-ne v ní.
+### Co ladit
+- `.spotlight__frame` (`width`, `aspect-ratio`, `max-height`) — velikost fotky.
+- `.spotlight__bg` `opacity` a `::after` vinětace — jak výrazný je chrom vzadu (fly vrstva má `* .9` v shaderu, má sedět).
+- `duration` / `ease` v `change()` — délka a povaha wipe (teď 1.0 s `power3.inOut`).
+- `focus: [x, y]` v `work.json` — kam se fotka ořízne do 16:10 (portréty y ≈ .2–.3).
 
-`.spotlight__stage` je Embla viewport (full-bleed, `overflow:hidden`),
-`.spotlight__ring` kontejner (flex row), každý `.spotlight__item` je
-**celá šířka viewportu** (ne šířka rámečku) s vycentrovaným
-`.spotlight__frame` uvnitř — takže swap jede od kraje ke kraji obrazovky,
-ne jen v úzkém boxu, a sousední projekty jsou vždy úplně mimo canvas
-(clipnuté), nikdy nekoukají zpola do záběru.
-
-Šipky/klávesy šipek/drag mění slide; klik na aktivní rámeček (jediný, co
-je vůbec viditelný) naviguje na `project.html?p=<slug>` a nastaví
-`view-transition-name: project-hero` na kliknutý rámeček — stejný pár
-jméno nese `.project__hero` na cílové stránce, takže z toho `@view-
-transition` (v `style.css` nahoře) udělá plynulé zvětšení. Návrat z
-detailu pojmenuje celý `.spotlight` kontejner (existuje hned, ještě než
-doběhne `fetch('assets/work.json')`), ne konkrétní kartu — přesnost na
-kterou kartu by šla, ale riziko/komplikace za to nestálo.
-
-### Rámeček — fotka oříznutá tvarem videa
-
-**Rámeček není obdélník** a je **masivní** (`clamp(420px, 82vh, 1100px)`,
-skoro celá výška viewportu) — tvar je siluetou smyčky chromového 3D
-renderu (`assets/work-deco/blob-alpha.webm`, dnes 1600px zdroj z 1920p
-exportu, dřív 720px — na velké ploše byl nízké rozlišení vidět). Kreslení
-jede na **dvě vrstvy** na jednom viditelném canvasu:
-
-1. **Tlumená celá fotka** (`ctx.globalAlpha = 0.22 + boost*0.6`) — foto je
-   vždycky aspoň slabě vidět v celém rámečku.
-2. **Ostrý akcent** — stejná fotka nakreslená znovu na samostatný scratch
-   canvas, tam teprve `globalCompositeOperation = 'destination-in'` s
-   aktuálním snímkem videa, a až tenhle výsledek se dokreslí navrch.
-
-(Nejdřív existovala jen vrstva 2 samotná — foto bylo vidět jen tenkými
-proužky skrz stuhy blobu, což čtenář správně pojmenoval jako "nahledy
-nejsou moc videt". Dvouvrstvá verze je oprava tohohle, ne původní návrh.)
-
-Stejný sdílený `<video>` (jeden decode) kreslí i do dvou malých canvasů v
-šipkách (`.spotlight__arrow-blob`) — tam bez fotky/dim vrstvy, jen
-samotný tvar.
-
-**`boost`** (0 v klidu, až 1 v půlce přepnutí mezi projekty) je čistě
-geometrický přepočet každý frame — vzdálenost nejbližšího slidu od středu
-viewportu, `Math.min(1, minAbs * 2)` — **žádný stav**, jen čtení aktuální
-pozice DOM elementů. Zvedá jas dim vrstvy, takže fotka při swipu viditelně
-"vzplane". Tohle byla reakce na "nepůsobí to propojené, je to porad stejná
-animace" — má to dělat dojem, že se celý blok při přechodu něčím děje, ne
-jen že se vymění dlaždice.
-
-**Proč WebM s reálnou alfou, ne živá kompozice z černobílé masky:**
-Zdrojový export byl RGB klip + samostatný černobílý luma-matte klip (běžný
-formát z 3D renderu, protože obyčejné video alfa kanál nemá). První verze
-je skládala za běhu na canvasu (`getImageData`/`putImageData` každý
-frame, luminance → alfa) — fungovalo to, ale byla to další vrstva kódu,
-která mohla něco pokazit. `ffmpeg` (filtr `alphamerge`) teď spojí oba
-klipy do **jednoho** VP9/WebM se skutečnou alfou napečenou přímo v
-souboru:
-
+### Video
+Zdroj: RGB klip + matte z `assets/drive-download-…/` (1920), slepené vedle sebe.
 ```bash
-ffmpeg -i rgb.mp4 -i mask.mp4 -filter_complex \
-  "[0:v]fps=30,scale=1600:1600,format=yuva420p[rgb];[1:v]fps=30,scale=1600:1600,format=gray[a];[rgb][a]alphamerge" \
-  -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 0 -crf 30 -auto-alt-ref 0 blob-alpha.webm
+ffmpeg -i "$D/ŽblobVRDGWeb1920.mp4" -i "$D/ŽblobVRDGWebMask1920.mp4" -filter_complex \
+ "[0:v]fps=30,scale=1920:1920,format=yuv420p[a];[1:v]fps=30,scale=1920:1920,format=gray,format=yuv420p[b];[a][b]hstack" \
+ -an -c:v libx264 -preset medium -crf 24 -level 5.1 -pix_fmt yuv420p -movflags +faststart blob-packed.mp4
 ```
-
-Zdrojové soubory (RGB + mask, ve 1080p/1920p/3840p) byly v
-`assets/drive-download-20260929T140040Z-1-001/` — pokud tahle složka
-zmizela, je potřeba je od uživatele znovu vyžádat, encode se dá zopakovat
-z čehokoli vyššího než 1080p.
-
-Canvas pak dělá jen `drawImage(video, ...)` — žádná pixelová smyčka na
-samotné maskování (jen na tu dim/sharp dvouvrstvou kompozici výš).
-
-**Proč video jen `autoplay loop`, ne navázané na scroll:** Předchozí verze
-mapovala pozici scrollu na `currentTime` videa (scroll-scrub) a po
-zastavení scrollu předávala řízení na `.play()`. Vypadalo to dobře na
-papíře, ale v praxi se to opakovaně někde zaseklo — buď video, nebo (u
-ještě starší verze) samotná canvas kompozice. **Teď video prostě běží
-pořád dokola, neptá se na scroll ani na to, který slide je zrovna
-aktivní.** Nula stavového automatu = nula míst, kde se to může zaseknout.
-Render smyčka (`requestAnimationFrame`) jen furt dokola kreslí, co je
-zrovna na videu vidět. `boost` výš je z tohohle pravidla výjimka jen
-zdánlivě — taky nic neuchovává, jen čte DOM pozice za běhu.
-
-**Šipky mají vlastní idle pulz** (`@keyframes spotlight-arrow-pulse`,
-posunutý o 1.8s mezi prev/next, aby nedýchaly synchronně) — čistě CSS,
-nezávislé na JS/videu, respektuje `prefers-reduced-motion`.
-
-> Pokud se WORK bude ještě předělávat: hlavní ponaučení z týhle série je
-> **nespojovat vizuální efekt (video, transformace) se stavem scrollu**,
-> pokud to fakt není nutné. Cokoli navázané na scroll pozici mělo tendenci
-> se rozbít v nějaké kombinaci rychlého scrollu / rychlého klikání /
-> opuštění sekce uprostřed přechodu. Ambientní smyčka bez vazby na
-> interakci se ukázala jako jediná verze, co se přestala rozbíjet.
->
-> **Stav k 29. 9. 2026: mechanicky funguje (žádné console chyby, žádné
-> zaseknutí), ale poslední zpětná vazba na vzhled byla "to je hruza" a
-> uživatel chtěl řešit vzhled v novém chatu.** Než cokoli dalšího stavět
-> na týhle verzi, stojí za to se zeptat, co konkrétně nesedí — jestli je
-> to pořád ten samý blob motiv (možná unavuje po tolika iteracích na
-> stejném assetu), kompozice dim+sharp vrstev, timing přechodu, nebo
-> něco úplně jiného. Historie požadavků v tomhle sezení: 3D válec (moc
-> rušivé pozadí) → Embla + scroll-scrub video (opakovaně se zasekávalo) →
-> grid podle noartmusic.com/shop ("tohle jsem nechtěl, chci horizontální
-> slide") → Embla + blob-masked rámeček, malý (nahledy nejsou videt) →
-> stejné, ale masivní + dvouvrstvé (aktuální stav, "hruza"). Vzorec:
-> každá jednotlivá oprava dostala kladnou/neutrální zpětnou vazbu v
-> moment, kdy se ukázala, ale souhrnný dojem ze sekce jako celku zůstal
-> negativní — možná stojí za úvahu úplně jiný směr než "video definuje
-> tvar rámečku", ne další ladění týhle konkrétní implementace.
+Starší `blob-alpha.webm`, `blob-rgb.mp4`, `blob-mask.mp4` v `work-deco/` nic
+nepoužívá. Video se přehrává jen když je sekce vidět. Bez JS/`reduced-motion`
+se fotka jen přepne bez wipe.
 
 ## Klávesa I — blend logotypu
 
@@ -358,7 +264,7 @@ Rozestup karet řídí `SPACING`, hloubku stohu `scale` a `autoAlpha` v
 - **Reveal** — proza se přes `SplitText` + `Flip` přesype z ragged do justified,
   nadpisy najíždějí po slovech.
 - **Lenis** smooth scroll napojený na `ScrollTrigger`.
-- **WORK** — Embla Carousel (drag/šipky), viz sekce WORK výš.
+- **WORK** — velká fotka + chromové pozadí, viz sekce WORK výš.
 
 Vše respektuje `prefers-reduced-motion` a bez JS se stránka zobrazí staticky
 (skryté pre-roll stavy jsou schované pod `.js`).
@@ -586,3 +492,5 @@ obou tématech). Nepoužívá `#vrgd` symbol vůbec.
 Copy v sekcích ABOUT a CONTACTS je zástupný — struktura sedí, obsah je na
 výměnu. **WORK má od nedávna skutečný obsah** (4 klientské projekty, viz
 sekce WORK výš) — copy tam psané v `work.json` je reálné, ne placeholder.
+
+> **Past:** GSAP neinterpoluje `clip-path` se smíšenými jednotkami (`inset(0 0 0 100%)` → `inset(0 0 0 0)` stálo a pak skočilo). Vždy všude procenta: `inset(0% 0% 0% 100%)`.

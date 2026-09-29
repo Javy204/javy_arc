@@ -24,7 +24,7 @@ document.documentElement.classList.add('js');
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=57">
+<link rel="stylesheet" href="css/style.css?v=64">
 </head>
 <body data-loading="true">
 
@@ -221,26 +221,40 @@ document.documentElement.classList.add('js');
     </div>
 
     <div class="spotlight" data-spotlight>
-      <!-- Single shared clip, real alpha baked in at encode time (VP9/
-           WebM, no live canvas alpha reconstruction) — every canvas
-           below just drawImage()s whatever frame it's currently on.
-           See initSpotlight in main.js. -->
-      <video class="spotlight__source" data-blob-video src="assets/work-deco/blob-alpha.webm" muted playsinline loop autoplay preload="auto"></video>
+      <!-- Ambient background: the chrome render, looping, never
+           reacts to anything. See initSpotlight in main.js. -->
+      <video class="spotlight__source" data-blob-video src="assets/work-deco/blob-packed.mp4" muted playsinline loop autoplay preload="auto" aria-hidden="true"></video>
+      <canvas class="spotlight__bg" data-bg aria-hidden="true"></canvas>
 
-      <span class="spotlight__title mono" data-spotlight-title></span>
+      <div class="spotlight__frame" data-spotlight-frame data-cursor-hover data-cursor-text="VIEW" role="img" aria-label="Selected project">
+        <div class="spotlight__layer" data-layer="a"><img class="spotlight__img" alt=""></div>
+        <div class="spotlight__layer" data-layer="b"><img class="spotlight__img" alt=""></div>
+      </div>
 
-      <div class="spotlight__stage" data-spotlight-stage role="list"></div>
+      <!-- Same swirl again, drawn with its matte as real alpha, only inside
+           the frame and only now and then: a ribbon flying over the photo. -->
+      <canvas class="spotlight__fly" data-fly aria-hidden="true"></canvas>
 
-      <div class="spotlight__nav">
-        <button class="spotlight__arrow" data-spotlight-prev aria-label="Previous project" data-cursor-hover data-cursor-text="PREV">
-          <canvas class="spotlight__arrow-blob" data-arrow-canvas="prev" aria-hidden="true"></canvas>
-          <svg class="spotlight__arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
-        </button>
-        <span class="spotlight__count mono is-dim" data-spotlight-count></span>
-        <button class="spotlight__arrow" data-spotlight-next aria-label="Next project" data-cursor-hover data-cursor-text="NEXT">
-          <canvas class="spotlight__arrow-blob" data-arrow-canvas="next" aria-hidden="true"></canvas>
-          <svg class="spotlight__arrow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-        </button>
+      <div class="spotlight__hud">
+        <div class="spotlight__top mono">
+          <span data-spotlight-meta></span>
+          <span class="spotlight__count" data-spotlight-count></span>
+        </div>
+
+        <h3 class="spotlight__title" data-spotlight-title></h3>
+
+        <div class="spotlight__foot">
+          <ol class="spotlight__index" data-spotlight-index></ol>
+          <div class="spotlight__ctrl">
+            <button class="spotlight__btn" data-spotlight-prev aria-label="Previous project" data-cursor-hover data-cursor-text="PREV">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+            </button>
+            <button class="spotlight__btn" data-spotlight-next aria-label="Next project" data-cursor-hover data-cursor-text="NEXT">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <button class="spotlight__open mono" data-spotlight-open data-cursor-hover data-cursor-text="OPEN">OPEN PROJECT &#8599;</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -372,8 +386,7 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/CustomEase.min.js"></script>
 <script src="js/vendor/Observer.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
-<script src="js/vendor/embla-carousel.umd.js"></script>
 <script src="js/shared.js?v=3"></script>
-<script src="js/main.js?v=42"></script>
+<script src="js/main.js?v=52"></script>
 </body>
 </html>

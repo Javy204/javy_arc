@@ -10,21 +10,58 @@
         "Mattoni's scholarship show for graduating designers needed portraits that could stand next to the runway work itself — so we shot each collection from a single fixed angle, straight down, the model looking back up into the lens. It flattens the runway pose into something closer to a mugshot, which felt right for clothes built to be examined rather than just worn.",
         "One studio, one light, one wall — the same setup repeated for every designer in the lineup, so the only thing that changes frame to frame is the collection itself."
       ],
-      "hero": { "src": "assets/work/young-fashion-stars/hero.webp" },
+      "hero": {
+        "src": "assets/work/young-fashion-stars/hero.webp"
+      },
       "preview": "assets/work/young-fashion-stars/preview.webp",
       "media": [
-        { "src": "assets/work/young-fashion-stars/m1.webp", "caption": "Look, pass one" },
-        { "src": "assets/work/young-fashion-stars/m2.webp", "caption": "Backstage, full room", "full": true },
-        { "src": "assets/work/young-fashion-stars/m3.webp", "caption": "Close, white face" },
-        { "src": "assets/work/young-fashion-stars/m4.webp", "caption": "Tailoring, dusk grey" },
-        { "src": "assets/work/young-fashion-stars/m5.webp", "caption": "Off-camera, break" },
-        { "src": "assets/work/young-fashion-stars/m6.webp", "caption": "Close, last look" }
+        {
+          "src": "assets/work/young-fashion-stars/m1.webp",
+          "caption": "Look, pass one"
+        },
+        {
+          "src": "assets/work/young-fashion-stars/m2.webp",
+          "caption": "Backstage, full room",
+          "full": true
+        },
+        {
+          "src": "assets/work/young-fashion-stars/m3.webp",
+          "caption": "Close, white face"
+        },
+        {
+          "src": "assets/work/young-fashion-stars/m4.webp",
+          "caption": "Tailoring, dusk grey"
+        },
+        {
+          "src": "assets/work/young-fashion-stars/m5.webp",
+          "caption": "Off-camera, break"
+        },
+        {
+          "src": "assets/work/young-fashion-stars/m6.webp",
+          "caption": "Close, last look"
+        }
       ],
       "credits": [
-        { "label": "Client", "value": "Mattoni" },
-        { "label": "Role", "value": "Photography" },
-        { "label": "Format", "value": "Studio, digital" },
-        { "label": "Year", "value": "2025" }
+        {
+          "label": "Client",
+          "value": "Mattoni"
+        },
+        {
+          "label": "Role",
+          "value": "Photography"
+        },
+        {
+          "label": "Format",
+          "value": "Studio, digital"
+        },
+        {
+          "label": "Year",
+          "value": "2025"
+        }
+      ],
+      "focus": [
+        0.5,
+        0.2
       ]
     },
     {
@@ -36,21 +73,58 @@
         "The brief covered the whole fleet: the bag on a back, on a bike, on a scooter, crossing the same Prague streets the riders cross every shift. Nothing staged beyond asking each one to hold still for a second between drops.",
         "Cast from real couriers rather than models, on location across the city rather than in front of a backdrop, so the campaign reads as a shift log rather than an ad."
       ],
-      "hero": { "src": "assets/work/bolt-food/hero.webp" },
+      "hero": {
+        "src": "assets/work/bolt-food/hero.webp"
+      },
       "preview": "assets/work/bolt-food/preview.webp",
       "media": [
-        { "src": "assets/work/bolt-food/m1.webp", "caption": "On foot, Vinohrady" },
-        { "src": "assets/work/bolt-food/m2.webp", "caption": "By bike, city park", "full": true },
-        { "src": "assets/work/bolt-food/m3.webp", "caption": "Between drops" },
-        { "src": "assets/work/bolt-food/m4.webp", "caption": "By scooter" },
-        { "src": "assets/work/bolt-food/m5.webp", "caption": "Handoff" },
-        { "src": "assets/work/bolt-food/m6.webp", "caption": "End of shift" }
+        {
+          "src": "assets/work/bolt-food/m1.webp",
+          "caption": "On foot, Vinohrady"
+        },
+        {
+          "src": "assets/work/bolt-food/m2.webp",
+          "caption": "By bike, city park",
+          "full": true
+        },
+        {
+          "src": "assets/work/bolt-food/m3.webp",
+          "caption": "Between drops"
+        },
+        {
+          "src": "assets/work/bolt-food/m4.webp",
+          "caption": "By scooter"
+        },
+        {
+          "src": "assets/work/bolt-food/m5.webp",
+          "caption": "Handoff"
+        },
+        {
+          "src": "assets/work/bolt-food/m6.webp",
+          "caption": "End of shift"
+        }
       ],
       "credits": [
-        { "label": "Client", "value": "Bolt Food" },
-        { "label": "Role", "value": "Photography" },
-        { "label": "Format", "value": "On location, digital" },
-        { "label": "Year", "value": "2025" }
+        {
+          "label": "Client",
+          "value": "Bolt Food"
+        },
+        {
+          "label": "Role",
+          "value": "Photography"
+        },
+        {
+          "label": "Format",
+          "value": "On location, digital"
+        },
+        {
+          "label": "Year",
+          "value": "2025"
+        }
+      ],
+      "focus": [
+        0.5,
+        0.5
       ]
     },
     {
@@ -62,21 +136,58 @@
         "For a campaign built on the word \"authentic,\" we spent the shoot on the production floor and in the break room rather than at a product table — pallets, forklifts, the same fluorescent-lit office where the interviews actually happened.",
         "The crew stays visible in half the frames on purpose: a boom mic, a reflector, someone checking a monitor. The point was never to hide that it's a shoot, only to make sure what's in front of the camera is real."
       ],
-      "hero": { "src": "assets/work/mattoni/hero.webp" },
+      "hero": {
+        "src": "assets/work/mattoni/hero.webp"
+      },
       "preview": "assets/work/mattoni/preview.webp",
       "media": [
-        { "src": "assets/work/mattoni/m1.webp", "caption": "Warehouse floor" },
-        { "src": "assets/work/mattoni/m2.webp", "caption": "Aisle, full depth", "full": true },
-        { "src": "assets/work/mattoni/m3.webp", "caption": "Crew, between takes" },
-        { "src": "assets/work/mattoni/m4.webp", "caption": "Monitor check" },
-        { "src": "assets/work/mattoni/m5.webp", "caption": "Portrait, high-vis" },
-        { "src": "assets/work/mattoni/m6.webp", "caption": "On the shop floor" }
+        {
+          "src": "assets/work/mattoni/m1.webp",
+          "caption": "Warehouse floor"
+        },
+        {
+          "src": "assets/work/mattoni/m2.webp",
+          "caption": "Aisle, full depth",
+          "full": true
+        },
+        {
+          "src": "assets/work/mattoni/m3.webp",
+          "caption": "Crew, between takes"
+        },
+        {
+          "src": "assets/work/mattoni/m4.webp",
+          "caption": "Monitor check"
+        },
+        {
+          "src": "assets/work/mattoni/m5.webp",
+          "caption": "Portrait, high-vis"
+        },
+        {
+          "src": "assets/work/mattoni/m6.webp",
+          "caption": "On the shop floor"
+        }
       ],
       "credits": [
-        { "label": "Client", "value": "Mattoni" },
-        { "label": "Role", "value": "Photography, BTS" },
-        { "label": "Format", "value": "On location, digital" },
-        { "label": "Year", "value": "2025" }
+        {
+          "label": "Client",
+          "value": "Mattoni"
+        },
+        {
+          "label": "Role",
+          "value": "Photography, BTS"
+        },
+        {
+          "label": "Format",
+          "value": "On location, digital"
+        },
+        {
+          "label": "Year",
+          "value": "2025"
+        }
+      ],
+      "focus": [
+        0.5,
+        0.5
       ]
     },
     {
@@ -88,21 +199,58 @@
         "Half the day was riders and bikes against Prague's business district; the other half turned into whatever the art department could build on a hotel terrace, reflectors bouncing straight sun into every corner. Fisheye throughout, because the crew ended up in as many frames as the talent.",
         "Loosest brief of the year: bring the bike, bring the bag, see where the day goes. It went to a golden egg."
       ],
-      "hero": { "src": "assets/work/foodora/hero.webp" },
+      "hero": {
+        "src": "assets/work/foodora/hero.webp"
+      },
       "preview": "assets/work/foodora/preview.webp",
       "media": [
-        { "src": "assets/work/foodora/m1.webp", "caption": "Rider, first light" },
-        { "src": "assets/work/foodora/m2.webp", "caption": "Set, full crew", "full": true },
-        { "src": "assets/work/foodora/m3.webp", "caption": "Cast, group take" },
-        { "src": "assets/work/foodora/m4.webp", "caption": "Reflector, fisheye" },
-        { "src": "assets/work/foodora/m5.webp", "caption": "The gold egg" },
-        { "src": "assets/work/foodora/m6.webp", "caption": "Crew, rooftop" }
+        {
+          "src": "assets/work/foodora/m1.webp",
+          "caption": "Rider, first light"
+        },
+        {
+          "src": "assets/work/foodora/m2.webp",
+          "caption": "Set, full crew",
+          "full": true
+        },
+        {
+          "src": "assets/work/foodora/m3.webp",
+          "caption": "Cast, group take"
+        },
+        {
+          "src": "assets/work/foodora/m4.webp",
+          "caption": "Reflector, fisheye"
+        },
+        {
+          "src": "assets/work/foodora/m5.webp",
+          "caption": "The gold egg"
+        },
+        {
+          "src": "assets/work/foodora/m6.webp",
+          "caption": "Crew, rooftop"
+        }
       ],
       "credits": [
-        { "label": "Client", "value": "Foodora" },
-        { "label": "Role", "value": "Photography, BTS" },
-        { "label": "Format", "value": "On location, digital" },
-        { "label": "Year", "value": "2025" }
+        {
+          "label": "Client",
+          "value": "Foodora"
+        },
+        {
+          "label": "Role",
+          "value": "Photography, BTS"
+        },
+        {
+          "label": "Format",
+          "value": "On location, digital"
+        },
+        {
+          "label": "Year",
+          "value": "2025"
+        }
+      ],
+      "focus": [
+        0.5,
+        0.5
       ]
     }
   ]

@@ -315,32 +315,23 @@
   }
 
   /* =======================================================
-     6. Work spotlight — one project at a time, swiped with Embla
-     Carousel (embla-carousel.com, vendored at js/vendor/embla-
-     carousel.umd.js). The frame isn't a plain rectangle: each one is a
-     canvas that draws its own photo, then cuts it with the alpha
-     channel of one shared looping clip (assets/work-deco/blob-alpha.
-     webm — real alpha baked in at encode time, so drawImage() just
-     works, no live canvas alpha reconstruction). The clip autoplays
-     forever and answers to nothing — not scroll, not which slide is
-     active — so there's no state machine left to get stuck; the
-     canvases just draw whatever frame it's currently on. Data comes
-     straight from work.json (the same file project.js reads), so the
-     index and the project pages can never list a different set of
-     projects.
+     6. Work — one big photo on a dark stage, chrome swirl behind it.
+     The swirl (assets/work-deco/blob-packed.mp4) is pure background: it
+     loops forever and only ever speeds up a touch during a change,
+     so it ties the four projects together without doing anything
+     loud. Changing project is one move: the next photo wipes in over
+     the current one (clip-path, direction follows prev/next) while
+     its image settles from a slight zoom and the title letters swap.
+     Data comes from work.json, the same file project.js reads.
      ======================================================= */
   async function initSpotlight() {
     const root = $('[data-spotlight]');
-    const stage = $('[data-spotlight-stage]', root || document);
-    const blobVideo = $('[data-blob-video]', root || document);
-    if (!root || !stage || !blobVideo || !window.EmblaCarousel) return;
+    const video = $('[data-blob-video]', root || document);
+    const frame = $('[data-spotlight-frame]', root || document);
+    if (!root || !frame) return;
 
     // Arriving back from a project page: name this whole block so the
-    // page's hero (always named project-hero, see project.html's CSS)
-    // shrinks back into it — the same pairing the outward click sets up
-    // on just the one clicked frame, mirrored for the return trip. The
-    // container is used (not a single carousel item) because it exists
-    // immediately, before work.json has even loaded.
+    // page's hero (always named project-hero) shrinks back into it.
     if (document.referrer.includes('project.html')) {
       root.style.viewTransitionName = 'project-hero';
     }
@@ -352,158 +343,502 @@
     } catch { /* leaves the stage empty rather than break the page */ }
     if (!projects.length) return;
 
+    const N = projects.length;
+    const pad2 = (n) => String(n).padStart(2, '0');
     const workCount = $('[data-work-count]');
-    if (workCount) workCount.textContent = `[${String(projects.length).padStart(2, '0')}]`;
+    if (workCount) workCount.textContent = `[${pad2(N)}]`;
 
-    stage.innerHTML = `<div class="spotlight__ring" data-spotlight-ring>${projects.map((_, i) => `
-      <div class="spotlight__item" role="listitem" data-index="${i}">
-        <div class="spotlight__frame" data-cursor-hover data-cursor-text="VIEW">
-          <canvas></canvas>
-        </div>
-      </div>`).join('')}</div>`;
+    const metaEl = $('[data-spotlight-meta]', root);
+    const countEl = $('[data-spotlight-count]', root);
+    const titleEl = $('[data-spotlight-title]', root);
+    const indexEl = $('[data-spotlight-index]', root);
+    const layers = { a: $('[data-layer="a"]', frame), b: $('[data-layer="b"]', frame) };
+    const imgOf = (k) => layers[k].firstElementChild;
 
-    const items = $$('.spotlight__item', stage);
-    const titleEl = $('[data-spotlight-title]');
-    const countEl = $('[data-spotlight-count]');
-    const N = items.length;
+    registerDarkSurface(root);
 
-    // Photos load off-DOM — a canvas is the only thing that ever reads
-    // them, so there's no <img> to keep hidden or fight for layout.
-    const photos = projects.map((p) => {
-      const src = p.preview || p.hero?.src;
-      if (!src) return null;
-      const img = new Image();
-      img.src = src;
-      return img;
+    indexEl.innerHTML = projects.map((p, i) => `
+      <li><button data-i="${i}" data-cursor-hover data-cursor-text="GO">
+        <span class="mono">${pad2(i + 1)}</span><span class="spotlight__index-name">${p.title}</span><i></i>
+      </button></li>`).join('');
+    const indexBtns = $$('button', indexEl);
+
+    const srcOf = (p) => p.preview || p.hero?.src;   // landscape, already B&W
+    projects.forEach((p) => { new Image().src = srcOf(p); });   // warm the cache
+
+    const setImg = (el, i) => {
+      el.src = srcOf(projects[i]);
+      const [fx, fy] = projects[i].focus || [.5, .5];
+      el.style.objectPosition = `${fx * 100}% ${fy * 100}%`;
+    };
+
+    /* ---------- Swirl: two instances, background + depth-split front layer ----------
+       One packed clip (chrome | matte, 1920 each), drawn up to twice (A and
+       B, each with its own size / position / rotation / mirror / layering).
+       The background canvas draws the chrome half behind the photo. The
+       front layer (WebGL, over the photo, clipped to the frame) draws the
+       same frame with the matte as alpha, but only where that instance's
+       *depth field* says "in front". The clip has no real depth, so the
+       field is synthetic and tunable per instance: a linear gradient
+       (direction / offset), optionally a painted heightmap, optionally the
+       chrome's own brightness. Everything is in the TUNE panel (button in
+       the HUD, or key C). */
+    const TUNE_KEY = 'vrgd-work-tune';
+    const SW_DEFAULTS = {
+      on: true, mirror: false, scale: 1, x: 0, y: 0, rot: 0, spin: 0, bright: 0.9,
+      mode: 'split', frontOpacity: 1,
+      depthAngle: 0, depthPos: 0, depthCut: 0.68, depthSoft: 0.1, depthLuma: 0, depthDrift: 0, depthInvert: false
+    };
+    // Tuned by hand in the TUNE panel (Copy JSON) and saved as the shipped look.
+    const A_DEFAULTS = {
+      ...SW_DEFAULTS,
+      scale: 0.57, x: -46.5, y: -3.5, rot: 29, spin: 0, bright: 0.36,
+      depthAngle: 360, depthPos: 0.8, depthCut: 0.31, depthSoft: 0.37, depthLuma: 0.12, depthDrift: -4.5
+    };
+    const B_DEFAULTS = {
+      ...SW_DEFAULTS,
+      mirror: true, scale: 0.74, x: 56, y: 0, rot: 52, spin: 0, bright: 0.9,
+      depthAngle: 168, depthPos: 0.8, depthCut: 0.31, depthSoft: 0.37, depthLuma: 0.12, depthDrift: 4.5
+    };
+    const FRAME_DEFAULTS = { frameW: 61, frameAspect: 1.44, frameX: 0, frameY: -2, photoContrast: 0.99, photoBright: 1 };
+    // "Re-mirror B from A" in the panel: B = A flipped left-to-right.
+    const mirrorOf = (A) => ({
+      ...A, on: true, mirror: !A.mirror, x: -A.x, rot: -A.rot, spin: -A.spin,
+      depthAngle: (((180 - A.depthAngle) % 360) + 360) % 360, depthDrift: -A.depthDrift
     });
-
-    const SIZE = 1200; // frame is near-fullscreen now, wants a bigger source than before
-    const frameCanvases = items.map((item) => item.querySelector('canvas'));
-    const arrowCanvases = [$('[data-arrow-canvas="prev"]'), $('[data-arrow-canvas="next"]')];
-    [...frameCanvases, ...arrowCanvases].forEach((c) => { if (c) { c.width = SIZE; c.height = SIZE; } });
-    // Scratch buffer for the sharp masked layer — kept off the visible
-    // canvas so destination-in never eats the dim base layer under it.
-    const scratch = document.createElement('canvas');
-    scratch.width = SIZE; scratch.height = SIZE;
-    const scratchCtx = scratch.getContext('2d');
-
-    // boost is 0 at rest, up to 1 mid-swipe (see tick() below) — the
-    // whole photo brightens toward full strength as you cross between
-    // projects, on top of the blob's own sharp cut, instead of the
-    // photo only ever being visible through the blob's thin strokes.
-    let boost = 0;
-
-    function drawFrame(canvas, img) {
-      const ctx = canvas.getContext('2d');
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, SIZE, SIZE);
-      if (!(img && img.complete && img.naturalWidth)) return;
-      // Cover-fit the (likely non-square) photo into the square canvas.
-      const scale = Math.max(SIZE / img.naturalWidth, SIZE / img.naturalHeight);
-      const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-      const dx = (SIZE - w) / 2, dy = (SIZE - h) / 2;
-
-      ctx.globalAlpha = 0.22 + boost * 0.6;
-      ctx.drawImage(img, dx, dy, w, h);
-      ctx.globalAlpha = 1;
-
-      scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
-      scratchCtx.clearRect(0, 0, SIZE, SIZE);
-      scratchCtx.drawImage(img, dx, dy, w, h);
-      scratchCtx.globalCompositeOperation = 'destination-in';
-      scratchCtx.drawImage(blobVideo, 0, 0, SIZE, SIZE);
-      scratchCtx.globalCompositeOperation = 'source-over';
-      ctx.drawImage(scratch, 0, 0);
-    }
-    function drawBlob(canvas) {
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, SIZE, SIZE);
-      ctx.drawImage(blobVideo, 0, 0, SIZE, SIZE);
-    }
-    // How mid-transition the carousel currently is — 0 with a slide
-    // resting dead centre, up to ~1 at the exact midpoint of a swipe.
-    // Pure geometry read off the DOM each tick, nothing stateful, so
-    // there's no play/pause/currentTime bookkeeping that can get stuck.
-    function updateBoost() {
-      const stageRect = stage.getBoundingClientRect();
-      if (!stageRect.width) return;
-      let minAbs = Infinity;
-      items.forEach((item) => {
-        const r = item.getBoundingClientRect();
-        const progress = (r.left - stageRect.left) / stageRect.width;
-        minAbs = Math.min(minAbs, Math.abs(progress));
-      });
-      boost = Math.min(1, minAbs * 2);
-    }
-
-    if (REDUCED) {
-      // One settled paint, no perpetual rAF loop.
-      const paintOnce = () => {
-        updateBoost();
-        frameCanvases.forEach((c, i) => drawFrame(c, photos[i]));
-        arrowCanvases.forEach(drawBlob);
-      };
-      if (blobVideo.readyState >= 2) paintOnce();
-      else blobVideo.addEventListener('loadeddata', paintOnce, { once: true });
-    } else {
-      (function render() {
-        updateBoost();
-        frameCanvases.forEach((c, i) => drawFrame(c, photos[i]));
-        arrowCanvases.forEach(drawBlob);
-        requestAnimationFrame(render);
-      })();
-    }
-
-    const embla = window.EmblaCarousel(stage, { loop: true, duration: REDUCED ? 1 : 22 });
-
-    let prevIndex = 0;
-    function updateUI() {
-      const index = embla.selectedScrollSnap();
-      items.forEach((item, i) => item.setAttribute('data-active', String(i === index)));
-      if (!REDUCED) {
-        // +1 apart (looped) reads as "forward", -1 as "backward" — a jump of
-        // more than one slide (rapid clicks) just defaults to forward.
-        const dir = ((prevIndex - index + N) % N) === 1 ? -1 : 1;
-        gsap.fromTo(titleEl, { xPercent: dir * 12, autoAlpha: 0 }, { xPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.out' });
+    const T = { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS };
+    try {
+      const saved = JSON.parse(localStorage.getItem(TUNE_KEY) || '{}');
+      if (saved.A) {
+        Object.assign(T, saved, { A: { ...A_DEFAULTS, ...saved.A }, B: { ...B_DEFAULTS, ...(saved.B || {}) } });
       }
-      window.VRGD.scramble(titleEl, `PROJECT ${projects[index].title}`.toUpperCase(), 0.6);
-      if (countEl) countEl.textContent = `${String(index + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
-      prevIndex = index;
+    } catch { /* ignore */ }
+    const SWS = ['A', 'B'];
+    const saveTune = () => { try { localStorage.setItem(TUNE_KEY, JSON.stringify(T)); } catch { /* ignore */ } };
+
+    const bgCv = $('[data-bg]', root), flyCv = $('[data-fly]', root);
+    const bgCtx = bgCv.getContext('2d', { alpha: false });
+    let W = 0, H = 0, dpr = 1;
+    const tStart = performance.now();
+
+    const applyLook = () => {
+      frame.style.setProperty('--fw', T.frameW);
+      frame.style.setProperty('--far', T.frameAspect);
+      frame.style.setProperty('--fx', T.frameX);
+      frame.style.setProperty('--fy', T.frameY);
+      frame.style.setProperty('--pc', T.photoContrast);
+      frame.style.setProperty('--pb', T.photoBright);
+    };
+    applyLook();
+
+    let gl = null, glDraw = null, loadHeight = () => {}, hasHeight = false;
+    if (!REDUCED) gl = flyCv.getContext('webgl', { antialias: false, premultipliedAlpha: true });
+    if (gl) {
+      const mk = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+      const prog = gl.createProgram();
+      gl.attachShader(prog, mk(gl.VERTEX_SHADER, 'attribute vec2 a; void main(){ gl_Position = vec4(a,0.,1.); }'));
+      gl.attachShader(prog, mk(gl.FRAGMENT_SHADER, `precision highp float;
+        uniform sampler2D uVid, uH;
+        uniform vec2 uRes, uSec;
+        uniform float uDpr, uRot, uMir, uBg, uMode, uFrontA, uSrc, uAng, uPos, uCut, uSoft, uLuma, uInv, uDebug;
+        uniform vec4 uRect;
+        uniform vec3 uSw;
+        void main(){
+          vec2 px = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uDpr;
+          float inR = step(uRect.x,px.x)*step(px.x,uRect.z)*step(uRect.y,px.y)*step(px.y,uRect.w);
+          vec2 p = px - uSw.xy;
+          float cs = cos(-uRot), sn = sin(-uRot);
+          p = vec2(cs*p.x - sn*p.y, sn*p.x + cs*p.y);
+          p.x *= uMir;
+          vec2 v = p/uSw.z + .5;
+          float inV = step(0.,v.x)*step(v.x,1.)*step(0.,v.y)*step(v.y,1.);
+          float m = texture2D(uVid, vec2(.5+v.x*.5, v.y)).r * inV;
+          vec3 c = texture2D(uVid, vec2(v.x*.5, v.y)).rgb * inV;
+
+          // synthetic depth: gradient across the frame, or a painted heightmap
+          vec2 fc = (uRect.xy+uRect.zw)*.5;
+          float fs = max(uRect.z-uRect.x, uRect.w-uRect.y);
+          vec2 q = (px-fc)/fs;
+          float g = clamp(dot(q, vec2(cos(uAng), sin(uAng))) + .5 + uPos, 0., 1.);
+          float h = texture2D(uH, px/uSec).r;
+          float d = mix(g, h, uSrc);
+          d = mix(d, dot(c, vec3(.299,.587,.114)), uLuma);
+          d = mix(d, 1.-d, uInv);
+
+          float depthA = smoothstep(uCut-uSoft, uCut+uSoft, d);
+          float front = uMode < .5 ? 0. : (uMode < 1.5 ? 1. : depthA);
+          float a = smoothstep(.35,.65,m) * front * uFrontA * inR;
+          vec4 col = vec4(c*uBg*a, a);
+          if (uDebug > .5) {
+            float k = .45*inR;
+            col = vec4(col.rgb*(1.-k) + vec3(d, .05, 1.-d)*.7*k, max(col.a, k));
+          }
+          gl_FragColor = col;
+        }`));
+      gl.linkProgram(prog); gl.useProgram(prog);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, 'a');
+      gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);   // premultiplied, so A and B stack
+      const U = {};
+      ['uVid', 'uH', 'uRes', 'uSec', 'uDpr', 'uRot', 'uMir', 'uBg', 'uMode', 'uFrontA', 'uSrc', 'uAng', 'uPos', 'uCut', 'uSoft',
+        'uLuma', 'uInv', 'uDebug', 'uRect', 'uSw'].forEach((n) => { U[n] = gl.getUniformLocation(prog, n); });
+      const mkTex = (unit) => {
+        const t = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        return t;
+      };
+      const vidTex = mkTex(0), hTex = mkTex(1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 128, 255]));
+
+      loadHeight = (src) => {
+        const im = new Image();
+        im.onload = () => {
+          gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, hTex);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+          hasHeight = true;
+        };
+        im.src = src;
+      };
+      // A heightmap dropped into the project shows up on its own.
+      const HM = 'assets/work-deco/heightmap.png';
+      fetch(HM, { method: 'HEAD' }).then((r) => { if (r.ok) loadHeight(HM); }).catch(() => {});
+
+      // Clears, uploads the frame once, then stacks one draw per instance.
+      glDraw = (r, t, list) => {
+        gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+        if (!list.length) return;
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, vidTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, hTex);
+        gl.uniform1i(U.uVid, 0); gl.uniform1i(U.uH, 1);
+        gl.uniform2f(U.uRes, flyCv.width, flyCv.height);
+        gl.uniform2f(U.uSec, W, H);
+        gl.uniform1f(U.uDpr, dpr);
+        gl.uniform4f(U.uRect, r.x, r.y, r.x + r.w, r.y + r.h);
+        gl.uniform1f(U.uSrc, T.depthSource === 'heightmap' && hasHeight ? 1 : 0);
+        gl.uniform1f(U.uDebug, T.debugDepth ? 1 : 0);
+        list.forEach((S) => {
+          gl.uniform3f(U.uSw, W / 2 + S.x / 100 * W, H / 2 + S.y / 100 * H, Math.max(W, H) * S.scale);
+          gl.uniform1f(U.uRot, (S.rot + S.spin * t) * Math.PI / 180);
+          gl.uniform1f(U.uMir, S.mirror ? -1 : 1);
+          gl.uniform1f(U.uBg, S.bright);
+          gl.uniform1f(U.uMode, { behind: 0, front: 1, split: 2 }[S.mode] ?? 2);
+          gl.uniform1f(U.uFrontA, S.frontOpacity);
+          gl.uniform1f(U.uAng, (S.depthAngle + S.depthDrift * t) * Math.PI / 180);
+          gl.uniform1f(U.uPos, S.depthPos);
+          gl.uniform1f(U.uCut, S.depthCut);
+          gl.uniform1f(U.uSoft, S.depthSoft);
+          gl.uniform1f(U.uLuma, S.depthLuma);
+          gl.uniform1f(U.uInv, S.depthInvert ? 1 : 0);
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        });
+      };
     }
-    embla.on('select', updateUI);
-    embla.on('reInit', updateUI);
-    updateUI();
 
-    $('[data-spotlight-prev]')?.addEventListener('click', () => embla.scrollPrev());
-    $('[data-spotlight-next]')?.addEventListener('click', () => embla.scrollNext());
+    const frameRect = () => {
+      const f = frame.getBoundingClientRect(), r = root.getBoundingClientRect();
+      return { x: f.left - r.left, y: f.top - r.top, w: f.width, h: f.height };
+    };
+    const resize = () => {
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      W = root.clientWidth; H = root.clientHeight;
+      [bgCv, flyCv].forEach((cv) => { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); });
+      if (gl) gl.viewport(0, 0, flyCv.width, flyCv.height);
+    };
+    resize();
+    new ResizeObserver(resize).observe(root);
 
-    items.forEach((item, i) => {
-      // Only the active slide is ever reachable in the viewport (the
-      // rest sit fully clipped offscreen), so a click here is always
-      // on the current project.
-      const frame = item.querySelector('.spotlight__frame');
-      frame?.addEventListener('click', () => {
-        // The active frame carries its own box into the project page's
-        // hero — same box-grow language the boot loader opens with.
-        frame.style.viewTransitionName = 'project-hero';
-        location.href = `project.html?p=${projects[i].slug}`;
+    let flyOn = false;
+    const render = () => {
+      if (video.readyState < 2) return;
+      const t = (performance.now() - tStart) / 1000;
+      const vw = video.videoWidth / 2;
+      bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+      bgCtx.globalCompositeOperation = 'source-over';
+      bgCtx.globalAlpha = 1;
+      bgCtx.fillStyle = '#000';
+      bgCtx.fillRect(0, 0, bgCv.width, bgCv.height);
+      const live = SWS.map((k) => T[k]).filter((S) => S.on);
+      live.forEach((S, i) => {
+        const size = Math.max(W, H) * S.scale * dpr;
+        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+        bgCtx.translate((W / 2 + S.x / 100 * W) * dpr, (H / 2 + S.y / 100 * H) * dpr);
+        bgCtx.rotate((S.rot + S.spin * t) * Math.PI / 180);
+        bgCtx.scale(S.mirror ? -1 : 1, 1);
+        bgCtx.globalAlpha = S.bright;
+        bgCtx.globalCompositeOperation = i ? 'lighter' : 'source-over';   // two swirls add, not hide each other
+        bgCtx.drawImage(video, 0, 0, vw, video.videoHeight, -size / 2, -size / 2, size, size);
       });
+      if (glDraw) {
+        const front = live.filter((S) => S.mode !== 'behind' || T.debugDepth);
+        if (front.length) { glDraw(frameRect(), t, front); flyOn = true; }
+        else if (flyOn) { glDraw(frameRect(), t, []); flyOn = false; }
+      }
+    };
+
+    // Only burn decode while the section is on screen.
+    let visible = false, raf = 0;
+    const loop = () => { if (!visible) return; render(); raf = requestAnimationFrame(loop); };
+    new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      cancelAnimationFrame(raf);
+      if (visible) { video.play().catch(() => {}); if (REDUCED) video.addEventListener('loadeddata', render, { once: true }); else loop(); }
+      else video.pause();
+    }, { threshold: 0.01 }).observe(root);
+    video.addEventListener('pause', () => { if (visible) video.play().catch(() => {}); });
+    const setRate = (v) => { video.playbackRate = v; };
+
+    /* ---------- TUNE panel ---------- */
+    const swirlSpec = (k) => [
+      ...(k === 'B' ? [[`${k}.on`, 'Show this swirl', 'check']] : []),
+      [`${k}.mirror`, 'Flip left ↔ right', 'check'],
+      [`${k}.scale`, 'Size', 0.3, 3, 0.01],
+      [`${k}.x`, 'Position X', -80, 80, 0.5],
+      [`${k}.y`, 'Position Y', -80, 80, 0.5],
+      [`${k}.rot`, 'Rotation °', -180, 180, 1],
+      [`${k}.spin`, 'Spin °/s', -20, 20, 0.1],
+      [`${k}.bright`, 'Brightness', 0, 1, 0.01],
+      [`${k}.mode`, 'Swirl is', 'select', [['behind', 'behind the photo'], ['front', 'in front of the photo'], ['split', 'split by depth']]],
+      [`${k}.frontOpacity`, 'Front opacity', 0, 1, 0.01],
+      [`${k}.depthAngle`, 'Depth: direction °', 0, 360, 1],
+      [`${k}.depthPos`, 'Depth: offset', -0.8, 0.8, 0.01],
+      [`${k}.depthCut`, 'Depth: cut (front above)', 0, 1, 0.005],
+      [`${k}.depthSoft`, 'Depth: softness', 0.005, 0.5, 0.005],
+      [`${k}.depthLuma`, 'Depth: chrome brightness', 0, 1, 0.01],
+      [`${k}.depthDrift`, 'Depth: drift °/s', -30, 30, 0.1],
+      [`${k}.depthInvert`, 'Depth: invert', 'check']
+    ];
+    const SPEC = [
+      { title: 'Swirl A', rows: swirlSpec('A'), open: true },
+      { title: 'Swirl B', rows: swirlSpec('B'), open: true, extra: '<button data-t="mirror">Re-mirror B from A</button>' },
+      { title: 'Depth (both swirls)', open: false, rows: [
+        ['depthSource', 'Source', 'select', [['gradient', 'linear gradient'], ['heightmap', 'heightmap image']]],
+        ['debugDepth', 'Show depth map', 'check']
+      ], extra: `<label class="tune__row"><span>Heightmap file</span><input type="file" accept="image/*" data-t="file"></label>
+        <p class="tune__note">Or drop a PNG at assets/work-deco/heightmap.png — white = front, black = back.</p>` },
+      { title: 'Photo', open: false, rows: [
+        ['frameW', 'Width %', 25, 95, 1],
+        ['frameAspect', 'Aspect (w / h)', 0.7, 2.6, 0.01],
+        ['frameX', 'Position X', -40, 40, 0.5],
+        ['frameY', 'Position Y', -40, 40, 0.5],
+        ['photoContrast', 'Contrast', 0.8, 2.2, 0.01],
+        ['photoBright', 'Brightness', 0.5, 1.4, 0.01]
+      ] }
+    ];
+    const getV = (path) => path.split('.').reduce((o, k) => o[k], T);
+    const setV = (path, v) => { const p = path.split('.'); const last = p.pop(); p.reduce((o, k) => o[k], T)[last] = v; };
+
+    const panel = document.createElement('aside');
+    panel.className = 'tune mono';
+    panel.setAttribute('data-lenis-prevent', '');
+    panel.hidden = true;
+    panel.innerHTML = `<header><span>TUNE</span><button data-t="close" aria-label="Close">×</button></header><div class="tune__body"></div>
+      <footer><button data-t="copy">Copy JSON</button><button data-t="reset">Reset</button></footer>`;
+    document.body.appendChild(panel);
+    const body = $('.tune__body', panel);
+    const inputs = {};
+    SPEC.forEach((sec) => {
+      const det = document.createElement('details');
+      det.open = sec.open;
+      det.innerHTML = `<summary>${sec.title}</summary>`;
+      sec.rows.forEach(([key, label, a, b, c]) => {
+        const row = document.createElement('label');
+        row.className = 'tune__row';
+        if (a === 'select') row.innerHTML = `<span>${label}</span><select>${b.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>`;
+        else if (a === 'check') row.innerHTML = `<span>${label}</span><input type="checkbox">`;
+        else row.innerHTML = `<span>${label}</span><input type="range" min="${a}" max="${b}" step="${c}"><output></output>`;
+        det.appendChild(row);
+        inputs[key] = row;
+      });
+      if (sec.extra) det.insertAdjacentHTML('beforeend', sec.extra);
+      body.appendChild(det);
     });
+    const syncPanel = () => {
+      Object.entries(inputs).forEach(([key, row]) => {
+        const el = $('input,select', row), out = $('output', row), v = getV(key);
+        if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+        if (out) out.textContent = (+v).toFixed(2).replace(/\.?0+$/, '');
+      });
+    };
+    const onEdit = (key) => {
+      const el = $('input,select', inputs[key]);
+      setV(key, el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value);
+      applyLook(); saveTune(); syncPanel();
+    };
+    Object.keys(inputs).forEach((key) => $('input,select', inputs[key]).addEventListener('input', () => onEdit(key)));
+    panel.addEventListener('click', (e) => {
+      const act = e.target.dataset?.t;
+      if (act === 'close') panel.hidden = true;
+      if (act === 'reset') {
+        Object.assign(T, { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS });
+        applyLook(); saveTune(); syncPanel();
+      }
+      if (act === 'mirror') { T.B = mirrorOf(T.A); saveTune(); syncPanel(); }
+      if (act === 'copy') {
+        const txt = JSON.stringify(T, null, 2);
+        navigator.clipboard?.writeText(txt).then(() => { e.target.textContent = 'Copied'; setTimeout(() => { e.target.textContent = 'Copy JSON'; }, 1200); });
+      }
+    });
+    $('[data-t="file"]', panel)?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      loadHeight(URL.createObjectURL(f));
+      T.depthSource = 'heightmap';
+      saveTune(); syncPanel();
+    });
+    syncPanel();
+
+    const tuneBtn = document.createElement('button');
+    tuneBtn.className = 'spotlight__tune';
+    tuneBtn.textContent = 'TUNE';
+    tuneBtn.setAttribute('aria-label', 'Open swirl / photo tuning panel');
+    $('.spotlight__top', root).insertBefore(tuneBtn, countEl);
+    tuneBtn.addEventListener('click', () => { panel.hidden = !panel.hidden; });
+    document.addEventListener('keydown', (e) => {
+      if (e.key?.toLowerCase() !== 'c' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
+      panel.hidden = !panel.hidden;
+    });
+    const rate = { v: 1 };
+
+    /* ---------- Title, split into letters ---------- */
+    let chars = [];
+    const setTitle = (text) => {
+      titleEl.innerHTML = text.split(' ').map((w) =>
+        `<span class="spotlight__word">${[...w].map((c) => `<span class="spotlight__char">${c}</span>`).join('')}</span>`).join(' ');
+      chars = $$('.spotlight__char', titleEl);
+    };
+    const setInfo = (i, animate) => {
+      const p = projects[i];
+      if (animate) {
+        window.VRGD.scramble(metaEl, p.meta, 0.6);
+        window.VRGD.scramble(countEl, `${pad2(i + 1)} / ${pad2(N)}`, 0.5);
+      } else {
+        metaEl.textContent = p.meta;
+        countEl.textContent = `${pad2(i + 1)} / ${pad2(N)}`;
+      }
+      indexBtns.forEach((b, k) => b.setAttribute('aria-current', String(k === i)));
+    };
+    const charsIn = (delay = 0) => gsap.fromTo(chars,
+      { yPercent: 110 },
+      { yPercent: 0, duration: 0.9, ease: 'expo.out', stagger: 0.022, delay });
+    const charsOut = () => gsap.to(chars,
+      { yPercent: -110, duration: 0.45, ease: 'power3.in', stagger: 0.01 });
+
+    /* ---------- The change ---------- */
+    let cur = 0, busy = false;
+    // Two stacked <img>: `front` is what's showing, the other takes the next photo.
+    let front = 'a';
+    const other = () => (front === 'a' ? 'b' : 'a');
+
+    async function change(to, dir) {
+      if (busy || to === cur) return;
+      busy = true;
+      setInfo(to, true);
+
+      const inK = other(), outK = front;
+      const inL = layers[inK], outL = layers[outK];
+      const inImg = imgOf(inK), outImg = imgOf(outK);
+      setImg(inImg, to);
+      try { await inImg.decode(); } catch { /* falls through, shows when ready */ }
+
+      if (REDUCED) {
+        gsap.set(inL, { clipPath: 'inset(0% 0% 0% 0%)', zIndex: 2 });
+        gsap.set(outL, { zIndex: 1 });
+        front = inK; cur = to; busy = false;
+        setTitle(projects[to].title);
+        return;
+      }
+
+      // The wipe edge lives on the layer, the zoom/drift on the <img> inside
+      // it, so the edge stays a straight line while the picture settles.
+      // Next comes in from the right, previous from the left.
+      const from = dir > 0 ? 'inset(0% 0% 0% 100%)' : 'inset(0% 100% 0% 0%)';
+      gsap.set(inL, { zIndex: 2, clipPath: from });
+      gsap.set(inImg, { scale: 1.22, xPercent: dir * 7 });
+      gsap.set(outL, { zIndex: 1 });
+
+      gsap.timeline({ onComplete() {
+        front = inK; cur = to; busy = false;
+        gsap.set(outImg, { scale: 1, xPercent: 0 });
+      } })
+        .add(charsOut(), 0)
+        .to(inL, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.0, ease: 'power3.inOut' }, 0)
+        .to(inImg, { scale: 1, xPercent: 0, duration: 1.6, ease: 'power3.out' }, 0.1)
+        .to(outImg, { scale: 1.08, xPercent: -dir * 5, duration: 1.0, ease: 'power3.inOut' }, 0)
+        .to(rate, { v: 1.8, duration: 0.5, ease: 'power2.out', onUpdate: () => setRate(rate.v) }, 0)
+        .to(rate, { v: 1, duration: 1.2, ease: 'power2.inOut', onUpdate: () => setRate(rate.v) }, 0.5)
+        .add(() => { setTitle(projects[to].title); gsap.set(chars, { yPercent: 110 }); charsIn(); }, 0.55);
+    }
+    const step = (d) => change((cur + d + N) % N, d);
+
+    /* ---------- Controls ---------- */
+    $('[data-spotlight-prev]', root).addEventListener('click', () => step(-1));
+    $('[data-spotlight-next]', root).addEventListener('click', () => step(1));
+    indexBtns.forEach((b) => b.addEventListener('click', () => {
+      const i = +b.dataset.i;
+      change(i, i > cur ? 1 : -1);
+    }));
+
+    function openProject() {
+      if (busy) return;
+      busy = true;
+      // Frame is a real element, so the view transition grows it straight
+      // into the project page's hero.
+      frame.style.viewTransitionName = 'project-hero';
+      const go = () => { location.href = `project.html?p=${projects[cur].slug}`; };
+      if (REDUCED) return go();
+      charsOut();
+      gsap.delayedCall(0.35, go);
+    }
+    $('[data-spotlight-open]', root).addEventListener('click', openProject);
+
+    // Click = open, horizontal drag = previous / next.
+    let downX = null;
+    frame.addEventListener('pointerdown', (e) => { downX = e.clientX; });
+    frame.addEventListener('pointerup', (e) => {
+      if (downX == null) return;
+      const dx = e.clientX - downX; downX = null;
+      if (Math.abs(dx) > 50) step(dx < 0 ? 1 : -1);
+      else if (Math.abs(dx) < 8) openProject();
+    });
+    frame.addEventListener('pointercancel', () => { downX = null; });
 
     document.addEventListener('keydown', (e) => {
-      if (!CAN_HOVER) return;
-      if (e.key === 'ArrowRight') embla.scrollNext();
-      if (e.key === 'ArrowLeft') embla.scrollPrev();
+      if (!CAN_HOVER || !visible) return;
+      if (e.key === 'ArrowRight') step(1);
+      if (e.key === 'ArrowLeft') step(-1);
     });
 
-    if (!REDUCED) {
-      gsap.from(root, {
-        autoAlpha: 0, y: 40, scale: 0.94, duration: 1.1, ease: 'expo.out',
-        scrollTrigger: { trigger: root, start: 'top 75%', once: true }
-      });
-    }
+    /* ---------- First look ---------- */
+    setImg(imgOf('a'), 0);
+    gsap.set(layers.a, { zIndex: 2 });
+    setInfo(0, false);
+    setTitle(projects[0].title);
+    if (REDUCED) return;
+
+    busy = true;
+    gsap.set(chars, { yPercent: 110 });
+    gsap.set(frame, { clipPath: 'inset(100% 0% 0% 0%)' });
+    gsap.set(imgOf('a'), { scale: 1.2 });
+    ScrollTrigger.create({
+      trigger: root, start: 'top 65%', once: true,
+      onEnter: () => {
+        window.VRGD.scramble(metaEl, projects[0].meta, 0.6);
+        gsap.timeline({ onComplete() { busy = false; } })
+          .to(frame, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3, ease: 'expo.inOut' }, 0)
+          .to(imgOf('a'), { scale: 1, duration: 1.8, ease: 'expo.out' }, 0.1)
+          .add(() => charsIn(), 0.5);
+      }
+    });
   }
 
   /* =======================================================
@@ -773,7 +1108,7 @@
     $$('.asset__stage').forEach((el) => {
       el.setAttribute('data-clip', '');
       gsap.to(el, {
-        clipPath: 'inset(0% 0 0 0)',
+        clipPath: 'inset(0% 0% 0% 0%)',
         duration: 1.1,
         ease: 'expo.out',
         scrollTrigger: { trigger: el, start: 'top 88%', once: true }

@@ -161,7 +161,7 @@ img, svg, video, canvas { display: block; max-width: 100%; }
   top: 0; left: 0;
   z-index: 9000;
   pointer-events: none;
-  mix-blend-mode: difference;
+  text-shadow: 0 2px 40px rgba(0,0,0,.45);
   will-change: transform;
 }
 /* The spark again, this time following the pointer. */
@@ -714,7 +714,7 @@ html:not(.js) .loader { display: none; }
    Placed after the .has-video rule so it wins the specificity tie. */
 .hero .hero__logo[data-logo-blend="difference"] {
   --logo-fill: #fff;
-  mix-blend-mode: difference;
+  text-shadow: 0 2px 40px rgba(0,0,0,.45);
 }
 .hero .hero__logo[data-logo-blend="difference"] .split--r { opacity: 0; }
 
@@ -809,21 +809,20 @@ html:not(.js) .loader { display: none; }
   font-size: clamp(.9rem, 1.05vw, 1.05rem);
   line-height: 1.62;
 }
-/* ---------- Work — horizontal slide, organic blob-masked frame ----------
-   One project at a time (Embla — embla-carousel.com, vendored at
-   js/vendor/embla-carousel.umd.js), arrows/drag between them. The
-   frame itself isn't a rectangle: each one is a canvas that draws its
-   photo, then cuts it with the alpha channel of a shared looping clip
-   (assets/work-deco/blob-alpha.webm, real alpha baked in at encode
-   time — no live canvas alpha reconstruction, no scroll coupling, it
-   just autoplays forever), so the visible silhouette slowly breathes.
+/* ---------- Work — dark stage, big photo, chrome swirl behind ----------
+   The block is a dark surface in both themes (footage, not palette).
+   Layers: swirl video (background) → photo frame → HUD text/controls.
    See initSpotlight in main.js. */
 .spotlight {
+  --sp-fg: #f4f4f2;
   position: relative;
   width: calc(100% + var(--pad) * 2);
-  margin: clamp(2rem, 5vh, 3.5rem) calc(var(--pad) * -1) 0;
-  padding: clamp(2rem, 5vh, 3rem) 0 clamp(1.5rem, 4vh, 2.5rem);
+  margin: clamp(1.5rem, 4vh, 2.5rem) calc(var(--pad) * -1) 0;
+  height: 100vh; height: 100svh;
+  min-height: 600px;
   overflow: hidden;
+  background: #0b0b0b;
+  color: var(--sp-fg);
 }
 @media (min-width: 768px) {
   [data-nav="sidenav"] .spotlight {
@@ -832,84 +831,106 @@ html:not(.js) .loader { display: none; }
   }
 }
 .spotlight__source { position: absolute; width: 2px; height: 2px; top: 0; left: 0; opacity: 0; pointer-events: none; }
-
-.spotlight__title {
-  position: relative;
-  display: block;
-  text-align: center;
-  padding-bottom: clamp(1.2rem, 3vh, 2rem);
-  min-height: 1.4em;
-}
-
-/* Massive on purpose — a small masked frame just read as a weird
-   abstract sticker with barely any photo showing through it. Big
-   enough to fill most of the viewport, the same blob shape reads as
-   atmosphere the photo sits inside, not a shape hiding the photo. */
-.spotlight__stage {
-  position: relative;
-  width: 100%;
-  height: clamp(420px, 82vh, 1100px);
-  overflow: hidden;
-}
-.spotlight__ring { display: flex; width: 100%; height: 100%; }
-.spotlight__item {
-  position: relative;
-  flex: 0 0 100%;
-  min-width: 0;
-  height: 100%;
-  display: flex;
-  justify-content: center;
+.spotlight__bg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .9; pointer-events: none; }
+.spotlight__fly { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; }
+/* keeps the swirl from fighting the type at the edges */
+.spotlight::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(11,11,11,.55) 100%);
 }
 .spotlight__frame {
-  position: relative;
-  width: clamp(420px, 82vh, 1100px);
-  height: 100%;
-  cursor: pointer;
-}
-.spotlight__frame canvas { width: 100%; height: 100%; display: block; }
-
-.spotlight__nav {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(1.5rem, 4vw, 3rem);
-  padding-top: clamp(1.2rem, 3vh, 2rem);
-}
-/* The arrows carry the same blob loop, small — idle pulse (offset
-   between the two so they don't breathe in lockstep) is what's meant
-   to catch the eye before anyone's even touched the carousel. */
-.spotlight__arrow {
-  position: relative;
-  width: clamp(44px, 5vw, 60px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: var(--fg);
-  cursor: pointer;
-  animation: spotlight-arrow-pulse 3.6s ease-in-out infinite;
-}
-.spotlight__nav .spotlight__arrow:last-child { animation-delay: 1.8s; }
-@keyframes spotlight-arrow-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
-.spotlight__arrow-blob {
-  position: absolute;
-  inset: 8%;
-  width: 84%; height: 84%;
-  border-radius: 50%;
+  position: absolute; z-index: 1;
+  left: calc(50% + var(--fx, 0) * 1%); top: calc(50% + var(--fy, -2) * 1%); translate: -50% -50%;
+  width: calc(var(--fw, 60) * 1%);
+  aspect-ratio: var(--far, 1.6);
   overflow: hidden;
+  cursor: pointer; touch-action: pan-y;
+  background: #151515;
+  box-shadow: 0 30px 80px rgba(0,0,0,.55);
 }
-.spotlight__arrow-icon {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 38%; height: 38%;
-  fill: none;
-  stroke: var(--bg);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.spotlight__layer { position: absolute; inset: 0; overflow: hidden; }
+.spotlight__img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  filter: grayscale(1) contrast(var(--pc, 1.45)) brightness(var(--pb, .94));
+  will-change: transform;
+}
+@media (max-width: 767px) {
+  .spotlight__frame { left: 50%; top: 45%; width: 88%; aspect-ratio: 4 / 5; max-height: 56svh; }
+}
+
+.spotlight__hud {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; justify-content: space-between;
+  padding: clamp(1.1rem, 3vh, 2rem) var(--pad);
+  pointer-events: none;
+}
+[data-nav="sidenav"] .spotlight__hud { padding-right: calc(var(--pad) + var(--gutter) * .55); }
+.spotlight__hud button { pointer-events: auto; }
+.spotlight__top { display: flex; justify-content: space-between; gap: 1rem; color: var(--sp-fg); }
+
+.spotlight__title {
+  margin: auto 0 clamp(1rem, 3vh, 2rem);
+  font-family: var(--f-inter);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 9.2vw, 11rem);
+  line-height: .86;
+  letter-spacing: -.045em;
+  text-transform: uppercase;
+  max-width: 14ch;
+  text-shadow: 0 2px 40px rgba(0,0,0,.45);
+}
+.spotlight__word { display: inline-block; overflow: hidden; vertical-align: top; padding: .04em .02em .06em 0; margin-bottom: -.06em; }
+.spotlight__char { display: inline-block; will-change: transform; }
+
+.spotlight__foot {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: clamp(1rem, 3vw, 3rem);
+  flex-wrap: wrap;
+}
+.spotlight__index { list-style: none; margin: 0; padding: 0; display: flex; gap: clamp(.6rem, 1.6vw, 1.6rem); flex-wrap: wrap; }
+.spotlight__index button {
+  position: relative;
+  display: flex; gap: .7em; align-items: baseline;
+  padding: .7rem 0 .55rem;
+  min-width: clamp(6.5rem, 12vw, 13rem);
+  font-size: clamp(.72rem, .9vw, .9rem);
+  letter-spacing: .02em;
+  opacity: .5;
+  text-align: left;
+  transition: opacity .3s;
+}
+.spotlight__index button:hover, .spotlight__index button[aria-current="true"] { opacity: 1; }
+.spotlight__index button i {
+  position: absolute; left: 0; right: 0; top: 0; height: 1px;
+  background: rgba(244,244,242,.35);
+}
+.spotlight__index button i::after {
+  content: ""; position: absolute; inset: 0;
+  background: var(--sp-fg);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .8s cubic-bezier(.16,1,.3,1);
+}
+.spotlight__index button[aria-current="true"] i::after { transform: scaleX(1); }
+
+.spotlight__ctrl { display: flex; align-items: center; gap: .6rem; }
+.spotlight__btn {
+  width: clamp(42px, 4vw, 54px); aspect-ratio: 1; border-radius: 50%;
+  border: 1px solid rgba(244,244,242,.45);
+  display: grid; place-items: center;
+  transition: background .25s, color .25s, transform .25s;
+}
+.spotlight__btn svg { width: 40%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.spotlight__btn:hover { background: var(--sp-fg); color: #0b0b0b; transform: scale(1.06); }
+.spotlight__open {
+  margin-left: .6rem; padding: .95rem 1.3rem; border-radius: 999px;
+  background: var(--sp-fg); color: #0b0b0b;
+}
+
+@media (max-width: 767px) {
+  .spotlight__title { font-size: clamp(2.4rem, 14vw, 5rem); }
+  .spotlight__index button { min-width: 0; }
+  .spotlight__index-name { display: none; }
 }
 
 /* ---------- Events — vertical carousel, three synced columns ---------- */
@@ -1652,6 +1673,39 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 @media (prefers-reduced-motion: reduce) {
   .grain { animation: none; }
   .hero__scroll-line { animation: none; }
-  .spotlight__arrow { animation: none; }
   * { scroll-behavior: auto !important; }
 }
+
+/* ---------- TUNE panel (work swirl / photo) — dev tool, delete with initSpotlight's panel block ---------- */
+.spotlight__tune {
+  padding: .35rem .7rem; border: 1px solid rgba(244,244,242,.4); border-radius: 999px;
+  font: inherit; letter-spacing: .08em; pointer-events: auto;
+}
+.spotlight__tune:hover { background: #f4f4f2; color: #0b0b0b; }
+.tune {
+  position: fixed; z-index: 9000; right: 12px; top: 12px; bottom: 12px; width: 300px;
+  display: flex; flex-direction: column;
+  background: rgba(11,11,11,.9); color: #f4f4f2;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(244,244,242,.18);
+  font-size: 11px; line-height: 1.3;
+}
+.tune[hidden] { display: none; }
+.tune header, .tune footer { display: flex; justify-content: space-between; padding: .7rem .9rem; border-color: rgba(244,244,242,.18); }
+.tune header { border-bottom: 1px solid; letter-spacing: .1em; }
+.tune footer { border-top: 1px solid; gap: .5rem; }
+.tune button { color: inherit; font: inherit; cursor: pointer; }
+.tune footer button { flex: 1; padding: .5rem; border: 1px solid rgba(244,244,242,.35); }
+.tune footer button:hover { background: #f4f4f2; color: #0b0b0b; }
+.tune__body { flex: 1; overflow: auto; padding: .4rem .9rem 1rem; }
+.tune h4 { margin: 1.1rem 0 .3rem; font-weight: 400; letter-spacing: .1em; text-transform: uppercase; opacity: .55; }
+.tune__row { display: grid; grid-template-columns: 1fr 1fr 2.6em; gap: .5rem; align-items: center; padding: .28rem 0; cursor: default; }
+.tune__row select, .tune__row input[type="file"] { grid-column: 2 / 4; min-width: 0; font: inherit; color: inherit; background: transparent; border: 1px solid rgba(244,244,242,.3); padding: .2rem; }
+.tune__row select option { color: #000; }
+.tune__row input[type="range"] { width: 100%; accent-color: #f4f4f2; }
+.tune__row output { text-align: right; opacity: .7; }
+.tune__note { margin: .2rem 0 0; opacity: .5; }
+.tune details { border-bottom: 1px solid rgba(244,244,242,.12); padding: .2rem 0 .5rem; }
+.tune summary { cursor: pointer; padding: .55rem 0; letter-spacing: .1em; text-transform: uppercase; opacity: .75; }
+.tune details > button { margin-top: .4rem; width: 100%; padding: .45rem; border: 1px solid rgba(244,244,242,.35); }
+.tune details > button:hover { background: #f4f4f2; color: #0b0b0b; }

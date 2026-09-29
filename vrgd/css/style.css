@@ -446,7 +446,14 @@ html:not(.js) .loader { display: none; }
    logotype is the only way back. */
 .js body[data-loading="true"] .navbar { opacity: 0; transform: translateY(-1em); }
 .navbar__mark { width: clamp(52px, 5vw, 74px); flex: 0 0 auto; }
-.navbar__mark svg { width: 100%; height: auto; fill: currentColor; }
+/* Same contrast source as the rest of the chrome (registerDarkSurface /
+   .on-invert) rather than the light/dark theme — the mark sits over
+   whatever section is scrolled under the fixed navbar right now, which
+   doesn't always match the theme (the hero is a dark surface in both). */
+.navbar__mark-img { display: block; width: 100%; height: auto; }
+.navbar__mark-img--dark { display: none; }
+.navbar.on-invert .navbar__mark-img--light { display: none; }
+.navbar.on-invert .navbar__mark-img--dark { display: block; }
 .navbar__meta { display: flex; gap: .9rem; align-items: baseline; }
 .navbar__meta [data-local-time] { font-variant-numeric: tabular-nums; }
 .navbar .is-dim { color: var(--dim); }

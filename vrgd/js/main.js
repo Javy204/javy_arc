@@ -375,16 +375,80 @@
       duration: REDUCED ? 1 : 22
     });
 
+    let prevIndex = 0;
     function updateUI() {
       const index = embla.selectedScrollSnap();
       items.forEach((item, i) => item.setAttribute('data-active', String(i === index)));
+      if (!REDUCED) {
+        // +1 apart (looped) reads as "forward", -1 as "backward" — a jump of
+        // more than one slide (rapid clicks) just defaults to forward.
+        const dir = ((prevIndex - index + N) % N) === 1 ? -1 : 1;
+        gsap.fromTo(titleEl, { xPercent: dir * 12, autoAlpha: 0 }, { xPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.out' });
+      }
       window.VRGD.scramble(titleEl, `PROJECT ${projects[index].title}`.toUpperCase(), 0.6);
       if (countEl) countEl.textContent = `${String(index + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
+      prevIndex = index;
     }
 
     embla.on('select', updateUI);
     embla.on('reInit', updateUI);
     updateUI();
+
+    // The swipe/click used to just slide the frame in and out — now the
+    // whole block reads as one thing in motion: the photo drifts and
+    // racks focus against its own frame (a parallax depth cue, not a
+    // flat crossfade), the title and the deco ribbons carry a little of
+    // the same movement, and a fast flick leaves a brief rubbery skew
+    // that settles back out — all driven off Embla's own public
+    // 'scroll'/'settle' events, no dependence on its internal engine.
+    if (!REDUCED) {
+      const decoLeft = $('.spotlight__deco--left', root);
+      const decoRight = $('.spotlight__deco--right', root);
+      const images = items.map((item) => item.querySelector('.spotlight__frame img'));
+
+      const PARALLAX = 14;  // % of frame width the image drifts against its frame
+      const SKEW_MAX = 5;   // degrees, clamped
+      const SKEW_K = 40;    // velocity -> skew multiplier
+      let lastProgress = 0;
+
+      function tick() {
+        const stageRect = stage.getBoundingClientRect();
+        if (!stageRect.width) return;
+
+        let activeProgress = 0;
+        let minAbs = Infinity;
+
+        items.forEach((item, i) => {
+          const r = item.getBoundingClientRect();
+          // 0 when resting dead centre, ±1 a full frame away either side.
+          const progress = (r.left - stageRect.left) / stageRect.width;
+          const abs = Math.min(Math.abs(progress), 1);
+          const img = images[i];
+          if (img) {
+            img.style.transform = `scale(${1.15 + abs * 0.15}) translateX(${-progress * PARALLAX}%)`;
+            img.style.filter = abs > 0.02 ? `blur(${abs * 6}px)` : '';
+          }
+          if (abs < minAbs) { minAbs = abs; activeProgress = progress; }
+        });
+
+        const velocity = activeProgress - lastProgress;
+        lastProgress = activeProgress;
+        const skew = Math.max(-SKEW_MAX, Math.min(SKEW_MAX, velocity * SKEW_K));
+        items.forEach((item) => { item.style.transform = `skewX(${skew}deg)`; });
+
+        if (decoLeft) decoLeft.style.transform = `translateY(-50%) translateX(${activeProgress * -18}px) rotate(${activeProgress * -3}deg)`;
+        if (decoRight) decoRight.style.transform = `translateY(-50%) translateX(${activeProgress * 18}px) rotate(${activeProgress * 3}deg)`;
+      }
+
+      embla.on('scroll', tick);
+      embla.on('settle', () => {
+        // Hard reset rather than a tween — by 'settle' the velocity that
+        // drove the skew is already ~0, so the snap is imperceptible and
+        // this avoids fighting the next drag's raw style writes.
+        items.forEach((item) => { item.style.transform = ''; });
+      });
+      tick();
+    }
 
     $('[data-spotlight-prev]')?.addEventListener('click', () => embla.scrollPrev());
     $('[data-spotlight-next]')?.addEventListener('click', () => embla.scrollNext());

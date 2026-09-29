@@ -916,6 +916,7 @@ html:not(.js) .loader { display: none; }
   min-width: 0;
   height: 100%;
   cursor: pointer;
+  will-change: transform;
 }
 .spotlight__frame {
   position: relative;
@@ -924,8 +925,11 @@ html:not(.js) .loader { display: none; }
   background: var(--plate);
 }
 /* Preview images are exported already grayscale (see assets/work/<slug>/
-   preview.webp) — the color hero is saved for the project page. */
-.spotlight__frame img { width: 100%; height: 100%; object-fit: cover; }
+   preview.webp) — the color hero is saved for the project page. Base
+   scale/translate/blur are written per-frame from the carousel's own
+   scroll progress (see initSpotlight in main.js) — a parallax drift and
+   rack-focus blur rather than a flat crossfade. */
+.spotlight__frame img { width: 100%; height: 100%; object-fit: cover; will-change: transform, filter; }
 
 .spotlight__nav {
   position: relative;

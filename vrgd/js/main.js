@@ -631,14 +631,18 @@
       idleTimer = setTimeout(enterIdlePlay, 600);
     }
 
-    // Same arrival window as the navbar-hide/magnet triggers above —
-    // scrolling anywhere through it drives the clip, going still hands
-    // it back to autoplay.
+    // The actual approach, not the "section is dominating the screen"
+    // window used for the navbar-hide/magnet triggers above: 0 the
+    // moment .section--work's top edge appears at the bottom of the
+    // viewport, 1 once that edge reaches the top — a full viewport of
+    // scroll distance mapped straight onto the clip, so the video is
+    // genuinely under the scrollbar's control while arriving, not
+    // compressed into whatever's left of the section's own height.
     const section = root.closest('.section--work');
     ScrollTrigger.create({
       trigger: section || root,
-      start: 'top top+=160',
-      end: 'bottom top-=160',
+      start: 'top bottom',
+      end: 'top top',
       onUpdate: (self) => {
         if (!self.isActive) return;
         exitIdlePlay();

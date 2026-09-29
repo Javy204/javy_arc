@@ -809,75 +809,103 @@ html:not(.js) .loader { display: none; }
   font-size: clamp(.9rem, 1.05vw, 1.05rem);
   line-height: 1.62;
 }
-/* ---------- Work — a plain grid ----------
-   Used to be a fullscreen single-card carousel with a scroll-scrubbed
-   video running behind it; too clever, kept breaking in one way or
-   another, and didn't read as inviting to click. This is closer to a
-   shop listing instead (noartmusic.com/shop): a grid of photos, a bold
-   call to action on hover, the whole card is the link. */
-.work-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 2.4vw, 1.75rem);
-  margin-top: clamp(2rem, 5vh, 3.5rem);
-}
-.work-card { display: block; cursor: pointer; }
-.work-card__frame {
+/* ---------- Work — horizontal slide, organic blob-masked frame ----------
+   One project at a time (Embla — embla-carousel.com, vendored at
+   js/vendor/embla-carousel.umd.js), arrows/drag between them. The
+   frame itself isn't a rectangle: each one is a canvas that draws its
+   photo, then cuts it with the alpha channel of a shared looping clip
+   (assets/work-deco/blob-alpha.webm, real alpha baked in at encode
+   time — no live canvas alpha reconstruction, no scroll coupling, it
+   just autoplays forever), so the visible silhouette slowly breathes.
+   See initSpotlight in main.js. */
+.spotlight {
   position: relative;
-  aspect-ratio: 3 / 2;
+  width: calc(100% + var(--pad) * 2);
+  margin: clamp(2rem, 5vh, 3.5rem) calc(var(--pad) * -1) 0;
+  padding: clamp(2rem, 5vh, 3rem) 0 clamp(1.5rem, 4vh, 2.5rem);
   overflow: hidden;
-  background: var(--plate);
 }
-.work-card__frame img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  transition: transform .7s cubic-bezier(.16, 1, .3, 1);
+@media (min-width: 768px) {
+  [data-nav="sidenav"] .spotlight {
+    width: calc(100% + var(--pad) * 2 + var(--gutter));
+    margin-right: calc((var(--pad) + var(--gutter)) * -1);
+  }
 }
-.work-card:hover .work-card__frame img { transform: scale(1.05); }
+.spotlight__source { position: absolute; width: 2px; height: 2px; top: 0; left: 0; opacity: 0; pointer-events: none; }
 
-.work-card__cta {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%) scale(.92);
+.spotlight__title {
+  position: relative;
+  display: block;
+  text-align: center;
+  padding-bottom: clamp(1.2rem, 3vh, 2rem);
+  min-height: 1.4em;
+}
+
+.spotlight__stage {
+  position: relative;
+  width: 100%;
+  height: clamp(300px, 42vw, 720px);
+  overflow: hidden;
+}
+.spotlight__ring { display: flex; width: 100%; height: 100%; }
+.spotlight__item {
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+}
+.spotlight__frame {
+  position: relative;
+  width: clamp(300px, 42vw, 720px);
+  height: 100%;
+  cursor: pointer;
+}
+.spotlight__frame canvas { width: 100%; height: 100%; display: block; }
+
+.spotlight__nav {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: .5em;
-  padding: .85em 1.4em;
-  background: var(--red);
-  color: #fff;
-  font-family: var(--f-mono);
-  font-size: clamp(.7rem, .95vw, .85rem);
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity .3s ease, transform .3s ease;
-  pointer-events: none;
+  justify-content: center;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding-top: clamp(1.2rem, 3vh, 2rem);
 }
-.work-card__cta svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; }
-.work-card:hover .work-card__cta { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-
-.work-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: .3rem 1rem;
-  padding-top: .9rem;
+/* The arrows carry the same blob loop, small — idle pulse (offset
+   between the two so they don't breathe in lockstep) is what's meant
+   to catch the eye before anyone's even touched the carousel. */
+.spotlight__arrow {
+  position: relative;
+  width: clamp(44px, 5vw, 60px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--fg);
+  cursor: pointer;
+  animation: spotlight-arrow-pulse 3.6s ease-in-out infinite;
 }
-.work-card__title {
-  font-family: var(--f-inter);
-  font-weight: 700;
-  font-size: clamp(1rem, 1.7vw, 1.3rem);
+.spotlight__nav .spotlight__arrow:last-child { animation-delay: 1.8s; }
+@keyframes spotlight-arrow-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
 }
-.work-card__sub { white-space: nowrap; }
-
-@media (max-width: 600px) {
-  .work-card__cta { padding: .65em 1em; gap: .4em; }
-  /* Title + meta side by side gets cramped at two columns this narrow —
-     stack them so long meta strings ("DOCUMENTARY / 2025") never force
-     the row wider than the card. */
-  .work-card__meta { flex-direction: column; align-items: flex-start; gap: .25rem; }
+.spotlight__arrow-blob {
+  position: absolute;
+  inset: 8%;
+  width: 84%; height: 84%;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.spotlight__arrow-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 38%; height: 38%;
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* ---------- Events — vertical carousel, three synced columns ---------- */
@@ -1620,5 +1648,6 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 @media (prefers-reduced-motion: reduce) {
   .grain { animation: none; }
   .hero__scroll-line { animation: none; }
+  .spotlight__arrow { animation: none; }
   * { scroll-behavior: auto !important; }
 }

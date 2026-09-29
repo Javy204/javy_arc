@@ -315,26 +315,32 @@
   }
 
   /* =======================================================
-     6. Work grid — a plain grid of project cards (noartmusic.com/shop
-     is the direct reference): big photo, a bold call-to-action that
-     appears on hover, the whole card is the link. This replaces a
-     single-card carousel with a scroll-scrubbed video running behind
-     it — clever on paper, but it read as more animation than content,
-     kept finding new ways to stall, and didn't actually invite a
-     click. Data comes straight from work.json (the same file
-     project.js reads), so the index and the project pages can never
-     list a different set of projects.
+     6. Work spotlight — one project at a time, swiped with Embla
+     Carousel (embla-carousel.com, vendored at js/vendor/embla-
+     carousel.umd.js). The frame isn't a plain rectangle: each one is a
+     canvas that draws its own photo, then cuts it with the alpha
+     channel of one shared looping clip (assets/work-deco/blob-alpha.
+     webm — real alpha baked in at encode time, so drawImage() just
+     works, no live canvas alpha reconstruction). The clip autoplays
+     forever and answers to nothing — not scroll, not which slide is
+     active — so there's no state machine left to get stuck; the
+     canvases just draw whatever frame it's currently on. Data comes
+     straight from work.json (the same file project.js reads), so the
+     index and the project pages can never list a different set of
+     projects.
      ======================================================= */
-  async function initWorkGrid() {
-    const root = $('[data-work-grid]');
-    if (!root) return;
+  async function initSpotlight() {
+    const root = $('[data-spotlight]');
+    const stage = $('[data-spotlight-stage]', root || document);
+    const blobVideo = $('[data-blob-video]', root || document);
+    if (!root || !stage || !blobVideo || !window.EmblaCarousel) return;
 
-    // Arriving back from a project page: name the grid itself so the
+    // Arriving back from a project page: name this whole block so the
     // page's hero (always named project-hero, see project.html's CSS)
-    // shrinks back into roughly where it came from — the same pairing
-    // the outward click sets up on just the one clicked card, mirrored
-    // for the return trip. The container is used (not a single card)
-    // because it exists immediately, before work.json has even loaded.
+    // shrinks back into it — the same pairing the outward click sets up
+    // on just the one clicked frame, mirrored for the return trip. The
+    // container is used (not a single carousel item) because it exists
+    // immediately, before work.json has even loaded.
     if (document.referrer.includes('project.html')) {
       root.style.viewTransitionName = 'project-hero';
     }
@@ -343,41 +349,123 @@
     try {
       const res = await fetch('assets/work.json');
       if (res.ok) projects = (await res.json()).projects || [];
-    } catch { /* leaves the grid empty rather than break the page */ }
+    } catch { /* leaves the stage empty rather than break the page */ }
     if (!projects.length) return;
 
     const workCount = $('[data-work-count]');
     if (workCount) workCount.textContent = `[${String(projects.length).padStart(2, '0')}]`;
 
-    root.innerHTML = projects.map((p, i) => {
-      const src = p.preview || p.hero?.src;
-      return `
-      <a class="work-card" role="listitem" data-index="${i}" href="project.html?p=${p.slug}" data-cursor-hover data-cursor-text="VIEW">
-        <div class="work-card__frame"${src ? '' : ` data-placeholder="${(i % 6) + 1}"`}>
-          ${src ? `<img src="${src}" alt="" loading="lazy">` : ''}
-          <span class="work-card__cta">View project<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
+    stage.innerHTML = `<div class="spotlight__ring" data-spotlight-ring>${projects.map((_, i) => `
+      <div class="spotlight__item" role="listitem" data-index="${i}">
+        <div class="spotlight__frame" data-cursor-hover data-cursor-text="VIEW">
+          <canvas></canvas>
         </div>
-        <div class="work-card__meta">
-          <span class="work-card__title">${p.title}</span>
-          <span class="work-card__sub mono is-dim">${p.meta || ''}</span>
-        </div>
-      </a>`;
-    }).join('');
+      </div>`).join('')}</div>`;
 
-    const cards = $$('.work-card', root);
-    cards.forEach((card) => {
-      card.addEventListener('click', () => {
-        // The clicked frame carries its own box into the project page's
+    const items = $$('.spotlight__item', stage);
+    const titleEl = $('[data-spotlight-title]');
+    const countEl = $('[data-spotlight-count]');
+    const N = items.length;
+
+    // Photos load off-DOM — a canvas is the only thing that ever reads
+    // them, so there's no <img> to keep hidden or fight for layout.
+    const photos = projects.map((p) => {
+      const src = p.preview || p.hero?.src;
+      if (!src) return null;
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
+
+    const SIZE = 640; // internal render resolution — plenty for this frame size
+    const frameCanvases = items.map((item) => item.querySelector('canvas'));
+    const arrowCanvases = [$('[data-arrow-canvas="prev"]'), $('[data-arrow-canvas="next"]')];
+    [...frameCanvases, ...arrowCanvases].forEach((c) => { if (c) { c.width = SIZE; c.height = SIZE; } });
+
+    function drawFrame(canvas, img) {
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, SIZE, SIZE);
+      if (img && img.complete && img.naturalWidth) {
+        // Cover-fit the (likely non-square) photo into the square canvas.
+        const scale = Math.max(SIZE / img.naturalWidth, SIZE / img.naturalHeight);
+        const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+        ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+      }
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.drawImage(blobVideo, 0, 0, SIZE, SIZE);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    function drawBlob(canvas) {
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, SIZE, SIZE);
+      ctx.drawImage(blobVideo, 0, 0, SIZE, SIZE);
+    }
+
+    if (REDUCED) {
+      // One settled paint, no perpetual rAF loop.
+      const paintOnce = () => {
+        frameCanvases.forEach((c, i) => drawFrame(c, photos[i]));
+        arrowCanvases.forEach(drawBlob);
+      };
+      if (blobVideo.readyState >= 2) paintOnce();
+      else blobVideo.addEventListener('loadeddata', paintOnce, { once: true });
+    } else {
+      (function render() {
+        frameCanvases.forEach((c, i) => drawFrame(c, photos[i]));
+        arrowCanvases.forEach(drawBlob);
+        requestAnimationFrame(render);
+      })();
+    }
+
+    const embla = window.EmblaCarousel(stage, { loop: true, duration: REDUCED ? 1 : 22 });
+
+    let prevIndex = 0;
+    function updateUI() {
+      const index = embla.selectedScrollSnap();
+      items.forEach((item, i) => item.setAttribute('data-active', String(i === index)));
+      if (!REDUCED) {
+        // +1 apart (looped) reads as "forward", -1 as "backward" — a jump of
+        // more than one slide (rapid clicks) just defaults to forward.
+        const dir = ((prevIndex - index + N) % N) === 1 ? -1 : 1;
+        gsap.fromTo(titleEl, { xPercent: dir * 12, autoAlpha: 0 }, { xPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.out' });
+      }
+      window.VRGD.scramble(titleEl, `PROJECT ${projects[index].title}`.toUpperCase(), 0.6);
+      if (countEl) countEl.textContent = `${String(index + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
+      prevIndex = index;
+    }
+    embla.on('select', updateUI);
+    embla.on('reInit', updateUI);
+    updateUI();
+
+    $('[data-spotlight-prev]')?.addEventListener('click', () => embla.scrollPrev());
+    $('[data-spotlight-next]')?.addEventListener('click', () => embla.scrollNext());
+
+    items.forEach((item, i) => {
+      // Only the active slide is ever reachable in the viewport (the
+      // rest sit fully clipped offscreen), so a click here is always
+      // on the current project.
+      const frame = item.querySelector('.spotlight__frame');
+      frame?.addEventListener('click', () => {
+        // The active frame carries its own box into the project page's
         // hero — same box-grow language the boot loader opens with.
-        const frame = card.querySelector('.work-card__frame');
-        if (frame) frame.style.viewTransitionName = 'project-hero';
+        frame.style.viewTransitionName = 'project-hero';
+        location.href = `project.html?p=${projects[i].slug}`;
       });
     });
 
+    document.addEventListener('keydown', (e) => {
+      if (!CAN_HOVER) return;
+      if (e.key === 'ArrowRight') embla.scrollNext();
+      if (e.key === 'ArrowLeft') embla.scrollPrev();
+    });
+
     if (!REDUCED) {
-      gsap.from(cards, {
-        y: 40, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.08,
-        scrollTrigger: { trigger: root, start: 'top 85%', once: true }
+      gsap.from(root, {
+        autoAlpha: 0, y: 40, scale: 0.94, duration: 1.1, ease: 'expo.out',
+        scrollTrigger: { trigger: root, start: 'top 75%', once: true }
       });
     }
   }
@@ -683,7 +771,7 @@
        into nothing and the page looked blank. */
     const modules = [
       ['dither', initDither], ['heroVideo', initHeroVideo], ['hero', initHero],
-      ['workGrid', initWorkGrid], ['logoBlend', initLogoBlend], ['nav', initNav],
+      ['spotlight', initSpotlight], ['logoBlend', initLogoBlend], ['nav', initNav],
       ['chrome', initChrome], ['navSwitch', initNavSwitch], ['spine', initSpine],
       ['microMotion', initMicroMotion], ['reveals', initReveals], ['loader', initLoader]
     ];

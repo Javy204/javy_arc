@@ -654,14 +654,13 @@
 
     const section = root.closest('.section--work');
 
-    // The actual approach: 0 the moment .section--work's top edge
-    // appears at the bottom of the viewport, 1 once that edge reaches
-    // the top — a full viewport of scroll distance mapped straight onto
-    // the clip, so the video is genuinely under the scrollbar's control
-    // while arriving. Scrubbing only lives here; leaving/re-entering
-    // WORK is handled by the wider trigger below so that scrolling
-    // further through the (taller-than-viewport) section once already
-    // arrived doesn't read as "leaving" and cut the clip off.
+    // The only two states this responds to: scrolling (scrubbed, 1:1,
+    // live) and not scrolling (playing). Nothing else stops or starts
+    // it — no "left the section" check, no visibility check. 0 the
+    // moment .section--work's top edge appears at the bottom of the
+    // viewport, 1 once that edge reaches the top — a full viewport of
+    // scroll distance mapped straight onto the clip, so the video is
+    // genuinely under the scrollbar's control while arriving.
     ScrollTrigger.create({
       trigger: section || root,
       start: 'top bottom',
@@ -675,19 +674,6 @@
       onEnter: armIdle,
       onEnterBack: armIdle
     });
-
-    // Same window as the navbar-hide/magnet triggers above — the video
-    // only actually stops once WORK has genuinely left the screen in
-    // either direction, not the moment the approach above finishes.
-    if (section) {
-      ScrollTrigger.create({
-        trigger: section,
-        start: 'top top+=160',
-        end: 'bottom top-=160',
-        onLeave: exitIdlePlay,
-        onLeaveBack: exitIdlePlay
-      });
-    }
   }
 
   /* =======================================================

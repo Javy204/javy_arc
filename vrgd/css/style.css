@@ -6,11 +6,11 @@
 
 /* Opts every same-origin navigation into a cross-document view
    transition. Unsupported browsers just ignore this and navigate as
-   normal — nothing here depends on it. The WORK spotlight and the
-   project page share one view-transition-name (project-hero, set on
-   the clicked frame in main.js and always on .project__hero) so
-   clicking a project grows its thumbnail into the page's hero, the
-   same box-grow language the boot loader opens the site with. */
+   normal — nothing here depends on it. The WORK grid and the project
+   page share one view-transition-name (project-hero, set on the
+   clicked card in main.js and always on .project__hero) so clicking a
+   project grows its thumbnail into the page's hero, the same box-grow
+   language the boot loader opens the site with. */
 @view-transition { navigation: auto; }
 ::view-transition-group(project-hero) {
   animation-duration: .65s;
@@ -47,17 +47,6 @@
   --pad: clamp(1rem, 2.6vw, 2.25rem);
   --nav-h: 4.5rem;
   --gutter: clamp(8rem, 12vw, 13rem);
-
-  /* WORK spotlight — tunable live from ?panel=1 (see js/tune-panel.js).
-     Plain numbers, not clamp(), so a slider can drive each one directly;
-     the panel writes these same custom properties inline on :root. */
-  --deco-w: 30;         /* vw, preferred width of the ribbon render */
-  --deco-max: 1030;     /* px, width ceiling */
-  --deco-offset: -8.5;  /* vw, outer-edge offset (negative = off-canvas) */
-  --deco-opacity: 1;
-  --item-w: 45;         /* vw, preferred width of the active carousel frame */
-  --item-max: 920;      /* px, width ceiling */
-  --section-h: 120;     /* vh, .section--work min-height */
 }
 
 /* Dark mode — the same two values, swapped. */
@@ -806,19 +795,6 @@ html:not(.js) .loader { display: none; }
 }
 .section__head .mono:nth-child(2) { color: var(--fg); }
 
-/* Work takes over the whole screen once it's the thing in view — see
-   initSpotlight's ScrollTrigger for the matching navbar-hide + settle.
-   Taller than the viewport on purpose: the extra run gives the magnet
-   snap and the nav-hide trigger room to fire before/after the section
-   edge exactly meets the viewport edge, instead of needing pixel-
-   perfect scroll alignment. */
-.section--work {
-  min-height: calc(var(--section-h) * 1vh);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
 /* ---------- About ---------- */
 .about__grid {
   display: grid;
@@ -833,135 +809,76 @@ html:not(.js) .loader { display: none; }
   font-size: clamp(.9rem, 1.05vw, 1.05rem);
   line-height: 1.62;
 }
-/* ---------- Work — a full-bleed spotlight carousel ----------
-   One project centred and large, its neighbours peeking in at the
-   viewport edges. Bleeds past .section's own side padding on purpose
-   (negative margin) — the whole point is that it reads edge to edge,
-   not boxed in like the rest of the page. */
-.spotlight {
-  /* Cancels .section's own padding on both sides so this bleeds edge
-     to edge. A plain 100vw + left:50%/margin:-50vw breakout was tried
-     here first and looks right almost everywhere — but that trick only
-     works when the containing block sits centred in the viewport, and
-     in sidenav nav mode .section carries an EXTRA padding-right
-     (--gutter, to clear the rail) that .section alone doesn't have,
-     which throws the box off-centre and reintroduces a real gap on the
-     right specifically in that mode. Cancelling the exact padding
-     instead, with a matching override below for the gutter case,
-     works regardless of how (a)symmetric .section's padding is. */
+/* ---------- Work — a plain grid ----------
+   Used to be a fullscreen single-card carousel with a scroll-scrubbed
+   video running behind it; too clever, kept breaking in one way or
+   another, and didn't read as inviting to click. This is closer to a
+   shop listing instead (noartmusic.com/shop): a grid of photos, a bold
+   call to action on hover, the whole card is the link. */
+.work-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 2.4vw, 1.75rem);
+  margin-top: clamp(2rem, 5vh, 3.5rem);
+}
+.work-card { display: block; cursor: pointer; }
+.work-card__frame {
   position: relative;
-  width: calc(100% + var(--pad) * 2);
-  margin: clamp(2rem, 5vh, 3.5rem) calc(var(--pad) * -1) 0;
-  padding: clamp(2rem, 5vh, 3rem) 0 clamp(1.5rem, 4vh, 2.5rem);
+  aspect-ratio: 3 / 2;
   overflow: hidden;
-}
-@media (min-width: 768px) {
-  [data-nav="sidenav"] .spotlight {
-    width: calc(100% + var(--pad) * 2 + var(--gutter));
-    margin-right: calc((var(--pad) + var(--gutter)) * -1);
-  }
-}
-
-/* The ribbon render — decorative, never the subject. A square 3D chrome
-   loop, composited from two source videos onto a canvas each frame (see
-   initSpotlightDeco in main.js) rather than a flat pre-cut silhouette,
-   so no dark-mode invert here — it's a lit render with its own shading,
-   inverting it would just look broken. Fixed size — it used to grow on
-   hover but that read as a jarring pop rather than anything worth the
-   motion. */
-.spotlight__deco {
-  position: absolute;
-  top: 50%;
-  width: clamp(320px, calc(var(--deco-w) * 1vw), calc(var(--deco-max) * 1px));
-  aspect-ratio: 1 / 1;
-  transform: translateY(-50%);
-  opacity: var(--deco-opacity);
-  pointer-events: none;
-  z-index: 0;
-}
-.spotlight__deco canvas { width: 100%; height: 100%; display: block; }
-.spotlight__deco--left { left: clamp(-8rem, calc(var(--deco-offset) * 1vw), -1rem); }
-.spotlight__deco--right { right: clamp(-8rem, calc(var(--deco-offset) * 1vw), -1rem); }
-/* Real source videos, kept technically "visible" (not display:none) so
-   browsers don't throttle their decode — parked off-canvas instead. */
-.spotlight__deco-source {
-  position: absolute;
-  width: 2px; height: 2px;
-  top: 0; left: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.spotlight__title {
-  position: relative;
-  z-index: 2;
-  display: block;
-  text-align: center;
-  padding-bottom: clamp(1.2rem, 3vh, 2rem);
-  min-height: 1.4em;
-}
-
-/* The stage is Embla's viewport — full edge-to-edge width (riding on
-   .spotlight's own bleed) rather than just the width of the frame, so
-   the swap travels the whole screen: each slide is a full-width lane
-   with the actual 16:9 frame centred inside it, and only the active
-   lane's frame is ever visible, everything else clipped rather than
-   left peeking at the edges. A project ring used to recede around a
-   3D cylinder here, but the neighbours-in-the-background look read as
-   clutter, not depth. See js/vendor/embla-carousel.umd.js. */
-.spotlight__stage {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: calc(clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px)) * 9 / 16);
-  overflow: hidden;
-}
-.spotlight__ring {
-  display: flex;
-  width: 100%; height: 100%;
-}
-.spotlight__item {
-  position: relative;
-  flex: 0 0 100%;
-  min-width: 0;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  will-change: transform;
-}
-.spotlight__frame {
-  position: relative;
-  width: clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px));
-  height: 100%;
-  overflow: hidden;
-  cursor: pointer;
   background: var(--plate);
 }
-/* Preview images are exported already grayscale (see assets/work/<slug>/
-   preview.webp) — the color hero is saved for the project page. Base
-   scale/translate/blur are written per-frame from the carousel's own
-   scroll progress (see initSpotlight in main.js) — a parallax drift and
-   rack-focus blur rather than a flat crossfade. */
-.spotlight__frame img { width: 100%; height: 100%; object-fit: cover; will-change: transform, filter; }
+.work-card__frame img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform .7s cubic-bezier(.16, 1, .3, 1);
+}
+.work-card:hover .work-card__frame img { transform: scale(1.05); }
 
-.spotlight__nav {
-  position: relative;
-  z-index: 2;
+.work-card__cta {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(.92);
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: clamp(1.5rem, 4vw, 3rem);
-  padding-top: clamp(1.2rem, 3vh, 2rem);
+  gap: .5em;
+  padding: .85em 1.4em;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--f-mono);
+  font-size: clamp(.7rem, .95vw, .85rem);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .3s ease, transform .3s ease;
+  pointer-events: none;
 }
-.spotlight__arrow {
+.work-card__cta svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; }
+.work-card:hover .work-card__cta { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+.work-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: .3rem 1rem;
+  padding-top: .9rem;
+}
+.work-card__title {
   font-family: var(--f-inter);
-  font-size: 1.4rem;
-  cursor: pointer;
-  transition: color .3s ease, transform .3s ease;
+  font-weight: 700;
+  font-size: clamp(1rem, 1.7vw, 1.3rem);
 }
-.spotlight__arrow:hover { color: var(--dim); transform: translateX(0); }
-.spotlight__nav .spotlight__arrow:first-child:hover { transform: translateX(-3px); }
-.spotlight__nav .spotlight__arrow:last-child:hover { transform: translateX(3px); }
+.work-card__sub { white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .work-card__cta { padding: .65em 1em; gap: .4em; }
+  /* Title + meta side by side gets cramped at two columns this narrow —
+     stack them so long meta strings ("DOCUMENTARY / 2025") never force
+     the row wider than the card. */
+  .work-card__meta { flex-direction: column; align-items: flex-start; gap: .25rem; }
+}
 
 /* ---------- Events — vertical carousel, three synced columns ---------- */
 .events {
@@ -1518,12 +1435,6 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 @media (max-width: 767px) {
   .book { width: min(87vw, calc(58vh * var(--book-ratio-num, 1.5))); }
   .reader__side { width: 48%; }
-}
-
-/* The deco render is sized for a wide corner peek — at phone width its
-   220px floor was swallowing more than half the screen. */
-@media (max-width: 600px) {
-  .spotlight__deco { width: clamp(90px, 24vw, 200px); opacity: .7; }
 }
 
 /* =========================================================

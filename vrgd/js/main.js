@@ -315,29 +315,26 @@
   }
 
   /* =======================================================
-     6. Work spotlight — one project at a time, full-bleed, swiped with
-     Embla Carousel (embla-carousel.com — vendored, js/vendor/embla-
-     carousel.umd.js). The previous version hand-rolled a 3D ring with
-     a GSAP-tweened transform proxy and a GSAP Observer for drag; it
-     looked neat but the neighbouring frames left half-visible at the
-     sides read as clutter, and the custom drag logic could leave two
-     frames mid-tween at once. Embla is a maintained library plenty of
-     production sites already ship, and only the active frame is ever
-     on screen. Data comes straight from work.json (the same file
+     6. Work grid — a plain grid of project cards (noartmusic.com/shop
+     is the direct reference): big photo, a bold call-to-action that
+     appears on hover, the whole card is the link. This replaces a
+     single-card carousel with a scroll-scrubbed video running behind
+     it — clever on paper, but it read as more animation than content,
+     kept finding new ways to stall, and didn't actually invite a
+     click. Data comes straight from work.json (the same file
      project.js reads), so the index and the project pages can never
      list a different set of projects.
      ======================================================= */
-  async function initSpotlight() {
-    const root = $('[data-spotlight]');
-    const stage = $('[data-spotlight-stage]', root || document);
-    if (!root || !stage || !window.EmblaCarousel) return;
+  async function initWorkGrid() {
+    const root = $('[data-work-grid]');
+    if (!root) return;
 
-    // Arriving back from a project page: name this whole block so the
+    // Arriving back from a project page: name the grid itself so the
     // page's hero (always named project-hero, see project.html's CSS)
-    // shrinks back into it — the same pairing the outward click sets up
-    // on just the one clicked frame, mirrored for the return trip. The
-    // container is used (not a single carousel item) because it exists
-    // immediately, before work.json has even loaded.
+    // shrinks back into roughly where it came from — the same pairing
+    // the outward click sets up on just the one clicked card, mirrored
+    // for the return trip. The container is used (not a single card)
+    // because it exists immediately, before work.json has even loaded.
     if (document.referrer.includes('project.html')) {
       root.style.viewTransitionName = 'project-hero';
     }
@@ -346,334 +343,43 @@
     try {
       const res = await fetch('assets/work.json');
       if (res.ok) projects = (await res.json()).projects || [];
-    } catch { /* leaves the stage empty rather than break the page */ }
+    } catch { /* leaves the grid empty rather than break the page */ }
     if (!projects.length) return;
 
     const workCount = $('[data-work-count]');
     if (workCount) workCount.textContent = `[${String(projects.length).padStart(2, '0')}]`;
 
-    // The homepage carousel always shows the grayscale, landscape-cropped
-    // 'preview' image (falls back to the project hero if one is missing),
-    // never the color hero itself — that's saved for the project page.
-    stage.innerHTML = `<div class="spotlight__ring" data-spotlight-ring>${projects.map((p, i) => {
+    root.innerHTML = projects.map((p, i) => {
       const src = p.preview || p.hero?.src;
       return `
-      <div class="spotlight__item" role="listitem" data-index="${i}">
-        <div class="spotlight__frame"${src ? '' : ` data-placeholder="${(i % 6) + 1}"`} data-cursor-hover data-cursor-text="VIEW">
-          ${src ? `<img src="${src}" alt="">` : ''}
+      <a class="work-card" role="listitem" data-index="${i}" href="project.html?p=${p.slug}" data-cursor-hover data-cursor-text="VIEW">
+        <div class="work-card__frame"${src ? '' : ` data-placeholder="${(i % 6) + 1}"`}>
+          ${src ? `<img src="${src}" alt="" loading="lazy">` : ''}
+          <span class="work-card__cta">View project<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></span>
         </div>
-      </div>`;
-    }).join('')}</div>`;
+        <div class="work-card__meta">
+          <span class="work-card__title">${p.title}</span>
+          <span class="work-card__sub mono is-dim">${p.meta || ''}</span>
+        </div>
+      </a>`;
+    }).join('');
 
-    const items = $$('.spotlight__item', stage);
-    const titleEl = $('[data-spotlight-title]');
-    const countEl = $('[data-spotlight-count]');
-    const N = items.length;
-
-    const embla = window.EmblaCarousel(stage, {
-      loop: true,
-      duration: REDUCED ? 1 : 22
-    });
-
-    let prevIndex = 0;
-    function updateUI() {
-      const index = embla.selectedScrollSnap();
-      items.forEach((item, i) => item.setAttribute('data-active', String(i === index)));
-      if (!REDUCED) {
-        // +1 apart (looped) reads as "forward", -1 as "backward" — a jump of
-        // more than one slide (rapid clicks) just defaults to forward.
-        const dir = ((prevIndex - index + N) % N) === 1 ? -1 : 1;
-        gsap.fromTo(titleEl, { xPercent: dir * 12, autoAlpha: 0 }, { xPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.out' });
-      }
-      window.VRGD.scramble(titleEl, `PROJECT ${projects[index].title}`.toUpperCase(), 0.6);
-      if (countEl) countEl.textContent = `${String(index + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
-      prevIndex = index;
-    }
-
-    embla.on('select', updateUI);
-    embla.on('reInit', updateUI);
-    updateUI();
-
-    // The swipe/click used to just slide the frame in and out — now the
-    // whole block reads as one thing in motion: the photo drifts and
-    // racks focus against its own frame (a parallax depth cue, not a
-    // flat crossfade), the title and the deco ribbons carry a little of
-    // the same movement, and a fast flick leaves a brief rubbery skew
-    // that settles back out — all driven off Embla's own public
-    // 'scroll'/'settle' events, no dependence on its internal engine.
-    if (!REDUCED) {
-      const decoLeft = $('.spotlight__deco--left', root);
-      const decoRight = $('.spotlight__deco--right', root);
-      const images = items.map((item) => item.querySelector('.spotlight__frame img'));
-
-      const PARALLAX = 14;  // % of frame width the image drifts against its frame
-      const SKEW_MAX = 5;   // degrees, clamped
-      const SKEW_K = 40;    // velocity -> skew multiplier
-      let lastProgress = 0;
-
-      function tick() {
-        const stageRect = stage.getBoundingClientRect();
-        if (!stageRect.width) return;
-
-        let activeProgress = 0;
-        let minAbs = Infinity;
-
-        items.forEach((item, i) => {
-          const r = item.getBoundingClientRect();
-          // 0 when resting dead centre, ±1 a full frame away either side.
-          const progress = (r.left - stageRect.left) / stageRect.width;
-          const abs = Math.min(Math.abs(progress), 1);
-          const img = images[i];
-          if (img) {
-            img.style.transform = `scale(${1.15 + abs * 0.15}) translateX(${-progress * PARALLAX}%)`;
-            img.style.filter = abs > 0.02 ? `blur(${abs * 6}px)` : '';
-          }
-          if (abs < minAbs) { minAbs = abs; activeProgress = progress; }
-        });
-
-        const velocity = activeProgress - lastProgress;
-        lastProgress = activeProgress;
-        const skew = Math.max(-SKEW_MAX, Math.min(SKEW_MAX, velocity * SKEW_K));
-        items.forEach((item) => { item.style.transform = `skewX(${skew}deg)`; });
-
-        if (decoLeft) decoLeft.style.transform = `translateY(-50%) translateX(${activeProgress * -18}px) rotate(${activeProgress * -3}deg)`;
-        if (decoRight) decoRight.style.transform = `translateY(-50%) translateX(${activeProgress * 18}px) rotate(${activeProgress * 3}deg)`;
-      }
-
-      embla.on('scroll', tick);
-      embla.on('settle', () => {
-        // Hard reset rather than a tween — by 'settle' the velocity that
-        // drove the skew is already ~0, so the snap is imperceptible and
-        // this avoids fighting the next drag's raw style writes.
-        items.forEach((item) => { item.style.transform = ''; });
-      });
-      tick();
-    }
-
-    $('[data-spotlight-prev]')?.addEventListener('click', () => embla.scrollPrev());
-    $('[data-spotlight-next]')?.addEventListener('click', () => embla.scrollNext());
-
-    items.forEach((item) => {
-      // Only the visible frame is clickable — the item itself is now a
-      // full-width lane (see .spotlight__stage) mostly empty space
-      // either side of it.
-      const frame = item.querySelector('.spotlight__frame');
-      frame?.addEventListener('click', () => {
-        const i = Number(item.getAttribute('data-index'));
-        // Embla only leaves the active slide reachable in the viewport
-        // (the rest sit fully clipped offscreen), so a click here is
-        // always on the current project — no "recentre first" step.
-        // The active frame carries its own box into the project page's
+    const cards = $$('.work-card', root);
+    cards.forEach((card) => {
+      card.addEventListener('click', () => {
+        // The clicked frame carries its own box into the project page's
         // hero — same box-grow language the boot loader opens with.
-        frame.style.viewTransitionName = 'project-hero';
-        location.href = `project.html?p=${projects[i].slug}`;
+        const frame = card.querySelector('.work-card__frame');
+        if (frame) frame.style.viewTransitionName = 'project-hero';
       });
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (!CAN_HOVER) return;
-      if (e.key === 'ArrowRight') embla.scrollNext();
-      if (e.key === 'ArrowLeft') embla.scrollPrev();
     });
 
     if (!REDUCED) {
-      // Work fills the screen once it's the thing actually in view (see
-      // .section--work's min-height: 100vh) — the fixed navbar steps
-      // aside for as long as that's true, in either scroll direction,
-      // and the carousel settles into its resting position once, the
-      // moment it takes over.
-      const section = root.closest('.section--work');
-      const navbar = $('[data-navbar]');
-      // Whichever nav mode is actually live at this width — topnav rides
-      // inside .navbar already, so only sidenav and jumpbar need their own
-      // handling too.
-      const sidenav = $('.sidenav');
-      const jumpbar = $('.jumpbar');
-      if (section && (navbar || sidenav || jumpbar)) {
-        // A 160px buffer on both edges — the section is tall enough (see
-        // .section--work) to afford it — so the chrome hides/returns a
-        // beat before/after the exact pixel where the section meets the
-        // viewport edge, instead of needing pixel-perfect scroll landing.
-        ScrollTrigger.create({
-          trigger: section,
-          start: 'top top+=160',
-          end: 'bottom top-=160',
-          onToggle: (self) => {
-            const hide = self.isActive;
-            if (navbar) gsap.to(navbar, {
-              yPercent: hide ? -140 : 0, autoAlpha: hide ? 0 : 1,
-              duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
-            });
-            if (sidenav) gsap.to(sidenav, {
-              xPercent: hide ? 140 : 0, autoAlpha: hide ? 0 : 1,
-              duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
-            });
-            if (jumpbar) gsap.to(jumpbar, {
-              yPercent: hide ? 140 : 0, autoAlpha: hide ? 0 : 1,
-              duration: 0.5, ease: 'power3.inOut', overwrite: 'auto'
-            });
-          }
-        });
-
-        // The magnet: once scrolling brings the section within 400px of
-        // sitting flush with the viewport (from either direction), Lenis
-        // pulls the rest of the way to a clean alignment — a brief snap
-        // when you're already basically there, not a jump from afar.
-        // Fires once per crossing (onEnter/onEnterBack), never mid-browse.
-        const magnetize = () => lenis.scrollTo(section, { offset: 0, duration: 0.8 });
-        ScrollTrigger.create({
-          trigger: section,
-          start: 'top top+=400',
-          end: 'bottom top-=400',
-          onEnter: magnetize,
-          onEnterBack: magnetize
-        });
-      }
-
-      gsap.from(root, {
-        autoAlpha: 0, y: 40, scale: 0.94, duration: 1.1, ease: 'expo.out',
-        scrollTrigger: { trigger: section || root, start: 'top 75%', once: true }
+      gsap.from(cards, {
+        y: 40, autoAlpha: 0, duration: 0.9, ease: 'expo.out', stagger: 0.08,
+        scrollTrigger: { trigger: root, start: 'top 85%', once: true }
       });
     }
-  }
-
-  /* =======================================================
-     6b. Work deco — the two ribbon renders beside the spotlight
-     are a video, not a still: an RGB clip plus a white-on-black
-     luma matte, composited onto a canvas each frame (plain <video>
-     carries no alpha channel). Scrubbed to scroll position while
-     the section is being approached or browsed, then handed off to
-     play on its own once scrolling actually stops — the handoff is
-     seamless because playback just continues from whatever frame
-     the scrub left it on, no jump to rewind.
-     ======================================================= */
-  function initSpotlightDeco() {
-    const root = $('[data-spotlight]');
-    const canvasLeft = $('[data-deco-canvas="left"]', root || document);
-    const canvasRight = $('[data-deco-canvas="right"]', root || document);
-    const rgbVideo = $('[data-deco-rgb]', root || document);
-    const maskVideo = $('[data-deco-mask]', root || document);
-    if (!root || !canvasLeft || !canvasRight || !rgbVideo || !maskVideo) return;
-
-    const SIZE = 800; // internal render resolution — plenty for a decorative element
-    [canvasLeft, canvasRight].forEach((c) => { c.width = SIZE; c.height = SIZE; });
-    const leftCtx = canvasLeft.getContext('2d');
-    const rightCtx = canvasRight.getContext('2d');
-    const maskBuffer = document.createElement('canvas');
-    maskBuffer.width = SIZE; maskBuffer.height = SIZE;
-    const maskCtx = maskBuffer.getContext('2d');
-
-    // The matte is plain black/white video (no real alpha of its own) —
-    // read it back and copy its luminance into the alpha channel once
-    // per frame, shared by both sides before either one draws.
-    function updateMaskBuffer() {
-      maskCtx.setTransform(1, 0, 0, 1, 0, 0);
-      maskCtx.clearRect(0, 0, SIZE, SIZE);
-      maskCtx.drawImage(maskVideo, 0, 0, SIZE, SIZE);
-      const frame = maskCtx.getImageData(0, 0, SIZE, SIZE);
-      const d = frame.data;
-      for (let i = 0; i < d.length; i += 4) d[i + 3] = d[i];
-      maskCtx.putImageData(frame, 0, 0);
-    }
-
-    function drawSide(ctx, flip) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, SIZE, SIZE);
-      if (flip) { ctx.translate(SIZE, 0); ctx.scale(-1, 1); }
-      ctx.drawImage(rgbVideo, 0, 0, SIZE, SIZE);
-      ctx.globalCompositeOperation = 'destination-in';
-      ctx.drawImage(maskBuffer, 0, 0, SIZE, SIZE);
-      ctx.globalCompositeOperation = 'source-over';
-    }
-
-    if (REDUCED) {
-      // No scroll-scrub, no idle autoplay — just one settled frame.
-      const paintOnce = () => {
-        updateMaskBuffer();
-        drawSide(leftCtx, false);
-        drawSide(rightCtx, true);
-      };
-      if (rgbVideo.readyState >= 2) paintOnce();
-      else rgbVideo.addEventListener('loadeddata', paintOnce, { once: true });
-      return;
-    }
-
-    (function render() {
-      updateMaskBuffer();
-      drawSide(leftCtx, false);
-      drawSide(rightCtx, true);
-      requestAnimationFrame(render);
-    })();
-
-    let playing = false;
-    let idleTimer = null;
-    let rampTween = null;
-    // Browsers refuse a playbackRate much below 1/16 (throws, doesn't
-    // clamp), so that's the floor for "as close to stopped as allowed."
-    const MIN_RATE = 0.0625;
-    function setRate(rate) {
-      try { rgbVideo.playbackRate = maskVideo.playbackRate = rate; } catch { /* out of range on this browser — leave it */ }
-    }
-
-    // Handing off to autoplay is a ramp, not a jump — playbackRate eases
-    // up over a beat so the clip visibly picks up speed rather than
-    // snapping straight to normal playback the instant scrolling stops.
-    function enterIdlePlay() {
-      if (playing) return;
-      playing = true;
-      const proxy = { rate: MIN_RATE };
-      setRate(proxy.rate);
-      rgbVideo.play().catch(() => {});
-      maskVideo.play().catch(() => {});
-      rampTween?.kill();
-      rampTween = gsap.to(proxy, {
-        rate: 1, duration: 1.4, ease: 'sine.inOut',
-        onUpdate: () => setRate(proxy.rate)
-      });
-    }
-    function exitIdlePlay() {
-      if (!playing) return;
-      playing = false;
-      rampTween?.kill();
-      rampTween = null;
-      rgbVideo.pause();
-      maskVideo.pause();
-      setRate(1);
-    }
-    function scrubTo(progress) {
-      const duration = rgbVideo.duration;
-      if (!Number.isFinite(duration)) return;
-      const t = Math.max(0, Math.min(1, progress)) * duration;
-      rgbVideo.currentTime = t;
-      maskVideo.currentTime = t;
-    }
-    function armIdle() {
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(enterIdlePlay, 600);
-    }
-
-    const section = root.closest('.section--work');
-
-    // The only two states this responds to: scrolling (scrubbed, 1:1,
-    // live) and not scrolling (playing). Nothing else stops or starts
-    // it — no "left the section" check, no visibility check. 0 the
-    // moment .section--work's top edge appears at the bottom of the
-    // viewport, 1 once that edge reaches the top — a full viewport of
-    // scroll distance mapped straight onto the clip, so the video is
-    // genuinely under the scrollbar's control while arriving.
-    ScrollTrigger.create({
-      trigger: section || root,
-      start: 'top bottom',
-      end: 'top top',
-      onUpdate: (self) => {
-        if (!self.isActive) return;
-        exitIdlePlay();
-        scrubTo(self.progress);
-        armIdle();
-      },
-      onEnter: armIdle,
-      onEnterBack: armIdle
-    });
   }
 
   /* =======================================================
@@ -977,7 +683,7 @@
        into nothing and the page looked blank. */
     const modules = [
       ['dither', initDither], ['heroVideo', initHeroVideo], ['hero', initHero],
-      ['spotlight', initSpotlight], ['spotlightDeco', initSpotlightDeco], ['logoBlend', initLogoBlend], ['nav', initNav],
+      ['workGrid', initWorkGrid], ['logoBlend', initLogoBlend], ['nav', initNav],
       ['chrome', initChrome], ['navSwitch', initNavSwitch], ['spine', initSpine],
       ['microMotion', initMicroMotion], ['reveals', initReveals], ['loader', initLoader]
     ];

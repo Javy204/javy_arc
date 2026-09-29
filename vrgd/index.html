@@ -24,7 +24,7 @@ document.documentElement.classList.add('js');
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=53">
+<link rel="stylesheet" href="css/style.css?v=55">
 </head>
 <body data-loading="true">
 
@@ -217,34 +217,10 @@ document.documentElement.classList.add('js');
     <div class="section__head">
       <span class="mono is-dim">[02]</span>
       <span class="mono">WORK</span>
-      <span class="mono is-dim" data-work-count>[06]</span>
+      <span class="mono is-dim" data-work-count>[04]</span>
     </div>
 
-    <div class="spotlight" data-spotlight>
-      <!-- Composited on a canvas each frame from the two hidden source
-           videos below — RGB render + a white-on-black luma matte, since
-           plain <video> has no alpha channel. See initSpotlightDeco in
-           main.js. Scroll-scrubbed while arriving/browsing, then plays
-           freely once idle. -->
-      <div class="spotlight__deco spotlight__deco--left" aria-hidden="true">
-        <canvas data-deco-canvas="left"></canvas>
-      </div>
-      <div class="spotlight__deco spotlight__deco--right" aria-hidden="true">
-        <canvas data-deco-canvas="right"></canvas>
-      </div>
-      <video class="spotlight__deco-source" data-deco-rgb src="assets/work-deco/blob-rgb.mp4?v=2" muted playsinline loop preload="auto"></video>
-      <video class="spotlight__deco-source" data-deco-mask src="assets/work-deco/blob-mask.mp4?v=2" muted playsinline loop preload="auto"></video>
-
-      <span class="spotlight__title mono" data-spotlight-title></span>
-
-      <div class="spotlight__stage" data-spotlight-stage role="list"></div>
-
-      <div class="spotlight__nav">
-        <button class="spotlight__arrow" data-spotlight-prev aria-label="Previous project" data-cursor-hover data-cursor-text="PREV">←</button>
-        <span class="spotlight__count mono is-dim" data-spotlight-count></span>
-        <button class="spotlight__arrow" data-spotlight-next aria-label="Next project" data-cursor-hover data-cursor-text="NEXT">→</button>
-      </div>
-    </div>
+    <div class="work-grid" data-work-grid role="list"></div>
   </section>
 
   <!-- ============ ASSETS ============ -->
@@ -376,9 +352,7 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/Draggable.min.js"></script>
 <script src="js/vendor/InertiaPlugin.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
-<script src="js/vendor/embla-carousel.umd.js"></script>
 <script src="js/shared.js?v=3"></script>
-<script src="js/main.js?v=38"></script>
-<script src="js/tune-panel.js?v=1"></script>
+<script src="js/main.js?v=39"></script>
 </body>
 </html>

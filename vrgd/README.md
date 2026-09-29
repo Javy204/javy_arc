@@ -222,12 +222,33 @@ kterou kartu by šla, ale riziko/komplikace za to nestálo.
 
 ### Rámeček — fotka oříznutá tvarem videa
 
-**Rámeček není obdélník.** Tvar je siluetou smyčky chromového 3D renderu
-(`assets/work-deco/blob-alpha.webm`) — canvas vykreslí fotku projektu a
-pak ji ořízne (`globalCompositeOperation = 'destination-in'`) aktuálním
-snímkem toho videa, takže viditelný obrys pomalu "dýchá" podle animace.
+**Rámeček není obdélník** a je **masivní** (`clamp(420px, 82vh, 1100px)`,
+skoro celá výška viewportu) — tvar je siluetou smyčky chromového 3D
+renderu (`assets/work-deco/blob-alpha.webm`, dnes 1600px zdroj z 1920p
+exportu, dřív 720px — na velké ploše byl nízké rozlišení vidět). Kreslení
+jede na **dvě vrstvy** na jednom viditelném canvasu:
+
+1. **Tlumená celá fotka** (`ctx.globalAlpha = 0.22 + boost*0.6`) — foto je
+   vždycky aspoň slabě vidět v celém rámečku.
+2. **Ostrý akcent** — stejná fotka nakreslená znovu na samostatný scratch
+   canvas, tam teprve `globalCompositeOperation = 'destination-in'` s
+   aktuálním snímkem videa, a až tenhle výsledek se dokreslí navrch.
+
+(Nejdřív existovala jen vrstva 2 samotná — foto bylo vidět jen tenkými
+proužky skrz stuhy blobu, což čtenář správně pojmenoval jako "nahledy
+nejsou moc videt". Dvouvrstvá verze je oprava tohohle, ne původní návrh.)
+
 Stejný sdílený `<video>` (jeden decode) kreslí i do dvou malých canvasů v
-šipkách (`.spotlight__arrow-blob`) — tam bez fotky, jen samotný tvar.
+šipkách (`.spotlight__arrow-blob`) — tam bez fotky/dim vrstvy, jen
+samotný tvar.
+
+**`boost`** (0 v klidu, až 1 v půlce přepnutí mezi projekty) je čistě
+geometrický přepočet každý frame — vzdálenost nejbližšího slidu od středu
+viewportu, `Math.min(1, minAbs * 2)` — **žádný stav**, jen čtení aktuální
+pozice DOM elementů. Zvedá jas dim vrstvy, takže fotka při swipu viditelně
+"vzplane". Tohle byla reakce na "nepůsobí to propojené, je to porad stejná
+animace" — má to dělat dojem, že se celý blok při přechodu něčím děje, ne
+jen že se vymění dlaždice.
 
 **Proč WebM s reálnou alfou, ne živá kompozice z černobílé masky:**
 Zdrojový export byl RGB klip + samostatný černobílý luma-matte klip (běžný
@@ -240,11 +261,17 @@ souboru:
 
 ```bash
 ffmpeg -i rgb.mp4 -i mask.mp4 -filter_complex \
-  "[0:v]fps=30,scale=720:720,format=yuva420p[rgb];[1:v]fps=30,scale=720:720,format=gray[a];[rgb][a]alphamerge" \
-  -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 0 -crf 34 -auto-alt-ref 0 blob-alpha.webm
+  "[0:v]fps=30,scale=1600:1600,format=yuva420p[rgb];[1:v]fps=30,scale=1600:1600,format=gray[a];[rgb][a]alphamerge" \
+  -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 0 -crf 30 -auto-alt-ref 0 blob-alpha.webm
 ```
 
-Canvas pak dělá jen `drawImage(video, ...)` — žádná pixelová smyčka.
+Zdrojové soubory (RGB + mask, ve 1080p/1920p/3840p) byly v
+`assets/drive-download-20260929T140040Z-1-001/` — pokud tahle složka
+zmizela, je potřeba je od uživatele znovu vyžádat, encode se dá zopakovat
+z čehokoli vyššího než 1080p.
+
+Canvas pak dělá jen `drawImage(video, ...)` — žádná pixelová smyčka na
+samotné maskování (jen na tu dim/sharp dvouvrstvou kompozici výš).
 
 **Proč video jen `autoplay loop`, ne navázané na scroll:** Předchozí verze
 mapovala pozici scrollu na `currentTime` videa (scroll-scrub) a po
@@ -254,7 +281,8 @@ ještě starší verze) samotná canvas kompozice. **Teď video prostě běží
 pořád dokola, neptá se na scroll ani na to, který slide je zrovna
 aktivní.** Nula stavového automatu = nula míst, kde se to může zaseknout.
 Render smyčka (`requestAnimationFrame`) jen furt dokola kreslí, co je
-zrovna na videu vidět.
+zrovna na videu vidět. `boost` výš je z tohohle pravidla výjimka jen
+zdánlivě — taky nic neuchovává, jen čte DOM pozice za běhu.
 
 **Šipky mají vlastní idle pulz** (`@keyframes spotlight-arrow-pulse`,
 posunutý o 1.8s mezi prev/next, aby nedýchaly synchronně) — čistě CSS,
@@ -266,6 +294,22 @@ nezávislé na JS/videu, respektuje `prefers-reduced-motion`.
 > se rozbít v nějaké kombinaci rychlého scrollu / rychlého klikání /
 > opuštění sekce uprostřed přechodu. Ambientní smyčka bez vazby na
 > interakci se ukázala jako jediná verze, co se přestala rozbíjet.
+>
+> **Stav k 29. 9. 2026: mechanicky funguje (žádné console chyby, žádné
+> zaseknutí), ale poslední zpětná vazba na vzhled byla "to je hruza" a
+> uživatel chtěl řešit vzhled v novém chatu.** Než cokoli dalšího stavět
+> na týhle verzi, stojí za to se zeptat, co konkrétně nesedí — jestli je
+> to pořád ten samý blob motiv (možná unavuje po tolika iteracích na
+> stejném assetu), kompozice dim+sharp vrstev, timing přechodu, nebo
+> něco úplně jiného. Historie požadavků v tomhle sezení: 3D válec (moc
+> rušivé pozadí) → Embla + scroll-scrub video (opakovaně se zasekávalo) →
+> grid podle noartmusic.com/shop ("tohle jsem nechtěl, chci horizontální
+> slide") → Embla + blob-masked rámeček, malý (nahledy nejsou videt) →
+> stejné, ale masivní + dvouvrstvé (aktuální stav, "hruza"). Vzorec:
+> každá jednotlivá oprava dostala kladnou/neutrální zpětnou vazbu v
+> moment, kdy se ukázala, ale souhrnný dojem ze sekce jako celku zůstal
+> negativní — možná stojí za úvahu úplně jiný směr než "video definuje
+> tvar rámečku", ne další ladění týhle konkrétní implementace.
 
 ## Klávesa I — blend logotypu
 

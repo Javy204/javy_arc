@@ -939,12 +939,15 @@
       ...$$('[data-scramble-in]')
     ];
     labels.forEach((el) => {
-      const text = el.textContent;
+      // Read at reveal time, not here — this runs at boot, before async
+      // bits like the WORK count (set once work.json resolves) have
+      // necessarily landed, and capturing early meant scrambling back
+      // to a stale snapshot the moment the label scrolled into view.
       ScrollTrigger.create({
         trigger: el,
         start: 'top 92%',
         once: true,
-        onEnter: () => window.VRGD.scramble(el, text, 0.7)
+        onEnter: () => window.VRGD.scramble(el, el.textContent, 0.7)
       });
     });
 

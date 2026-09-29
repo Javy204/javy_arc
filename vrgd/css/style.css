@@ -445,7 +445,10 @@ html:not(.js) .loader { display: none; }
    without scoping this the navbar stayed invisible there — and the corner
    logotype is the only way back. */
 .js body[data-loading="true"] .navbar { opacity: 0; transform: translateY(-1em); }
-.navbar__mark { width: clamp(52px, 5vw, 74px); flex: 0 0 auto; }
+/* The old glyph only filled ~30% of its square viewBox's height, so the
+   full-bleed union mark needs a container roughly half as wide to read at
+   the same physical size — matched to the old rendered glyph height. */
+.navbar__mark { width: clamp(27px, 2.6vw, 38px); flex: 0 0 auto; }
 /* Same contrast source as the rest of the chrome (registerDarkSurface /
    .on-invert) rather than the light/dark theme — the mark sits over
    whatever section is scrolled under the fixed navbar right now, which

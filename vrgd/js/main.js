@@ -5,7 +5,7 @@
 (() => {
   'use strict';
 
-  gsap.registerPlugin(ScrollTrigger, SplitText, Flip, CustomEase, Observer, Draggable, InertiaPlugin);
+  gsap.registerPlugin(ScrollTrigger, SplitText, Flip, CustomEase, Observer);
 
   const { REDUCED, CAN_HOVER, $, $$ } = window.VRGD;
 

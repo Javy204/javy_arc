@@ -23,9 +23,11 @@ Pak `http://localhost:3336`. (V Claude Code je nakonfigurovaný jako preview ser
 | `events.html` | Události — vertikální karusel. |
 | `shop.html` | Lookbook — mřížka s filtrem velikostí. |
 | `js/shared.js` | Společné pro všechny stránky: kurzor, scramble, menu, hodiny. |
-| `js/main.js` | Jen index — loader, hero, slider, revealy, nav. |
+| `js/main.js` | Jen index — loader, hero, WORK spotlight (`initSpotlight`), revealy, nav. |
 | `js/gallery.js` | Jen galerie — police, otevírání knihy a listování. |
 | `js/pages.js` | Podstránky events + shop. Každý blok se vypne, když jeho markup na stránce není. |
+| `project.html` / `js/project.js` | Detail jednoho WORK projektu (`?p=<slug>`). Čte `assets/work.json`. |
+| `assets/work.json` | **Obsah WORK.** Jeden objekt = jeden projekt (hero, media, preview, credits). |
 | `assets/gallery.json` | **Obsah galerie.** Tady se přidávají fotky. |
 | `js/vendor/` | GSAP 3.15 (+ ScrollTrigger, SplitText, Flip, Draggable, Inertia, CustomEase, Observer) a Lenis. Lokálně, nic se netahá z CDN. |
 | `assets/fonts/` | Mea Culpa, Inter, Annie Use Your Telescope, Instrument Sans jako woff2. |
@@ -154,6 +156,117 @@ Přidání produktu = jedno `<a class="prod" data-shop-item data-sizes="S M L">`
 do `[data-shop-grid]`. Až bude reálný obchod, tahle vrstva zůstane a napojí se
 na ni jen data a checkout.
 
+## WORK — horizontální slide s blob-masked rámečkem
+
+Sekce `#work` na indexu (`initSpotlight()` v `main.js`) + `project.html` pro
+detail jednoho projektu (`?p=<slug>`, čte `js/project.js`). **Tohle prošlo
+během jednoho sezení čtyřmi kompletně přepsanými verzemi** (3D válec →
+Embla + scroll-scrubbed video → prostý grid → zpátky Embla + blob-masked
+rámeček), takže než cokoli měnit, stojí za to vědět, proč to dřívější
+verze zahodily — je to níž.
+
+### Obsah — `assets/work.json`
+
+Jeden projekt = jeden objekt v `projects`:
+
+```json
+{
+  "slug": "bolt-food", "title": "Bolt Food", "meta": "CAMPAIGN / 2025",
+  "headline": "...", "body": ["odstavec", "odstavec"],
+  "hero": { "src": "assets/work/bolt-food/hero.webp" },
+  "preview": "assets/work/bolt-food/preview.webp",
+  "media": [{ "src": "...", "caption": "...", "full": true }],
+  "credits": [{ "label": "Client", "value": "Bolt Food" }]
+}
+```
+
+- **`hero`** — barevná fotka, jen na `project.html` (velký úvodní snímek).
+- **`preview`** — černobílá, **na šířku** oříznutá verze, jen pro slide na
+  indexu. Landscape zdroj je důležitý: portrétová fotka nacpaná do
+  čtvercového plátna (viz níž) se ořízne skoro na nic. `young-fashion-stars`
+  žádný landscape zdroj nemá (disk s materiálem nebyl při zpracování
+  připojený) — jediný projekt, co na tohle doplácí.
+- Chybí-li `preview`, spadne se na `hero.src`; chybí-li úplně obojí,
+  vykreslí se halftone placeholder (`data-placeholder`, sdílená utilita).
+
+**Aktuální obsah (2026): 4 skutečné klientské projekty** (Young Fashion
+Stars pro Mattoni, Bolt Food, Mattoni Authentic, Foodora) — žádné
+placeholdery. `project.html`/`project.js` jsem během tohohle sezení
+neměnil, jede beze změny.
+
+### Slide — Embla Carousel
+
+Carousel jede na **Embla** (embla-carousel.com), vendorovaná v
+`js/vendor/embla-carousel.umd.js`. Dřív tu byl ručně psaný 3D válec (GSAP
+proxy transform + `Observer` drag) — vypadal zajímavě, ale drag logika
+uměla nechat dva snímky rozjeté napůl tweenu naráz. Embla je zavedená
+knihovna, se kterou tohle nehrozí; mechanicky fungovala spolehlivě celou
+dobu ladění — cokoli se rozbíjelo, bylo vždycky ve vrstvě okolo (video),
+ne v ní.
+
+`.spotlight__stage` je Embla viewport (full-bleed, `overflow:hidden`),
+`.spotlight__ring` kontejner (flex row), každý `.spotlight__item` je
+**celá šířka viewportu** (ne šířka rámečku) s vycentrovaným
+`.spotlight__frame` uvnitř — takže swap jede od kraje ke kraji obrazovky,
+ne jen v úzkém boxu, a sousední projekty jsou vždy úplně mimo canvas
+(clipnuté), nikdy nekoukají zpola do záběru.
+
+Šipky/klávesy šipek/drag mění slide; klik na aktivní rámeček (jediný, co
+je vůbec viditelný) naviguje na `project.html?p=<slug>` a nastaví
+`view-transition-name: project-hero` na kliknutý rámeček — stejný pár
+jméno nese `.project__hero` na cílové stránce, takže z toho `@view-
+transition` (v `style.css` nahoře) udělá plynulé zvětšení. Návrat z
+detailu pojmenuje celý `.spotlight` kontejner (existuje hned, ještě než
+doběhne `fetch('assets/work.json')`), ne konkrétní kartu — přesnost na
+kterou kartu by šla, ale riziko/komplikace za to nestálo.
+
+### Rámeček — fotka oříznutá tvarem videa
+
+**Rámeček není obdélník.** Tvar je siluetou smyčky chromového 3D renderu
+(`assets/work-deco/blob-alpha.webm`) — canvas vykreslí fotku projektu a
+pak ji ořízne (`globalCompositeOperation = 'destination-in'`) aktuálním
+snímkem toho videa, takže viditelný obrys pomalu "dýchá" podle animace.
+Stejný sdílený `<video>` (jeden decode) kreslí i do dvou malých canvasů v
+šipkách (`.spotlight__arrow-blob`) — tam bez fotky, jen samotný tvar.
+
+**Proč WebM s reálnou alfou, ne živá kompozice z černobílé masky:**
+Zdrojový export byl RGB klip + samostatný černobílý luma-matte klip (běžný
+formát z 3D renderu, protože obyčejné video alfa kanál nemá). První verze
+je skládala za běhu na canvasu (`getImageData`/`putImageData` každý
+frame, luminance → alfa) — fungovalo to, ale byla to další vrstva kódu,
+která mohla něco pokazit. `ffmpeg` (filtr `alphamerge`) teď spojí oba
+klipy do **jednoho** VP9/WebM se skutečnou alfou napečenou přímo v
+souboru:
+
+```bash
+ffmpeg -i rgb.mp4 -i mask.mp4 -filter_complex \
+  "[0:v]fps=30,scale=720:720,format=yuva420p[rgb];[1:v]fps=30,scale=720:720,format=gray[a];[rgb][a]alphamerge" \
+  -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 0 -crf 34 -auto-alt-ref 0 blob-alpha.webm
+```
+
+Canvas pak dělá jen `drawImage(video, ...)` — žádná pixelová smyčka.
+
+**Proč video jen `autoplay loop`, ne navázané na scroll:** Předchozí verze
+mapovala pozici scrollu na `currentTime` videa (scroll-scrub) a po
+zastavení scrollu předávala řízení na `.play()`. Vypadalo to dobře na
+papíře, ale v praxi se to opakovaně někde zaseklo — buď video, nebo (u
+ještě starší verze) samotná canvas kompozice. **Teď video prostě běží
+pořád dokola, neptá se na scroll ani na to, který slide je zrovna
+aktivní.** Nula stavového automatu = nula míst, kde se to může zaseknout.
+Render smyčka (`requestAnimationFrame`) jen furt dokola kreslí, co je
+zrovna na videu vidět.
+
+**Šipky mají vlastní idle pulz** (`@keyframes spotlight-arrow-pulse`,
+posunutý o 1.8s mezi prev/next, aby nedýchaly synchronně) — čistě CSS,
+nezávislé na JS/videu, respektuje `prefers-reduced-motion`.
+
+> Pokud se WORK bude ještě předělávat: hlavní ponaučení z týhle série je
+> **nespojovat vizuální efekt (video, transformace) se stavem scrollu**,
+> pokud to fakt není nutné. Cokoli navázané na scroll pozici mělo tendenci
+> se rozbít v nějaké kombinaci rychlého scrollu / rychlého klikání /
+> opuštění sekce uprostřed přechodu. Ambientní smyčka bez vazby na
+> interakci se ukázala jako jediná verze, co se přestala rozbíjet.
+
 ## Klávesa I — blend logotypu
 
 Na landing page přepíná **klávesa `I`** velké logo mezi dvěma režimy:
@@ -201,7 +314,7 @@ Rozestup karet řídí `SPACING`, hloubku stohu `scale` a `autoAlpha` v
 - **Reveal** — proza se přes `SplitText` + `Flip` přesype z ragged do justified,
   nadpisy najíždějí po slovech.
 - **Lenis** smooth scroll napojený na `ScrollTrigger`.
-- **Slider** — drag s dojezdem (`Draggable` + `InertiaPlugin`).
+- **WORK** — Embla Carousel (drag/šipky), viz sekce WORK výš.
 
 Vše respektuje `prefers-reduced-motion` a bez JS se stránka zobrazí staticky
 (skryté pre-roll stavy jsou schované pod `.js`).
@@ -326,9 +439,13 @@ nepovinný: bez něj dostane placeholder levá strana otevírací dvojstrany
 obrázku, pro čtečky obrazovky. Kniha uvnitř nemá žádné popisky ani čísla
 stran, jen fotky; title/meta/blurb žijí nad knihou (viz níž).
 
-**Reálný příklad:** `assets/gallery/myfs/` — kniha „Mattoni Young Fashion
-Stars" (`cover.webp` + `01`–`14.webp` + `back.webp`), první skutečná kniha
-v galerii, zbytek jsou zatím placeholdery.
+**Reálné příklady:** `assets/gallery/myfs/` (kniha „Mattoni Young Fashion
+Stars") a `assets/gallery/boltfood/` (kniha „Bolt Food", recruitment film)
+— obě `cover.webp` + číslované stránky + `back.webp`. Zbylých 6 knih
+(Night Shift, Snake Height, Halftone Atlas, S*burban, Legacy Project, Raw
+Archive) jsou zatím placeholdery — jména se náhodou shodují se starými
+fiktivními WORK projekty z doby, než WORK dostal skutečný obsah (viz WORK
+sekce výš), ale je to čistě shoda, gallery.json je nezávislý soubor.
 
 **`pageAspect`** — nepovinné, `"W / H"` pro *jednu* stránku (default
 `"3 / 4"`, jako dřív). Zdrojové stránky MYFS jsou čtvercové screenshoty
@@ -401,7 +518,27 @@ tedy přední obálka. Kotva zoomu je na 75 % šířky knihy.
 stylu nebo JS bumpni to `N`** — prohlížeč i preview jinak servírují starou
 verzi.
 
+## Logo — dvě různé věci, snadno se to splete
+
+**Velké logo** (hero, patička CONTACTS) je pořád inline SVG `<symbol
+id="vrgd">` z `index.html`, přes `<use>`. Jeho `viewBox` je "0 0 2048
+2048" — **čtvercový**, ale samotný wordmark uvnitř zabírá jen úzký pruh
+(bbox zhruba x:351 y:739 š:1467 v:618). `.contacts__mark` proto NENÍ
+obyčejné `width:100%;height:auto` — je oříznuté čistě CSS trikem
+(`overflow:hidden` + `aspect-ratio` na kontejneru, `scale`+`translate` na
+svg), protože **`<use>` na `<symbol>` vždycky nafitne CELÝ symbol viewBox
+do wrapperu** (`preserveAspectRatio`), takže změna viewBoxu na samotném
+`<svg>` wrapperu nekropuje — jen mění letterboxing. (Zkoušel jsem to,
+rozbilo to i hero logo, je to zpátky.)
+
+**Malé logo v navbaru** (`.navbar__mark`) je od nedávna **jiná věc** —
+rastrové PNG→WebP (`assets/union-mark-black.webp` / `-white.webp`),
+černobílá varianta podle toho, jestli je zrovna navbar `.on-invert` (ne
+podle light/dark tématu — to jsou dvě různé věci, hero je tmavá plocha v
+obou tématech). Nepoužívá `#vrgd` symbol vůbec.
+
 ## Texty
 
-Copy v sekcích ABOUT / WORK / CONTACTS je zástupný — struktura sedí, obsah je
-na výměnu. Položky prací jsou v `index.html` jako `<article class="card">`.
+Copy v sekcích ABOUT a CONTACTS je zástupný — struktura sedí, obsah je na
+výměnu. **WORK má od nedávna skutečný obsah** (4 klientské projekty, viz
+sekce WORK výš) — copy tam psané v `work.json` je reálné, ne placeholder.

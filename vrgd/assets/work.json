@@ -1,5 +1,5 @@
 {
-  "_comment": "WORK slider -> project detail pages. project.html?p=<slug> reads this file and renders one entry. 'hero'/'media' items are {src, kind, caption} — kind is 'image' (default) or 'video'; missing/null src falls back to the halftone placeholder, same convention as the gallery. 'media' items may set 'full': true to span the full width instead of sitting in the 2-up grid. 'credits' is a flat label/value list.",
+  "_comment": "WORK slider -> project detail pages. project.html?p=<slug> reads this file and renders one entry. 'hero'/'media' items are {src, kind, caption} — kind is 'image' (default) or 'video'; missing/null src falls back to the halftone placeholder, same convention as the gallery. 'media' items may set 'full': true to span the full width instead of sitting in the 2-up grid. 'credits' is a flat label/value list. 'preview' is a plain src string for the homepage spotlight carousel only (grayscale, landscape-cropped) — the project page always uses 'hero' instead.",
   "projects": [
     {
       "slug": "young-fashion-stars",
@@ -11,6 +11,7 @@
         "One studio, one light, one wall — the same setup repeated for every designer in the lineup, so the only thing that changes frame to frame is the collection itself."
       ],
       "hero": { "src": "assets/work/young-fashion-stars/hero.webp" },
+      "preview": "assets/work/young-fashion-stars/preview.webp",
       "media": [
         { "src": "assets/work/young-fashion-stars/m1.webp", "caption": "Look, pass one" },
         { "src": "assets/work/young-fashion-stars/m2.webp", "caption": "Backstage, full room", "full": true },
@@ -36,6 +37,7 @@
         "Cast from real couriers rather than models, on location across the city rather than in front of a backdrop, so the campaign reads as a shift log rather than an ad."
       ],
       "hero": { "src": "assets/work/bolt-food/hero.webp" },
+      "preview": "assets/work/bolt-food/preview.webp",
       "media": [
         { "src": "assets/work/bolt-food/m1.webp", "caption": "On foot, Vinohrady" },
         { "src": "assets/work/bolt-food/m2.webp", "caption": "By bike, city park", "full": true },
@@ -61,6 +63,7 @@
         "The crew stays visible in half the frames on purpose: a boom mic, a reflector, someone checking a monitor. The point was never to hide that it's a shoot, only to make sure what's in front of the camera is real."
       ],
       "hero": { "src": "assets/work/mattoni/hero.webp" },
+      "preview": "assets/work/mattoni/preview.webp",
       "media": [
         { "src": "assets/work/mattoni/m1.webp", "caption": "Warehouse floor" },
         { "src": "assets/work/mattoni/m2.webp", "caption": "Aisle, full depth", "full": true },
@@ -86,6 +89,7 @@
         "Loosest brief of the year: bring the bike, bring the bag, see where the day goes. It went to a golden egg."
       ],
       "hero": { "src": "assets/work/foodora/hero.webp" },
+      "preview": "assets/work/foodora/preview.webp",
       "media": [
         { "src": "assets/work/foodora/m1.webp", "caption": "Rider, first light" },
         { "src": "assets/work/foodora/m2.webp", "caption": "Set, full crew", "full": true },

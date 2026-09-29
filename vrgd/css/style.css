@@ -893,28 +893,28 @@ html:not(.js) .loader { display: none; }
   min-height: 1.4em;
 }
 
-/* The stage is the camera's view into a small 3D scene: a ring of
-   16:9 frames rotated around one shared vertical axis. The active
-   frame sits at rotationY:0, pushed toward the viewer by the ring's
-   own radius; everything else recedes around the far side of the
-   cylinder, still faintly visible — the point of the whole exercise. */
+/* The stage is Embla's viewport: one 16:9 frame wide, everything else
+   clipped rather than left peeking at the edges — a project ring used
+   to recede around a 3D cylinder here, but the neighbours-in-the-
+   background look read as clutter, not depth, so now only the active
+   frame is ever on screen. See js/vendor/embla-carousel.umd.js. */
 .spotlight__stage {
   position: relative;
   z-index: 1;
+  width: clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px));
   height: calc(clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px)) * 9 / 16);
-  perspective: 1800px;
+  margin: 0 auto;
+  overflow: hidden;
 }
 .spotlight__ring {
-  position: relative;
+  display: flex;
   width: 100%; height: 100%;
-  transform-style: preserve-3d;
 }
 .spotlight__item {
-  position: absolute;
-  top: 0; left: 50%;
-  width: clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px));
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 0;
   height: 100%;
-  margin-left: calc(clamp(300px, calc(var(--item-w) * 1vw), calc(var(--item-max) * 1px)) / -2);
   cursor: pointer;
 }
 .spotlight__frame {
@@ -923,6 +923,8 @@ html:not(.js) .loader { display: none; }
   overflow: hidden;
   background: var(--plate);
 }
+/* Preview images are exported already grayscale (see assets/work/<slug>/
+   preview.webp) — the color hero is saved for the project page. */
 .spotlight__frame img { width: 100%; height: 100%; object-fit: cover; }
 
 .spotlight__nav {

@@ -315,17 +315,22 @@
   }
 
   /* =======================================================
-     6. Work spotlight — a ring of 16:9 frames on a shared vertical
-     axis, like projects mounted on a giant slow-turning cylinder:
-     the active one faces the camera dead-on, the rest recede around
-     the far side, still faintly visible. Data comes straight from
-     work.json (the same file project.js reads), so the index and
-     the project pages can never list a different set of projects.
+     6. Work spotlight — one project at a time, full-bleed, swiped with
+     Embla Carousel (embla-carousel.com — vendored, js/vendor/embla-
+     carousel.umd.js). The previous version hand-rolled a 3D ring with
+     a GSAP-tweened transform proxy and a GSAP Observer for drag; it
+     looked neat but the neighbouring frames left half-visible at the
+     sides read as clutter, and the custom drag logic could leave two
+     frames mid-tween at once. Embla is a maintained library plenty of
+     production sites already ship, and only the active frame is ever
+     on screen. Data comes straight from work.json (the same file
+     project.js reads), so the index and the project pages can never
+     list a different set of projects.
      ======================================================= */
   async function initSpotlight() {
     const root = $('[data-spotlight]');
     const stage = $('[data-spotlight-stage]', root || document);
-    if (!root || !stage) return;
+    if (!root || !stage || !window.EmblaCarousel) return;
 
     // Arriving back from a project page: name this whole block so the
     // page's hero (always named project-hero, see project.html's CSS)
@@ -347,94 +352,49 @@
     const workCount = $('[data-work-count]');
     if (workCount) workCount.textContent = `[${String(projects.length).padStart(2, '0')}]`;
 
-    stage.innerHTML = `<div class="spotlight__ring" data-spotlight-ring>${projects.map((p, i) => `
+    // The homepage carousel always shows the grayscale, landscape-cropped
+    // 'preview' image (falls back to the project hero if one is missing),
+    // never the color hero itself — that's saved for the project page.
+    stage.innerHTML = `<div class="spotlight__ring" data-spotlight-ring>${projects.map((p, i) => {
+      const src = p.preview || p.hero?.src;
+      return `
       <div class="spotlight__item" role="listitem" data-index="${i}" data-cursor-hover data-cursor-text="VIEW">
-        <div class="spotlight__frame"${p.hero?.src ? '' : ` data-placeholder="${(i % 6) + 1}"`}>
-          ${p.hero?.src ? `<img src="${p.hero.src}" alt="">` : ''}
+        <div class="spotlight__frame"${src ? '' : ` data-placeholder="${(i % 6) + 1}"`}>
+          ${src ? `<img src="${src}" alt="">` : ''}
         </div>
-      </div>`).join('')}</div>`;
+      </div>`;
+    }).join('')}</div>`;
 
     const items = $$('.spotlight__item', stage);
     const titleEl = $('[data-spotlight-title]');
     const countEl = $('[data-spotlight-count]');
     const N = items.length;
-    // A shallow step, not 360/N — the point is a cylinder so big that
-    // the active frame and its neighbours read as almost flat, and only
-    // several steps out does the curve become obvious (still faintly
-    // visible in the distance, never a wall you can tell is bent).
-    const STEP = 16;
-    let index = 0;
-    let radius = 0;
 
-    // The circumradius that keeps flat panels of this width, spaced STEP
-    // degrees apart, roughly edge to edge — a small STEP forces a huge
-    // radius, which is exactly the "giant cylinder" this is going for.
-    const measure = () => {
-      const w = items[0].getBoundingClientRect().width;
-      radius = (w / 2) / Math.tan((STEP / 2) * Math.PI / 180);
-    };
+    const embla = window.EmblaCarousel(stage, {
+      loop: true,
+      duration: REDUCED ? 1 : 22
+    });
 
-    // GSAP's named transform props (rotationY, z, …) always compose as
-    // translate-then-rotate on a single element, which — for a ring —
-    // spins each item in place instead of swinging it around the shared
-    // axis. Tweening a plain proxy and writing the CSS `transform`
-    // string by hand keeps the order we actually want: rotate, then push
-    // out to the radius, then pull the whole ring back by that same
-    // radius (an outer, unrotated translateZ) so the ACTIVE frame — the
-    // only one at angle 0 — lands back at z:0 instead of ballooning
-    // toward the camera. Only the frames rotated away from centre end up
-    // behind that resting plane, receding exactly like the far side of
-    // a cylinder should.
-    function place(item, angle, scale, animate) {
-      const proxy = item._ring || (item._ring = { angle, scale });
-      gsap.to(proxy, {
-        angle, scale,
-        duration: animate ? 1.1 : 0,
-        ease: 'power3.inOut',
-        overwrite: 'auto',
-        onUpdate() {
-          item.style.transform =
-            `translateZ(${-radius}px) rotateY(${proxy.angle}deg) translateZ(${radius}px) scale(${proxy.scale})`;
-        }
-      });
-    }
-
-    function layout(animate) {
-      items.forEach((item, i) => {
-        const wrapped = ((i - index) % N + N) % N;
-        const signed = wrapped > N / 2 ? wrapped - N : wrapped;
-        const away = Math.abs(signed);
-        item.setAttribute('data-active', String(signed === 0));
-        place(item, signed * STEP, signed === 0 ? 1 : Math.max(0.62, 1 - away * 0.16), animate);
-        gsap.to(item, {
-          autoAlpha: Math.max(0.22, 1 - away * 0.26),
-          zIndex: N - away,
-          duration: animate ? 1.1 : 0,
-          ease: 'power3.inOut',
-          overwrite: 'auto'
-        });
-      });
+    function updateUI() {
+      const index = embla.selectedScrollSnap();
+      items.forEach((item, i) => item.setAttribute('data-active', String(i === index)));
       window.VRGD.scramble(titleEl, `PROJECT ${projects[index].title}`.toUpperCase(), 0.6);
       if (countEl) countEl.textContent = `${String(index + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
     }
 
-    // The ring wraps — "next" past the last project turns back to the first,
-    // the cylinder just keeps spinning rather than hitting a wall.
-    function go(next) {
-      index = ((next % N) + N) % N;
-      layout(true);
-    }
+    embla.on('select', updateUI);
+    embla.on('reInit', updateUI);
+    updateUI();
 
-    measure();
-    layout(false);
-
-    $('[data-spotlight-prev]')?.addEventListener('click', () => go(index - 1));
-    $('[data-spotlight-next]')?.addEventListener('click', () => go(index + 1));
+    $('[data-spotlight-prev]')?.addEventListener('click', () => embla.scrollPrev());
+    $('[data-spotlight-next]')?.addEventListener('click', () => embla.scrollNext());
 
     items.forEach((item) => {
       item.addEventListener('click', () => {
         const i = Number(item.getAttribute('data-index'));
-        if (i !== index) { go(i); return; }
+        // Embla only leaves the active slide reachable in the viewport
+        // (the rest sit fully clipped offscreen), so a click here is
+        // always on the current project — no "recentre first" step.
         // The active frame carries its own box into the project page's
         // hero — same box-grow language the boot loader opens with.
         const frame = item.querySelector('.spotlight__frame');
@@ -445,26 +405,11 @@
 
     document.addEventListener('keydown', (e) => {
       if (!CAN_HOVER) return;
-      if (e.key === 'ArrowRight') go(index + 1);
-      if (e.key === 'ArrowLeft') go(index - 1);
+      if (e.key === 'ArrowRight') embla.scrollNext();
+      if (e.key === 'ArrowLeft') embla.scrollPrev();
     });
 
-    window.addEventListener('resize', () => { measure(); layout(false); });
-
     if (!REDUCED) {
-      // Deliberately no 'wheel' here — the carousel used to hijack the
-      // mouse wheel to turn projects, which fought the page's own
-      // scroll. Browsing is now just the arrows, or press-and-drag
-      // (mouse or touch) sideways across the stage.
-      Observer.create({
-        target: root,
-        type: 'touch,pointer',
-        tolerance: 50,
-        preventDefault: false,
-        onLeft: () => go(index + 1),
-        onRight: () => go(index - 1)
-      });
-
       // Work fills the screen once it's the thing actually in view (see
       // .section--work's min-height: 100vh) — the fixed navbar steps
       // aside for as long as that's true, in either scroll direction,

@@ -216,15 +216,23 @@ výchozí pro všechny (teď tam je ručně vyladěný vzhled ze 29. 9. 2026). H
 zkouška existence). Panel jde smazat: blok `TUNE panel` v `initSpotlight`,
 `.tune` / `.spotlight__tune` v CSS.
 
-**Dither na fotkách:** fotky se nekreslí jako `<img>`, ale jedním WebGL canvasem
-(`.spotlight__photo`, blok *Photos* v `initSpotlight`). V shaderu se děje wipe,
-zoom/drift i **ordered dither** (Bayer 4×4 / 8×8, šum, půltónové tečky, čáry):
-šeď se kvantizuje na N úrovní proti vzoru, `Mix` ji míchá s čistou fotkou a na
-hover se dither rozpustí (`Clean on hover`). Vše je v TUNE v sekci *Photo dither*
-(velikost buňky, úrovně, síla vzoru, mix, greyscale/duotone + barvy, pixelate,
-shimmer). Výchozí hodnoty jsou `DITHER_DEFAULTS` — jemné (Bayer 8×8, buňka 2 px,
-7 úrovní, mix .4); po ladění stačí **Copy JSON** a hodnoty přepsat tam. Bez WebGL
-se ukáže obyčejný `<img>` (`.spotlight__fallback`) bez dithru a wipe.
+**Dither / půltón na fotkách:** fotky se nekreslí jako `<img>`, ale jedním WebGL canvasem
+(`.spotlight__photo`, blok *Photos* v `initSpotlight`). Wipe, zoom/drift i rastr jsou
+v shaderu. Výchozí je **tištěný půltón** (preset `halftone`): tečky na 45° mřížce, plocha
+tuše odpovídá tónu (do 50 % tečky z tuše, nad to papírové tečky v rozích buňky), hrany
+vyhlazené, tón se průměruje přes celou buňku (9 vzorků, jinak by to aliasovalo), tuš
+`#0a0a0a` na papíře `#f4f4f2`. Rozteč = 3 × `Cell size` (výchozí 3 px). Na hover se rastr
+rozpustí (`Clean on hover`).
+
+V TUNE (*Photo dither*) je select **Look** s presety: `halftone`, `newsprint` (hrubé tečky),
+`fine`, `bit` (1bitový Bayer), `grain` (filmové zrno), `lines` (rytina), `soft` (jemný
+Bayer smíchaný s fotkou). Úpravou čehokoli se preset přepne na `custom`. Dál: vzor, velikost
+buňky, počet úrovní, síla vzoru, mix s čistou fotkou, greyscale/duotone + barvy, pixelate,
+shimmer. Defaulty jsou `DITHER_DEFAULTS` / `DITHER_PRESETS`; po ladění **Copy JSON** a přepsat
+tam. Bez WebGL se ukáže obyčejný `<img>` (`.spotlight__fallback`) bez rastru a wipe.
+
+> Poučení: první verze míchala bayerový dither s čistou fotkou a na hladkých plochách dělala
+> moiré a „špinavý" film; skutečný půltón je kvantizovaný celý (mix 1) a čte tón z celé buňky.
 
 **Přechod:** jeden pohyb. Další fotka se přes aktuální odkryje wipem
 (`clip-path` na vrstvě, zoom/drift na `<img>` uvnitř; směr podle prev/next), její obraz se zároveň usadí z lehkého

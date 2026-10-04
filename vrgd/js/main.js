@@ -375,7 +375,7 @@
        halftone dots, lines) quantises the grey to N levels; `mix` blends it
        with the clean picture and it dissolves on hover. */
     const P = { cur: 0, next: 0, clip: 0, dir: 1, aS: 1, aX: 0, bS: 1, bX: 0, hover: 0 };
-    const PATTERNS = { bayer4: 0, bayer8: 1, noise: 2, dots: 3, lines: 4 };
+    const PATTERNS = { bayer4: 0, bayer8: 1, noise: 2, dots: 3, lines: 4, halftone: 5, grain: 6 };
     const hex3 = (h) => [1, 3, 5].map((i) => parseInt(String(h).slice(i, i + 2), 16) / 255);
     const photoGl = photoCv.getContext('webgl', { antialias: false, alpha: false });
     const photoTex = [], photoAsp = projects.map(() => 1.5), photoReady = [];
@@ -403,24 +403,55 @@
           return o + clamp(uv, 0., 1.) * s;
         }
         float lum(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
+        // tone of the (possibly mid-wipe) picture at a screen-space point, 0..1
+        float gAt(vec2 sp, float rev){
+          vec2 uv = vec2(sp.x, 1. - sp.y);
+          float a = lum(texture2D(uA, cover(uv, uAsp.x, uFocA, uTa)).rgb);
+          float b = lum(texture2D(uB, cover(uv, uAsp.y, uFocB, uTb)).rgb);
+          return mix(a, b, rev);
+        }
         float b2(vec2 a){ return fract(a.x*.5 + a.y*a.y*.75); }
         float b4(vec2 a){ return b2(.5*a)*.25 + b2(a); }
         float b8(vec2 a){ return b4(.5*a)*.25 + b2(a); }
         float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+        float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(.06711056, .00583715)))); }   // interleaved gradient noise: organic, film-like
 
         void main(){
           vec2 frag = gl_FragCoord.xy;
           vec2 q = frag / uRes;
           vec2 pc = frag / uCell;
-          vec2 cellUv = (floor(pc) + .5) * uCell / uRes;     // chunky sampling when "pixelate" is on
-          vec2 uv = mix(q, cellUv, uPix);
-          uv.y = 1. - uv.y;
+          bool halftone = uPat > 4.5 && uPat < 5.5;
 
-          float gA = lum(texture2D(uA, cover(uv, uAsp.x, uFocA, uTa)).rgb);
-          float gB = lum(texture2D(uB, cover(uv, uAsp.y, uFocB, uTb)).rgb);
+          // 45deg halftone screen: dot pitch = 3 cells; the picture is read once per dot
+          float pitch = uCell * 3.;
+          mat2 R = mat2(.70710678, -.70710678, .70710678, .70710678);
+          vec2 gc = (R * frag) / pitch;
+          vec2 ctr = ((floor(gc) + .5) * pitch) * R;           // dot centre back in screen space
+
           float rev = uDir > 0. ? step(1. - uClip, q.x) : step(q.x, uClip);
-          float g = mix(gA, gB, rev);
+          float g = 0.;
+          if (halftone) {                                    // average the whole dot cell, not one point
+            for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++)
+              g += gAt((ctr + (vec2(float(i), float(j)) - 1.) * pitch / 3.) / uRes, rev);
+            g /= 9.;
+          } else {
+            g = gAt(mix(q, (floor(pc) + .5) * uCell / uRes, uPix), rev);
+          }
           g = clamp((g - .5) * uCon + .5, 0., 1.) * uBri;
+
+          if (halftone) {
+            // amplitude-modulated dots with the area matched to the tone: up to half
+            // coverage ink dots grow from the cell centre, above that paper dots shrink
+            // at the cell corners (same as a printed screen), edges anti-aliased
+            float a = clamp(1. - g, 0., 1.);
+            vec2 f = fract(gc) - .5;
+            float aa = 1.2 / pitch;
+            float ink;
+            if (a <= .5) ink = 1. - smoothstep(sqrt(a / 3.14159) - aa, sqrt(a / 3.14159) + aa, length(f));
+            else         ink = smoothstep(sqrt((1. - a) / 3.14159) - aa, sqrt((1. - a) / 3.14159) + aa, length(.5 - abs(f)));
+            gl_FragColor = vec4(mix(vec3(g), mix(uLight, uDark, ink), uMix), 1.);
+            return;
+          }
 
           float tick = floor(uTime * uShim * 14.);
           vec2 cp = floor(pc) + tick * vec2(3., 7.);
@@ -428,12 +459,11 @@
           if (uPat < .5)       T = b4(cp) + .5/16.;
           else if (uPat < 1.5) T = b8(cp) + .5/64.;
           else if (uPat < 2.5) T = hash(cp);
-          else if (uPat < 3.5) {                              // halftone dots, 45deg
+          else if (uPat < 3.5) {                              // threshold dots, 45deg
             vec2 f = fract(vec2(pc.x + pc.y, pc.x - pc.y) * .7071 / 4.) - .5;
             T = 1. - clamp(length(f) * 1.4142, 0., 1.);
-          } else {                                            // diagonal lines
-            T = abs(fract((pc.x + pc.y) * .7071 / 4.) * 2. - 1.);
-          }
+          } else if (uPat > 5.5) T = ign(cp);                 // grain
+          else T = abs(fract((pc.x + pc.y) * .7071 / 4.) * 2. - 1.);   // diagonal lines
           float L = uLev - 1.;
           float d = clamp(floor(g * L + mix(.5, T, uAmt)) / L, 0., 1.);
           float o = mix(g, d, uMix);
@@ -491,7 +521,7 @@
         const on = T.ditherOn ? 1 : 0;
         gl.uniform1f(U.uMix, on * T.ditherMix * (1 - (T.ditherHoverClean ? P.hover : 0)));
         gl.uniform1f(U.uPat, PATTERNS[T.ditherPattern] ?? 1);
-        gl.uniform1f(U.uCell, Math.max(1, T.ditherSize * dprP));
+        gl.uniform1f(U.uCell, Math.max(0.5, T.ditherSize * dprP));
         gl.uniform1f(U.uLev, Math.max(2, T.ditherLevels));
         gl.uniform1f(U.uAmt, T.ditherAmount);
         gl.uniform1f(U.uDuo, T.ditherMode === 'duo' ? 1 : 0);
@@ -537,8 +567,19 @@
     const FRAME_DEFAULTS = { frameW: 61, frameAspect: 1.44, frameX: 0, frameY: -2, photoContrast: 0.99, photoBright: 1 };
     // Ordered dither on the WORK photos (see the Photos block above).
     const DITHER_DEFAULTS = {
-      ditherOn: true, ditherPattern: 'bayer8', ditherSize: 2, ditherLevels: 7, ditherAmount: 0.8, ditherMix: 0.4,
-      ditherMode: 'gray', ditherDark: '#0a0a0a', ditherLight: '#f4f4f2', ditherPixelate: false, ditherShimmer: 0, ditherHoverClean: true
+      ditherOn: true, ditherPreset: 'halftone',
+      ditherPattern: 'halftone', ditherSize: 1, ditherLevels: 2, ditherAmount: 1, ditherMix: 1,
+      ditherMode: 'duo', ditherDark: '#0a0a0a', ditherLight: '#f4f4f2', ditherPixelate: false, ditherShimmer: 0, ditherHoverClean: true
+    };
+    // One-click looks for the dither; every value stays editable afterwards (preset becomes "custom").
+    const DITHER_PRESETS = {
+      halftone: { ditherPattern: 'halftone', ditherSize: 1, ditherLevels: 2, ditherAmount: 1, ditherMix: 1, ditherMode: 'duo', ditherPixelate: false },
+      newsprint: { ditherPattern: 'halftone', ditherSize: 2, ditherLevels: 2, ditherAmount: 1, ditherMix: 1, ditherMode: 'duo', ditherPixelate: false },
+      fine: { ditherPattern: 'halftone', ditherSize: 0.7, ditherLevels: 2, ditherAmount: 1, ditherMix: 1, ditherMode: 'duo', ditherPixelate: false },
+      bit: { ditherPattern: 'bayer8', ditherSize: 2, ditherLevels: 2, ditherAmount: 1, ditherMix: 1, ditherMode: 'duo', ditherPixelate: false },
+      grain: { ditherPattern: 'grain', ditherSize: 1, ditherLevels: 3, ditherAmount: 1, ditherMix: 0.8, ditherMode: 'gray', ditherPixelate: false },
+      lines: { ditherPattern: 'lines', ditherSize: 2, ditherLevels: 2, ditherAmount: 1, ditherMix: 1, ditherMode: 'duo', ditherPixelate: false },
+      soft: { ditherPattern: 'bayer8', ditherSize: 2, ditherLevels: 7, ditherAmount: 0.8, ditherMix: 0.4, ditherMode: 'gray', ditherPixelate: false }
     };
     // "Re-mirror B from A" in the panel: B = A flipped left-to-right.
     const mirrorOf = (A) => ({
@@ -782,8 +823,9 @@
         <p class="tune__note">Or drop a PNG at assets/work-deco/heightmap.png — white = front, black = back.</p>` },
       { title: 'Photo dither', open: true, rows: [
         ['ditherOn', 'Dither on', 'check'],
-        ['ditherPattern', 'Pattern', 'select', [['bayer4', 'Bayer 4×4'], ['bayer8', 'Bayer 8×8'], ['noise', 'Noise'], ['dots', 'Halftone dots'], ['lines', 'Lines']]],
-        ['ditherSize', 'Cell size (px)', 1, 12, 0.5],
+        ['ditherPreset', 'Look (preset)', 'select', [['halftone', 'Halftone — ink dots'], ['newsprint', 'Newsprint — coarse dots'], ['fine', 'Fine halftone'], ['bit', '1-bit dither'], ['grain', 'Film grain'], ['lines', 'Engraving lines'], ['soft', 'Soft Bayer'], ['custom', 'Custom']]],
+        ['ditherPattern', 'Pattern', 'select', [['halftone', 'Halftone (dots by tone)'], ['bayer4', 'Bayer 4×4'], ['bayer8', 'Bayer 8×8'], ['noise', 'Noise'], ['grain', 'Grain (film)'], ['dots', 'Threshold dots'], ['lines', 'Lines']]],
+        ['ditherSize', 'Cell size (halftone pitch = 3×)', 0.5, 12, 0.1],
         ['ditherLevels', 'Levels', 2, 12, 1],
         ['ditherAmount', 'Pattern strength', 0, 1, 0.01],
         ['ditherMix', 'Mix with clean photo', 0, 1, 0.01],
@@ -853,6 +895,8 @@
       const onEdit = (key) => {
         const el = $('input,select', inputs[key]);
         setV(key, el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value);
+        if (key === 'ditherPreset') Object.assign(T, DITHER_PRESETS[T.ditherPreset] || {});
+        else if (key.startsWith('dither') && key !== 'ditherOn') T.ditherPreset = 'custom';
         applyLook(); setRate(rate.v); renderPhoto(); saveTune(); syncPanel();
       };
       Object.keys(inputs).forEach((key) => $('input,select', inputs[key]).addEventListener('input', () => onEdit(key)));

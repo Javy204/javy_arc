@@ -567,9 +567,9 @@
     const FRAME_DEFAULTS = { frameW: 61, frameAspect: 1.44, frameX: 0, frameY: -2, photoContrast: 0.99, photoBright: 1 };
     // Ordered dither on the WORK photos (see the Photos block above).
     const DITHER_DEFAULTS = {
-      ditherOn: true, ditherPreset: 'halftone',
-      ditherPattern: 'halftone', ditherSize: 1, ditherLevels: 2, ditherAmount: 1, ditherMix: 1,
-      ditherMode: 'duo', ditherDark: '#0a0a0a', ditherLight: '#f4f4f2', ditherPixelate: false, ditherShimmer: 0, ditherHoverClean: true
+      ditherOn: true, ditherPreset: 'custom',     // tuned by hand: soft Bayer, 4 px cells
+      ditherPattern: 'bayer8', ditherSize: 4, ditherLevels: 7, ditherAmount: 0.8, ditherMix: 0.4,
+      ditherMode: 'gray', ditherDark: '#0a0a0a', ditherLight: '#f4f4f2', ditherPixelate: false, ditherShimmer: 0, ditherHoverClean: true
     };
     // One-click looks for the dither; every value stays editable afterwards (preset becomes "custom").
     const DITHER_PRESETS = {

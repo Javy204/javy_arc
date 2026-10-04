@@ -218,7 +218,7 @@ zkouška existence). Panel jde smazat: blok `TUNE panel` v `initSpotlight`,
 
 **Dither / půltón na fotkách:** fotky se nekreslí jako `<img>`, ale jedním WebGL canvasem
 (`.spotlight__photo`, blok *Photos* v `initSpotlight`). Wipe, zoom/drift i rastr jsou
-v shaderu. Výchozí je **tištěný půltón** (preset `halftone`): tečky na 45° mřížce, plocha
+v shaderu. Ručně vyladěný výchozí vzhled je **jemný Bayer 8×8** (buňka 4 px, 7 úrovní, mix .4, greyscale; `DITHER_DEFAULTS`); preset `halftone` je ale pořád po ruce. Ten je **tištěný půltón**: tečky na 45° mřížce, plocha
 tuše odpovídá tónu (do 50 % tečky z tuše, nad to papírové tečky v rozích buňky), hrany
 vyhlazené, tón se průměruje přes celou buňku (9 vzorků, jinak by to aliasovalo), tuš
 `#0a0a0a` na papíře `#f4f4f2`. Rozteč = 3 × `Cell size` (výchozí 3 px). Na hover se rastr

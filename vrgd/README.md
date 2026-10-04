@@ -127,7 +127,18 @@ halftone canvas a nic se nemusí přepínat.
 - zaregistruje hero přes `registerDarkSurface()`, takže se navbar, side nav
   i spina samy přebarví, stejně jako nad `.is-invert` bloky.
 
-**Převod videa na web** (vestavěný macOS nástroj, ffmpeg netřeba):
+**Aktuální soubor** (`assets/hero.mp4`, showreel z `WEB.mp4`): 1280×720, 25 fps, ~6 MB,
+bez zvuku, s 0,5 s prolnutím z/do černé na začátku a konci, aby smyčka neskákala
+ze světlého záběru do tmavého. Záběr střídá tmavé a velmi světlé scény, proto má
+`.has-video .hero__scrim` navíc plošné ztmavení (.38):
+
+```bash
+ffmpeg -i WEB.mp4 -an -vf "scale=1280:720:flags=lanczos,fade=t=in:st=0:d=0.5,fade=t=out:st=16.94:d=0.5,format=yuv420p" \
+ -r 25 -c:v libx264 -preset slow -crf 25 -profile:v high -movflags +faststart -tune film hero.mp4
+```
+(`st` pro fade-out = délka − 0,5 s; v HTML je `hero.mp4?v=2` kvůli cache.)
+
+**Převod videa na web** (alternativa, vestavěný macOS nástroj):
 
 ```bash
 avconvert --source vstup.mp4 --preset Preset1280x720 --output hero.mp4 --replace

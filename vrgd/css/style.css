@@ -673,7 +673,10 @@ html:not(.js) .loader { display: none; }
    blob over the picture. Darken the edges instead and treat the hero as an
    inverted surface: light logotype, light copy, whatever the theme. */
 .hero.has-video .hero__scrim {
+  /* the showreel swings between near-black and bright daylight, so a flat veil
+     keeps the white logotype readable on the bright shots */
   background:
+    linear-gradient(rgba(6, 6, 6, .38), rgba(6, 6, 6, .38)),
     radial-gradient(115% 85% at 50% 45%, transparent 30%, rgba(6, 6, 6, .5) 88%),
     linear-gradient(to bottom, rgba(6, 6, 6, .45), transparent 24%, transparent 58%, rgba(6, 6, 6, .8));
 }

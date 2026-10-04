@@ -392,7 +392,7 @@
     // Tuned by hand in the TUNE panel (Copy JSON) and saved as the shipped look.
     const A_DEFAULTS = {
       ...SW_DEFAULTS,
-      mode: 'behind', scale: 2.25, x: -0.5, y: -4, rot: 29, spin: -6.3, bright: 0.36,
+      on: false, mode: 'behind', scale: 2.25, x: -0.5, y: -4, rot: 29, spin: -6.3, bright: 0.36,
       depthAngle: 360, depthPos: 0.8, depthCut: 0.31, depthSoft: 0.37, depthLuma: 0.12, depthDrift: -4.5
     };
     const B_DEFAULTS = {

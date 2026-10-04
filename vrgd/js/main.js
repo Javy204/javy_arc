@@ -392,13 +392,13 @@
     // Tuned by hand in the TUNE panel (Copy JSON) and saved as the shipped look.
     const A_DEFAULTS = {
       ...SW_DEFAULTS,
-      scale: 0.57, x: -46.5, y: -3.5, rot: 29, spin: 0, bright: 0.36,
+      mode: 'behind', scale: 2.25, x: -0.5, y: -4, rot: 29, spin: -6.3, bright: 0.36,
       depthAngle: 360, depthPos: 0.8, depthCut: 0.31, depthSoft: 0.37, depthLuma: 0.12, depthDrift: -4.5
     };
     const B_DEFAULTS = {
       ...SW_DEFAULTS,
-      mirror: true, scale: 0.74, x: 56, y: 0, rot: 52, spin: 0, bright: 0.9,
-      depthAngle: 168, depthPos: 0.8, depthCut: 0.31, depthSoft: 0.37, depthLuma: 0.12, depthDrift: 4.5
+      on: false, mirror: true, scale: 0.57, x: 46.5, y: -3.5, rot: -29, spin: 0, bright: 0.36,
+      depthAngle: 180, depthPos: 0.8, depthCut: 0.31, depthSoft: 0.37, depthLuma: 0.12, depthDrift: 4.5
     };
     const FRAME_DEFAULTS = { frameW: 61, frameAspect: 1.44, frameX: 0, frameY: -2, photoContrast: 0.99, photoBright: 1 };
     // "Re-mirror B from A" in the panel: B = A flipped left-to-right.

@@ -24,7 +24,7 @@ document.documentElement.classList.add('js');
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=68">
+<link rel="stylesheet" href="css/style.css?v=70">
 </head>
 <body data-loading="true">
 
@@ -229,7 +229,10 @@ document.documentElement.classList.add('js');
       <div class="spotlight__frame" data-spotlight-frame data-cursor-hover data-cursor-text="VIEW" role="img" aria-label="Selected project">
         <div class="spotlight__layer" data-layer="a"><img class="spotlight__img" alt=""></div>
         <div class="spotlight__layer" data-layer="b"><img class="spotlight__img" alt=""></div>
-        <h3 class="spotlight__title" data-spotlight-title></h3>
+        <div class="spotlight__cap">
+          <span class="spotlight__meta mono" data-spotlight-meta></span>
+          <h3 class="spotlight__title" data-spotlight-title></h3>
+        </div>
       </div>
 
       <!-- Same swirl again, drawn with its matte as real alpha, only inside
@@ -237,14 +240,10 @@ document.documentElement.classList.add('js');
       <canvas class="spotlight__fly" data-fly aria-hidden="true"></canvas>
 
       <div class="spotlight__hud">
-        <div class="spotlight__top mono">
-          <span data-spotlight-meta></span>
-          <span class="spotlight__count" data-spotlight-count></span>
-        </div>
-
         <div class="spotlight__foot">
           <ol class="spotlight__index" data-spotlight-index></ol>
           <div class="spotlight__ctrl">
+            <span class="spotlight__count mono" data-spotlight-count></span>
             <button class="spotlight__btn" data-spotlight-prev aria-label="Previous project" data-cursor-hover data-cursor-text="PREV">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
             </button>
@@ -386,6 +385,6 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/Observer.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=4"></script>
-<script src="js/main.js?v=61"></script>
+<script src="js/main.js?v=62"></script>
 </body>
 </html>

@@ -817,9 +817,8 @@ html:not(.js) .loader { display: none; }
   --sp-bg: var(--paper);
   position: relative;
   width: calc(100% + var(--pad) * 2);
-  margin: clamp(1.5rem, 4vh, 2.5rem) calc(var(--pad) * -1) 0;
-  height: 100vh; height: 100svh;
-  min-height: 600px;
+  margin: 0 calc(var(--pad) * -1) 0;
+  padding: 0;
   overflow: hidden;
   background: var(--sp-bg);
   color: var(--sp-fg);
@@ -840,8 +839,9 @@ html:not(.js) .loader { display: none; }
   background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(11,11,11,.55) 100%);
 }
 .spotlight__frame {
-  position: absolute; z-index: 1;
-  left: calc(50% + var(--fx, 0) * 1%); top: calc(50% + var(--fy, -2) * 1%); translate: -50% -50%;
+  position: relative; z-index: 1;
+  left: calc(var(--fx, 0) * 1%); translate: 0 calc((var(--fy, -2) + 2) * 1%);
+  margin: 0 auto;
   width: calc(var(--fw, 60) * 1%);
   aspect-ratio: var(--far, 1.6);
   overflow: hidden;
@@ -858,24 +858,21 @@ html:not(.js) .loader { display: none; }
   will-change: transform;
 }
 @media (max-width: 767px) {
-  .spotlight__frame { left: 50%; top: 45%; width: 88%; aspect-ratio: 4 / 5; max-height: 56svh; }
+  .spotlight__frame { left: 0; width: 88%; aspect-ratio: 4 / 5; max-height: 62svh; }
 }
 
 .spotlight__hud {
-  position: absolute; inset: 0; z-index: 2;
-  display: flex; flex-direction: column; justify-content: space-between;
-  padding: calc(var(--nav-h) + .6rem) var(--pad) clamp(1.1rem, 3vh, 2rem);   /* clears the fixed navbar */
+  position: relative; z-index: 2;     /* in flow: sits right under the photo, whatever the width */
+  padding: clamp(1rem, 2.5vh, 1.5rem) var(--pad) clamp(1.1rem, 3vh, 2rem);
   pointer-events: none;
 }
 [data-nav="sidenav"] .spotlight__hud { padding-right: calc(var(--pad) + var(--gutter) * .55); }
 .spotlight__hud button { pointer-events: auto; }
-.spotlight__top { display: flex; justify-content: space-between; gap: 1rem; color: var(--dim); }
-.spotlight.has-swirl .spotlight__top { color: var(--sp-fg); }
+.spotlight__count { color: var(--dim); }
+.spotlight.has-swirl .spotlight__count { color: var(--sp-fg); }
 
 /* The title lives inside the photo, in white, over a soft shade — never black on grey. */
 .spotlight__title {
-  position: absolute; z-index: 3; left: 4%; bottom: 5%;
-  max-width: 88%;
   margin: 0;
   color: #f4f4f2;
   font-family: var(--f-inter);
@@ -887,6 +884,11 @@ html:not(.js) .loader { display: none; }
   pointer-events: none;
 }
 .spotlight__frame { container-type: inline-size; }
+.spotlight__cap {
+  position: absolute; z-index: 3; left: 4%; bottom: 5%; max-width: 88%;
+  display: flex; flex-direction: column; gap: .7em; pointer-events: none;
+}
+.spotlight__meta { color: rgba(244,244,242,.85); }
 .spotlight__frame::after {
   content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background: linear-gradient(to top, rgba(0,0,0,.5), rgba(0,0,0,0) 55%);
@@ -1720,3 +1722,7 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 .tune summary { cursor: pointer; padding: .55rem 0; letter-spacing: .1em; text-transform: uppercase; opacity: .75; }
 .tune details > button { margin-top: .4rem; width: 100%; padding: .45rem; border: 1px solid rgba(244,244,242,.35); }
 .tune details > button:hover { background: #f4f4f2; color: #0b0b0b; }
+
+/* tighter top of the WORK section — the photo sits right under the heading */
+.section--work { padding-top: clamp(2.5rem, 6vh, 4.5rem); padding-bottom: clamp(2rem, 5vh, 3.5rem); }
+.section--work .section__head { padding-bottom: clamp(.5rem, 1.5vh, 1rem); }

@@ -731,7 +731,7 @@
       tuneBtn.className = 'spotlight__tune';
       tuneBtn.textContent = 'TUNE';
       tuneBtn.setAttribute('aria-label', 'Open swirl / photo tuning panel');
-      $('.spotlight__top', root).insertBefore(tuneBtn, countEl);
+      $('.spotlight__ctrl', root).prepend(tuneBtn);
       tuneBtn.addEventListener('click', () => { panel.hidden = !panel.hidden; });
       document.addEventListener('keydown', (e) => {
         if (e.key?.toLowerCase() !== 'c' || e.metaKey || e.ctrlKey || e.altKey) return;

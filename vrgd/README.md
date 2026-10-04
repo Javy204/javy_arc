@@ -181,7 +181,9 @@ Klip skutečnou hloubku nemá, pole je syntetické: lineární gradient přes r�
 (směr, posun, `Cut`, měkkost), malovaný **heightmap** (bílá = vpředu; sdílený
 pro obě) a volitelně jas chromu.
 
-Panel: tlačítko **TUNE** v HUD nebo klávesa **C**. Sekce Swirl A / Swirl B,
+Panel: tlačítko **TUNE** v HUD nebo klávesa **C**. Sekce Animation (`Speed ×`,
+globální rychlost videa 0.1–3×; změna projektu ji na chvíli násobí), Swirl A / Swirl B
+(každá jde vypnout přepínačem *Show this swirl*),
 Depth (sdílené: zdroj, `Show depth map`, heightmap soubor), Photo (šířka, poměr,
 pozice, kontrast, jas). Hodnoty se pamatují v `localStorage` (`vrgd-work-tune`,
 tvar `{A:{…}, B:{…}, …}`; starý plochý formát se načte do A). **Copy JSON** je

@@ -406,7 +406,7 @@
       ...A, on: true, mirror: !A.mirror, x: -A.x, rot: -A.rot, spin: -A.spin,
       depthAngle: (((180 - A.depthAngle) % 360) + 360) % 360, depthDrift: -A.depthDrift
     });
-    const T = { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS };
+    const T = { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, speed: 1, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS };
     try {
       const saved = JSON.parse(localStorage.getItem(TUNE_KEY) || '{}');
       if (saved.A) {
@@ -594,7 +594,8 @@
       else video.pause();
     }, { threshold: 0.01 }).observe(root);
     video.addEventListener('pause', () => { if (visible) video.play().catch(() => {}); });
-    const setRate = (v) => { video.playbackRate = v; };
+    // `speed` is the user's setting; the project change briefly multiplies it.
+    const setRate = (v) => { video.playbackRate = Math.max(0.0625, v * T.speed); };
 
     /* ---------- TUNE panel ---------- */
     const swirlSpec = (k) => [
@@ -617,6 +618,7 @@
       [`${k}.depthInvert`, 'Depth: invert', 'check']
     ];
     const SPEC = [
+      { title: 'Animation', open: true, rows: [['speed', 'Speed ×', 0.1, 3, 0.05]] },
       { title: 'Swirl A', rows: swirlSpec('A'), open: true },
       { title: 'Swirl B', rows: swirlSpec('B'), open: true, extra: '<button data-t="mirror">Re-mirror B from A</button>' },
       { title: 'Depth (both swirls)', open: false, rows: [
@@ -671,15 +673,15 @@
     const onEdit = (key) => {
       const el = $('input,select', inputs[key]);
       setV(key, el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value);
-      applyLook(); saveTune(); syncPanel();
+      applyLook(); setRate(rate.v); saveTune(); syncPanel();
     };
     Object.keys(inputs).forEach((key) => $('input,select', inputs[key]).addEventListener('input', () => onEdit(key)));
     panel.addEventListener('click', (e) => {
       const act = e.target.dataset?.t;
       if (act === 'close') panel.hidden = true;
       if (act === 'reset') {
-        Object.assign(T, { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS });
-        applyLook(); saveTune(); syncPanel();
+        Object.assign(T, { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, speed: 1, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS });
+        applyLook(); setRate(rate.v); saveTune(); syncPanel();
       }
       if (act === 'mirror') { T.B = mirrorOf(T.A); saveTune(); syncPanel(); }
       if (act === 'copy') {
@@ -695,6 +697,7 @@
       saveTune(); syncPanel();
     });
     syncPanel();
+    setRate(1);
 
     const tuneBtn = document.createElement('button');
     tuneBtn.className = 'spotlight__tune';

@@ -161,8 +161,10 @@ Sekce `#work` na indexu (`initSpotlight()` v `main.js`) + `project.html` pro
 detail (`?p=<slug>`). Šestá verze. Předchozí WebGL „ponor" (zoom, rotace, RGB
 split) byl na pohled moc; tahle se vrací ke klidnějšímu původnímu vzhledu.
 
-**Téma:** WORK jede podle tématu stránky — ve výchozím světlém je to **bílá plocha,
-jen fotka + typografie** (`--sp-fg` = `--ink`, `--sp-bg` = `--paper`). Jakmile se
+**Téma:** WORK jede podle tématu stránky. Od About ho odděluje **jemně tónovaná
+plocha** (`.section--work` = `--plate` + linky nahoře a dole). **Název projektu je
+uvnitř fotky, bílý, nad měkkým stínem** (`.spotlight__title` v rámečku, velikost
+v `cqw`), nikdy černý přes šedou; meta a počítadlo jsou ztlumené (`--dim`). Jakmile se
 v TUNE zapne aspoň jedna smyčka, sekce dostane `.has-swirl` a přepne se na tmavou
 scénu (jen tehdy se registruje jako tmavý povrch pro navigaci a spinu).
 

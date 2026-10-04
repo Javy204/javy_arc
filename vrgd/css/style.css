@@ -812,9 +812,10 @@ html:not(.js) .loader { display: none; }
    While a swirl is switched on in TUNE the block turns into a dark stage
    (.has-swirl). Layers: swirl (background) → photo frame → HUD.
    See initSpotlight in main.js. */
+.section--work { background: var(--plate); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .spotlight {
   --sp-fg: var(--ink);
-  --sp-bg: var(--paper);
+  --sp-bg: var(--plate);
   position: relative;
   width: calc(100% + var(--pad) * 2);
   margin: clamp(1.5rem, 4vh, 2.5rem) calc(var(--pad) * -1) 0;
@@ -869,17 +870,27 @@ html:not(.js) .loader { display: none; }
 }
 [data-nav="sidenav"] .spotlight__hud { padding-right: calc(var(--pad) + var(--gutter) * .55); }
 .spotlight__hud button { pointer-events: auto; }
-.spotlight__top { display: flex; justify-content: space-between; gap: 1rem; color: var(--sp-fg); }
+.spotlight__top { display: flex; justify-content: space-between; gap: 1rem; color: var(--dim); }
+.spotlight.has-swirl .spotlight__top { color: var(--sp-fg); }
 
+/* The title lives inside the photo, in white, over a soft shade — never black on grey. */
 .spotlight__title {
-  margin: auto 0 clamp(1rem, 3vh, 2rem);
+  position: absolute; z-index: 3; left: 4%; bottom: 5%;
+  max-width: 88%;
+  margin: 0;
+  color: #f4f4f2;
   font-family: var(--f-inter);
   font-weight: 800;
-  font-size: clamp(2.6rem, 9.2vw, 11rem);
-  line-height: .86;
-  letter-spacing: -.045em;
+  font-size: clamp(1.8rem, 9cqw, 6.5rem);
+  line-height: .88;
+  letter-spacing: -.04em;
   text-transform: uppercase;
-  max-width: 14ch;
+  pointer-events: none;
+}
+.spotlight__frame { container-type: inline-size; }
+.spotlight__frame::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(to top, rgba(0,0,0,.5), rgba(0,0,0,0) 55%);
 }
 .spotlight__word { display: inline-block; overflow: hidden; vertical-align: top; padding: .04em .02em .06em 0; margin-bottom: -.06em; }
 .spotlight__char { display: inline-block; will-change: transform; }
@@ -929,7 +940,7 @@ html:not(.js) .loader { display: none; }
 }
 
 @media (max-width: 767px) {
-  .spotlight__title { font-size: clamp(2.4rem, 14vw, 5rem); }
+  .spotlight__title { font-size: 12cqw; }
   .spotlight__index button { min-width: 0; }
   .spotlight__index-name { display: none; }
 }

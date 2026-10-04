@@ -598,7 +598,7 @@
 
     /* ---------- TUNE panel ---------- */
     const swirlSpec = (k) => [
-      ...(k === 'B' ? [[`${k}.on`, 'Show this swirl', 'check']] : []),
+      [`${k}.on`, 'Show this swirl', 'check'],
       [`${k}.mirror`, 'Flip left ↔ right', 'check'],
       [`${k}.scale`, 'Size', 0.3, 3, 0.01],
       [`${k}.x`, 'Position X', -80, 80, 0.5],

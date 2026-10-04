@@ -181,17 +181,6 @@
     buttons.forEach((b) => b.addEventListener('click', () => {
       apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
     }));
-
-    // Follow the OS only while the user has not chosen for themselves.
-    let stored = null;
-    try { stored = localStorage.getItem('vrgd-theme'); } catch { /* ignore */ }
-    if (!stored && window.matchMedia) {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        root.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-        paint(true);
-        window.dispatchEvent(new CustomEvent('vrgd:theme'));
-      });
-    }
   }
 
   /* -------------------------------------------------------

@@ -36,9 +36,8 @@ Pak `http://localhost:3336`. (V Claude Code je nakonfigurovaný jako preview ser
 ## Tmavý režim
 
 Přepíná se **v hlavičce** (půlený čtvereček + `LIGHT` / `DARK`). Volba se
-pamatuje v `localStorage` pod `vrgd-theme` a platí i na galerii. Dokud si
-uživatel nevybere sám, jede se podle **`prefers-color-scheme`** systému — a
-pokud si systém přepne za běhu, web to sleduje.
+pamatuje v `localStorage` pod `vrgd-theme` a platí i na galerii. Výchozí je **světlé** téma
+(OS se nesleduje); uživatel si může přepnout a volba se pamatuje.
 
 Režim se nastavuje **inline scriptem v `<head>`, tedy před prvním vykreslením**
 (jinak by světlá varianta probliknula).
@@ -162,6 +161,11 @@ Sekce `#work` na indexu (`initSpotlight()` v `main.js`) + `project.html` pro
 detail (`?p=<slug>`). Šestá verze. Předchozí WebGL „ponor" (zoom, rotace, RGB
 split) byl na pohled moc; tahle se vrací ke klidnějšímu původnímu vzhledu.
 
+**Téma:** WORK jede podle tématu stránky — ve výchozím světlém je to **bílá plocha,
+jen fotka + typografie** (`--sp-fg` = `--ink`, `--sp-bg` = `--paper`). Jakmile se
+v TUNE zapne aspoň jedna smyčka, sekce dostane `.has-swirl` a přepne se na tmavou
+scénu (jen tehdy se registruje jako tmavý povrch pro navigaci a spinu).
+
 **Vrstvy:** pozadí = `<canvas>` s chromovou půlkou balíčkového videa
 (`assets/work-deco/blob-packed.mp4`, 3840×1920: chrom | matte, 12 MB) → rámeček
 s fotkou (`.spotlight__frame`, vždy kontrastně černobílá, zdroj `preview` =
@@ -181,7 +185,8 @@ Klip skutečnou hloubku nemá, pole je syntetické: lineární gradient přes r�
 (směr, posun, `Cut`, měkkost), malovaný **heightmap** (bílá = vpředu; sdílený
 pro obě) a volitelně jas chromu.
 
-Panel: tlačítko **TUNE** v HUD nebo klávesa **C**. Sekce Animation (`Speed ×`,
+Panel: tlačítko **TUNE** v HUD nebo klávesa **C** — **skryté návštěvníkům**; zapne se
+otevřením webu s `?tune` (pamatuje se v prohlížeči, `?tune=off` ho vypne). Sekce Animation (`Speed ×`,
 globální rychlost videa 0.1–3×; změna projektu ji na chvíli násobí), Swirl A / Swirl B
 (každá jde vypnout přepínačem *Show this swirl*),
 Depth (sdílené: zdroj, `Show depth map`, heightmap soubor), Photo (šířka, poměr,
@@ -206,7 +211,7 @@ drag na fotce, klik = otevřít.
 - `.spotlight__frame` (`width`, `aspect-ratio`, `max-height`) — velikost fotky.
 - `.spotlight__bg` `opacity` a `::after` vinětace — jak výrazný je chrom vzadu (fly vrstva má `* .9` v shaderu, má sedět).
 - `duration` / `ease` v `change()` — délka a povaha wipe (teď 1.0 s `power3.inOut`).
-- `focus: [x, y]` v `work.json` — kam se fotka ořízne do 16:10 (portréty y ≈ .2–.3).
+- `focus: [x, y]` v `work.json` — kam se fotka ořízne do 16:10; `heroFocus` totéž pro velký snímek na `project.html` (portréty y ≈ .2).
 
 ### Video
 Zdroj: RGB klip + matte z `assets/drive-download-…/` (1920), slepené vedle sebe.

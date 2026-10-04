@@ -11,7 +11,7 @@ document.documentElement.classList.add('js');
   var t;
   try { t = localStorage.getItem('vrgd-theme'); } catch (e) { t = null; }
   if (t !== 'dark' && t !== 'light') {
-    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    t = 'light';
   }
   document.documentElement.setAttribute('data-theme', t);
 })();
@@ -147,7 +147,7 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/ScrollTrigger.min.js"></script>
 <script src="js/vendor/Observer.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
-<script src="js/shared.js?v=3"></script>
+<script src="js/shared.js?v=4"></script>
 <script src="js/pages.js?v=4"></script>
 </body>
 </html>

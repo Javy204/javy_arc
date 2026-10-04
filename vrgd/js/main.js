@@ -22,7 +22,7 @@
 
   /* The fixed chrome carries no backdrop, so it recolours itself whenever a
      dark surface is actually behind it. Any element can register as one. */
-  function registerDarkSurface(el) {
+  function registerDarkSurface(el, when = () => true) {
     const navbar = $('[data-navbar]');
     const navH = navbar ? (parseFloat(getComputedStyle(navbar).minHeight) || 72) : 72;
 
@@ -31,7 +31,7 @@
         trigger: el,
         start: `top top+=${navH}`,
         end: 'bottom top',
-        onToggle: (self) => navbar.classList.toggle('on-invert', self.isActive)
+        onToggle: (self) => { if (when()) navbar.classList.toggle('on-invert', self.isActive); }
       });
     }
     [$('.sidenav'), $('[data-spine]')].filter(Boolean).forEach((node) => {
@@ -39,7 +39,7 @@
         trigger: el,
         start: 'top center',
         end: 'bottom center',
-        onToggle: (self) => node.classList.toggle('on-invert', self.isActive)
+        onToggle: (self) => { if (when()) node.classList.toggle('on-invert', self.isActive); }
       });
     });
   }
@@ -355,7 +355,8 @@
     const layers = { a: $('[data-layer="a"]', frame), b: $('[data-layer="b"]', frame) };
     const imgOf = (k) => layers[k].firstElementChild;
 
-    registerDarkSurface(root);
+    // WORK follows the page theme (white by default); it only goes dark while a swirl is shown.
+    registerDarkSurface(root, () => root.classList.contains('has-swirl'));
 
     indexEl.innerHTML = projects.map((p, i) => `
       <li><button data-i="${i}" data-cursor-hover data-cursor-text="GO">
@@ -417,7 +418,7 @@
     const saveTune = () => { try { localStorage.setItem(TUNE_KEY, JSON.stringify(T)); } catch { /* ignore */ } };
 
     const bgCv = $('[data-bg]', root), flyCv = $('[data-fly]', root);
-    const bgCtx = bgCv.getContext('2d', { alpha: false });
+    const bgCtx = bgCv.getContext('2d');
     let W = 0, H = 0, dpr = 1;
     const tStart = performance.now();
 
@@ -564,9 +565,10 @@
       bgCtx.setTransform(1, 0, 0, 1, 0, 0);
       bgCtx.globalCompositeOperation = 'source-over';
       bgCtx.globalAlpha = 1;
-      bgCtx.fillStyle = '#000';
-      bgCtx.fillRect(0, 0, bgCv.width, bgCv.height);
+      bgCtx.clearRect(0, 0, bgCv.width, bgCv.height);
       const live = SWS.map((k) => T[k]).filter((S) => S.on);
+      const dark = live.length > 0;
+      if (dark !== root.classList.contains('has-swirl')) root.classList.toggle('has-swirl', dark);
       live.forEach((S, i) => {
         const size = Math.max(W, H) * S.scale * dpr;
         bgCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -638,78 +640,89 @@
     const getV = (path) => path.split('.').reduce((o, k) => o[k], T);
     const setV = (path, v) => { const p = path.split('.'); const last = p.pop(); p.reduce((o, k) => o[k], T)[last] = v; };
 
-    const panel = document.createElement('aside');
-    panel.className = 'tune mono';
-    panel.setAttribute('data-lenis-prevent', '');
-    panel.hidden = true;
-    panel.innerHTML = `<header><span>TUNE</span><button data-t="close" aria-label="Close">×</button></header><div class="tune__body"></div>
-      <footer><button data-t="copy">Copy JSON</button><button data-t="reset">Reset</button></footer>`;
-    document.body.appendChild(panel);
-    const body = $('.tune__body', panel);
-    const inputs = {};
-    SPEC.forEach((sec) => {
-      const det = document.createElement('details');
-      det.open = sec.open;
-      det.innerHTML = `<summary>${sec.title}</summary>`;
-      sec.rows.forEach(([key, label, a, b, c]) => {
-        const row = document.createElement('label');
-        row.className = 'tune__row';
-        if (a === 'select') row.innerHTML = `<span>${label}</span><select>${b.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>`;
-        else if (a === 'check') row.innerHTML = `<span>${label}</span><input type="checkbox">`;
-        else row.innerHTML = `<span>${label}</span><input type="range" min="${a}" max="${b}" step="${c}"><output></output>`;
-        det.appendChild(row);
-        inputs[key] = row;
-      });
-      if (sec.extra) det.insertAdjacentHTML('beforeend', sec.extra);
-      body.appendChild(det);
-    });
-    const syncPanel = () => {
-      Object.entries(inputs).forEach(([key, row]) => {
-        const el = $('input,select', row), out = $('output', row), v = getV(key);
-        if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
-        if (out) out.textContent = (+v).toFixed(2).replace(/\.?0+$/, '');
-      });
-    };
-    const onEdit = (key) => {
-      const el = $('input,select', inputs[key]);
-      setV(key, el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value);
-      applyLook(); setRate(rate.v); saveTune(); syncPanel();
-    };
-    Object.keys(inputs).forEach((key) => $('input,select', inputs[key]).addEventListener('input', () => onEdit(key)));
-    panel.addEventListener('click', (e) => {
-      const act = e.target.dataset?.t;
-      if (act === 'close') panel.hidden = true;
-      if (act === 'reset') {
-        Object.assign(T, { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, speed: 1, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS });
-        applyLook(); setRate(rate.v); saveTune(); syncPanel();
-      }
-      if (act === 'mirror') { T.B = mirrorOf(T.A); saveTune(); syncPanel(); }
-      if (act === 'copy') {
-        const txt = JSON.stringify(T, null, 2);
-        navigator.clipboard?.writeText(txt).then(() => { e.target.textContent = 'Copied'; setTimeout(() => { e.target.textContent = 'Copy JSON'; }, 1200); });
-      }
-    });
-    $('[data-t="file"]', panel)?.addEventListener('change', (e) => {
-      const f = e.target.files?.[0];
-      if (!f) return;
-      loadHeight(URL.createObjectURL(f));
-      T.depthSource = 'heightmap';
-      saveTune(); syncPanel();
-    });
-    syncPanel();
+    // Dev tool: hidden from visitors. Open the site with ?tune once to switch it on
+    // for this browser (?tune=off switches it back off).
+    let tuneOn = false;
+    try {
+      const q = new URLSearchParams(location.search).get('tune');
+      if (q === 'off') localStorage.removeItem('vrgd-tune');
+      else if (q !== null) localStorage.setItem('vrgd-tune', '1');
+      tuneOn = localStorage.getItem('vrgd-tune') === '1';
+    } catch { /* private mode */ }
     setRate(1);
+    if (tuneOn) {
+      const panel = document.createElement('aside');
+      panel.className = 'tune mono';
+      panel.setAttribute('data-lenis-prevent', '');
+      panel.hidden = true;
+      panel.innerHTML = `<header><span>TUNE</span><button data-t="close" aria-label="Close">×</button></header><div class="tune__body"></div>
+        <footer><button data-t="copy">Copy JSON</button><button data-t="reset">Reset</button></footer>`;
+      document.body.appendChild(panel);
+      const body = $('.tune__body', panel);
+      const inputs = {};
+      SPEC.forEach((sec) => {
+        const det = document.createElement('details');
+        det.open = sec.open;
+        det.innerHTML = `<summary>${sec.title}</summary>`;
+        sec.rows.forEach(([key, label, a, b, c]) => {
+          const row = document.createElement('label');
+          row.className = 'tune__row';
+          if (a === 'select') row.innerHTML = `<span>${label}</span><select>${b.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>`;
+          else if (a === 'check') row.innerHTML = `<span>${label}</span><input type="checkbox">`;
+          else row.innerHTML = `<span>${label}</span><input type="range" min="${a}" max="${b}" step="${c}"><output></output>`;
+          det.appendChild(row);
+          inputs[key] = row;
+        });
+        if (sec.extra) det.insertAdjacentHTML('beforeend', sec.extra);
+        body.appendChild(det);
+      });
+      const syncPanel = () => {
+        Object.entries(inputs).forEach(([key, row]) => {
+          const el = $('input,select', row), out = $('output', row), v = getV(key);
+          if (el.type === 'checkbox') el.checked = !!v; else el.value = v;
+          if (out) out.textContent = (+v).toFixed(2).replace(/\.?0+$/, '');
+        });
+      };
+      const onEdit = (key) => {
+        const el = $('input,select', inputs[key]);
+        setV(key, el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value);
+        applyLook(); setRate(rate.v); saveTune(); syncPanel();
+      };
+      Object.keys(inputs).forEach((key) => $('input,select', inputs[key]).addEventListener('input', () => onEdit(key)));
+      panel.addEventListener('click', (e) => {
+        const act = e.target.dataset?.t;
+        if (act === 'close') panel.hidden = true;
+        if (act === 'reset') {
+          Object.assign(T, { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, speed: 1, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS });
+          applyLook(); setRate(rate.v); saveTune(); syncPanel();
+        }
+        if (act === 'mirror') { T.B = mirrorOf(T.A); saveTune(); syncPanel(); }
+        if (act === 'copy') {
+          const txt = JSON.stringify(T, null, 2);
+          navigator.clipboard?.writeText(txt).then(() => { e.target.textContent = 'Copied'; setTimeout(() => { e.target.textContent = 'Copy JSON'; }, 1200); });
+        }
+      });
+      $('[data-t="file"]', panel)?.addEventListener('change', (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        loadHeight(URL.createObjectURL(f));
+        T.depthSource = 'heightmap';
+        saveTune(); syncPanel();
+      });
+      syncPanel();
 
-    const tuneBtn = document.createElement('button');
-    tuneBtn.className = 'spotlight__tune';
-    tuneBtn.textContent = 'TUNE';
-    tuneBtn.setAttribute('aria-label', 'Open swirl / photo tuning panel');
-    $('.spotlight__top', root).insertBefore(tuneBtn, countEl);
-    tuneBtn.addEventListener('click', () => { panel.hidden = !panel.hidden; });
-    document.addEventListener('keydown', (e) => {
-      if (e.key?.toLowerCase() !== 'c' || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
-      panel.hidden = !panel.hidden;
-    });
+      const tuneBtn = document.createElement('button');
+      tuneBtn.className = 'spotlight__tune';
+      tuneBtn.textContent = 'TUNE';
+      tuneBtn.setAttribute('aria-label', 'Open swirl / photo tuning panel');
+      $('.spotlight__top', root).insertBefore(tuneBtn, countEl);
+      tuneBtn.addEventListener('click', () => { panel.hidden = !panel.hidden; });
+      document.addEventListener('keydown', (e) => {
+        if (e.key?.toLowerCase() !== 'c' || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '')) return;
+        panel.hidden = !panel.hidden;
+      });
+    }
     const rate = { v: 1 };
 
     /* ---------- Title, split into letters ---------- */
@@ -923,7 +936,7 @@
     const hero = $('.hero');
     const sidenav = $('.sidenav');
 
-    $$('.is-invert').forEach(registerDarkSurface);
+    $$('.is-invert').forEach((el) => registerDarkSurface(el));
 
     // Side nav borrows the jumpbar's move: the NOW readout slides in past the
     // hero (and the list nudges over with it), then retracts back at the top.

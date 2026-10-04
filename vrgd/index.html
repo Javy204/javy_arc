@@ -14,17 +14,17 @@ document.documentElement.classList.add('js');
   try { m = localStorage.getItem('vrgd-nav'); } catch (e) { m = null; }
   root.setAttribute('data-nav', modes.indexOf(m) > -1 ? m : 'sidenav');
 
-  /* Theme too — saved choice wins, otherwise follow the OS. */
+  /* Theme too — saved choice wins, otherwise light. */
   try { t = localStorage.getItem('vrgd-theme'); } catch (e) { t = null; }
   if (t !== 'dark' && t !== 'light') {
-    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    t = 'light';
   }
   root.setAttribute('data-theme', t);
 })();
 </script>
 <link rel="stylesheet" href="assets/fonts.css">
 <link rel="stylesheet" href="css/lenis.css">
-<link rel="stylesheet" href="css/style.css?v=64">
+<link rel="stylesheet" href="css/style.css?v=66">
 </head>
 <body data-loading="true">
 
@@ -386,7 +386,7 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/CustomEase.min.js"></script>
 <script src="js/vendor/Observer.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
-<script src="js/shared.js?v=3"></script>
-<script src="js/main.js?v=56"></script>
+<script src="js/shared.js?v=4"></script>
+<script src="js/main.js?v=60"></script>
 </body>
 </html>

@@ -73,6 +73,10 @@
         <h1 class="project__title">${project.title}</h1>
         <span class="mono is-dim">${project.meta || ''}</span>
       </div>`;
+    // Crop the hero around the subject (work.json `heroFocus`, else `focus`), not the dead centre.
+    const heroMedia = $('.project__frame img, .project__frame video', hero);
+    const hf = project.heroFocus || project.focus;
+    if (heroMedia && hf) heroMedia.style.objectPosition = `${hf[0] * 100}% ${hf[1] * 100}%`;
 
     $('[data-project-headline]').textContent = project.headline || '';
     $('[data-project-body]').innerHTML = (project.body || []).map((p) => `<p>${p}</p>`).join('');

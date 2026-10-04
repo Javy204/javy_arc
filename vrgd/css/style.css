@@ -161,7 +161,6 @@ img, svg, video, canvas { display: block; max-width: 100%; }
   top: 0; left: 0;
   z-index: 9000;
   pointer-events: none;
-  text-shadow: 0 2px 40px rgba(0,0,0,.45);
   will-change: transform;
 }
 /* The spark again, this time following the pointer. */
@@ -714,7 +713,6 @@ html:not(.js) .loader { display: none; }
    Placed after the .has-video rule so it wins the specificity tie. */
 .hero .hero__logo[data-logo-blend="difference"] {
   --logo-fill: #fff;
-  text-shadow: 0 2px 40px rgba(0,0,0,.45);
 }
 .hero .hero__logo[data-logo-blend="difference"] .split--r { opacity: 0; }
 
@@ -809,21 +807,24 @@ html:not(.js) .loader { display: none; }
   font-size: clamp(.9rem, 1.05vw, 1.05rem);
   line-height: 1.62;
 }
-/* ---------- Work — dark stage, big photo, chrome swirl behind ----------
-   The block is a dark surface in both themes (footage, not palette).
-   Layers: swirl video (background) → photo frame → HUD text/controls.
+/* ---------- Work — big photo on the page ground, optional chrome swirl ----------
+   Follows the page theme (white by default, nothing but the photo and type).
+   While a swirl is switched on in TUNE the block turns into a dark stage
+   (.has-swirl). Layers: swirl (background) → photo frame → HUD.
    See initSpotlight in main.js. */
 .spotlight {
-  --sp-fg: #f4f4f2;
+  --sp-fg: var(--ink);
+  --sp-bg: var(--paper);
   position: relative;
   width: calc(100% + var(--pad) * 2);
   margin: clamp(1.5rem, 4vh, 2.5rem) calc(var(--pad) * -1) 0;
   height: 100vh; height: 100svh;
   min-height: 600px;
   overflow: hidden;
-  background: #0b0b0b;
+  background: var(--sp-bg);
   color: var(--sp-fg);
 }
+.spotlight.has-swirl { --sp-fg: #f4f4f2; --sp-bg: #0b0b0b; }
 @media (min-width: 768px) {
   [data-nav="sidenav"] .spotlight {
     width: calc(100% + var(--pad) * 2 + var(--gutter));
@@ -831,10 +832,10 @@ html:not(.js) .loader { display: none; }
   }
 }
 .spotlight__source { position: absolute; width: 2px; height: 2px; top: 0; left: 0; opacity: 0; pointer-events: none; }
-.spotlight__bg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .9; pointer-events: none; }
+.spotlight__bg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .spotlight__fly { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; }
 /* keeps the swirl from fighting the type at the edges */
-.spotlight::after {
+.spotlight.has-swirl::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(11,11,11,.55) 100%);
 }
@@ -845,9 +846,10 @@ html:not(.js) .loader { display: none; }
   aspect-ratio: var(--far, 1.6);
   overflow: hidden;
   cursor: pointer; touch-action: pan-y;
-  background: #151515;
-  box-shadow: 0 30px 80px rgba(0,0,0,.55);
+  background: var(--plate2);
+  box-shadow: 0 24px 70px rgba(0,0,0,.16);
 }
+.spotlight.has-swirl .spotlight__frame { box-shadow: 0 30px 80px rgba(0,0,0,.55); }
 .spotlight__layer { position: absolute; inset: 0; overflow: hidden; }
 .spotlight__img {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -862,7 +864,7 @@ html:not(.js) .loader { display: none; }
 .spotlight__hud {
   position: absolute; inset: 0; z-index: 2;
   display: flex; flex-direction: column; justify-content: space-between;
-  padding: clamp(1.1rem, 3vh, 2rem) var(--pad);
+  padding: calc(var(--nav-h) + .6rem) var(--pad) clamp(1.1rem, 3vh, 2rem);   /* clears the fixed navbar */
   pointer-events: none;
 }
 [data-nav="sidenav"] .spotlight__hud { padding-right: calc(var(--pad) + var(--gutter) * .55); }
@@ -878,7 +880,6 @@ html:not(.js) .loader { display: none; }
   letter-spacing: -.045em;
   text-transform: uppercase;
   max-width: 14ch;
-  text-shadow: 0 2px 40px rgba(0,0,0,.45);
 }
 .spotlight__word { display: inline-block; overflow: hidden; vertical-align: top; padding: .04em .02em .06em 0; margin-bottom: -.06em; }
 .spotlight__char { display: inline-block; will-change: transform; }
@@ -903,7 +904,7 @@ html:not(.js) .loader { display: none; }
 .spotlight__index button:hover, .spotlight__index button[aria-current="true"] { opacity: 1; }
 .spotlight__index button i {
   position: absolute; left: 0; right: 0; top: 0; height: 1px;
-  background: rgba(244,244,242,.35);
+  background: color-mix(in srgb, var(--sp-fg) 30%, transparent);
 }
 .spotlight__index button i::after {
   content: ""; position: absolute; inset: 0;
@@ -916,15 +917,15 @@ html:not(.js) .loader { display: none; }
 .spotlight__ctrl { display: flex; align-items: center; gap: .6rem; }
 .spotlight__btn {
   width: clamp(42px, 4vw, 54px); aspect-ratio: 1; border-radius: 50%;
-  border: 1px solid rgba(244,244,242,.45);
+  border: 1px solid color-mix(in srgb, var(--sp-fg) 40%, transparent);
   display: grid; place-items: center;
   transition: background .25s, color .25s, transform .25s;
 }
 .spotlight__btn svg { width: 40%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.spotlight__btn:hover { background: var(--sp-fg); color: #0b0b0b; transform: scale(1.06); }
+.spotlight__btn:hover { background: var(--sp-fg); color: var(--sp-bg); transform: scale(1.06); }
 .spotlight__open {
   margin-left: .6rem; padding: .95rem 1.3rem; border-radius: 999px;
-  background: var(--sp-fg); color: #0b0b0b;
+  background: var(--sp-fg); color: var(--sp-bg);
 }
 
 @media (max-width: 767px) {
@@ -1678,10 +1679,10 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
 
 /* ---------- TUNE panel (work swirl / photo) — dev tool, delete with initSpotlight's panel block ---------- */
 .spotlight__tune {
-  padding: .35rem .7rem; border: 1px solid rgba(244,244,242,.4); border-radius: 999px;
+  padding: .35rem .7rem; border: 1px solid color-mix(in srgb, var(--sp-fg) 40%, transparent); border-radius: 999px;
   font: inherit; letter-spacing: .08em; pointer-events: auto;
 }
-.spotlight__tune:hover { background: #f4f4f2; color: #0b0b0b; }
+.spotlight__tune:hover { background: var(--sp-fg); color: var(--sp-bg); }
 .tune {
   position: fixed; z-index: 9000; right: 12px; top: 12px; bottom: 12px; width: 300px;
   display: flex; flex-direction: column;

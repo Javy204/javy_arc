@@ -352,8 +352,8 @@
     const countEl = $('[data-spotlight-count]', root);
     const titleEl = $('[data-spotlight-title]', root);
     const indexEl = $('[data-spotlight-index]', root);
-    const layers = { a: $('[data-layer="a"]', frame), b: $('[data-layer="b"]', frame) };
-    const imgOf = (k) => layers[k].firstElementChild;
+    const photoCv = $('[data-photo]', frame);
+    const fbImg = $('.spotlight__fallback', frame);
 
     // WORK follows the page theme (white by default); it only goes dark while a swirl is shown.
     registerDarkSurface(root, () => root.classList.contains('has-swirl'));
@@ -367,11 +367,144 @@
     const srcOf = (p) => p.preview || p.hero?.src;   // landscape, already B&W
     projects.forEach((p) => { new Image().src = srcOf(p); });   // warm the cache
 
-    const setImg = (el, i) => {
-      el.src = srcOf(projects[i]);
-      const [fx, fy] = projects[i].focus || [.5, .5];
-      el.style.objectPosition = `${fx * 100}% ${fy * 100}%`;
-    };
+    /* ---------- Photos: one WebGL canvas — wipe, drift and dither in the shader ----------
+       Replaces stacked <img> layers so the dither can be applied to the
+       picture itself (and tuned live in the TUNE panel). A = the photo on
+       show, B = the one wiping in; `clip` is the wipe progress, the zoom /
+       drift per photo is animated on P. Ordered dither (Bayer 4/8, noise,
+       halftone dots, lines) quantises the grey to N levels; `mix` blends it
+       with the clean picture and it dissolves on hover. */
+    const P = { cur: 0, next: 0, clip: 0, dir: 1, aS: 1, aX: 0, bS: 1, bX: 0, hover: 0 };
+    const PATTERNS = { bayer4: 0, bayer8: 1, noise: 2, dots: 3, lines: 4 };
+    const hex3 = (h) => [1, 3, 5].map((i) => parseInt(String(h).slice(i, i + 2), 16) / 255);
+    const photoGl = photoCv.getContext('webgl', { antialias: false, alpha: false });
+    const photoTex = [], photoAsp = projects.map(() => 1.5), photoReady = [];
+    let renderPhoto = () => {};
+
+    if (!photoGl) {
+      fbImg.hidden = false; photoCv.hidden = true;
+      fbImg.src = srcOf(projects[0]);
+    } else {
+      const gl = photoGl;
+      const mk = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+      const prog = gl.createProgram();
+      gl.attachShader(prog, mk(gl.VERTEX_SHADER, 'attribute vec2 a; void main(){ gl_Position = vec4(a,0.,1.); }'));
+      gl.attachShader(prog, mk(gl.FRAGMENT_SHADER, `precision highp float;
+        uniform sampler2D uA, uB;
+        uniform vec2 uRes, uAsp, uFocA, uFocB;
+        uniform vec3 uTa, uTb, uDark, uLight;
+        uniform float uClip, uDir, uCon, uBri, uMix, uPat, uCell, uLev, uAmt, uDuo, uPix, uTime, uShim;
+
+        vec2 cover(vec2 uv, float imgAsp, vec2 foc, vec3 tr){
+          uv = (uv - .5 - vec2(tr.y, 0.)) / tr.x + .5;
+          float fa = uRes.x / uRes.y;
+          vec2 s = (fa > imgAsp ? vec2(1., imgAsp/fa) : vec2(fa/imgAsp, 1.));
+          vec2 o = clamp(foc - s*.5, vec2(0.), vec2(1.) - s);
+          return o + clamp(uv, 0., 1.) * s;
+        }
+        float lum(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
+        float b2(vec2 a){ return fract(a.x*.5 + a.y*a.y*.75); }
+        float b4(vec2 a){ return b2(.5*a)*.25 + b2(a); }
+        float b8(vec2 a){ return b4(.5*a)*.25 + b2(a); }
+        float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+
+        void main(){
+          vec2 frag = gl_FragCoord.xy;
+          vec2 q = frag / uRes;
+          vec2 pc = frag / uCell;
+          vec2 cellUv = (floor(pc) + .5) * uCell / uRes;     // chunky sampling when "pixelate" is on
+          vec2 uv = mix(q, cellUv, uPix);
+          uv.y = 1. - uv.y;
+
+          float gA = lum(texture2D(uA, cover(uv, uAsp.x, uFocA, uTa)).rgb);
+          float gB = lum(texture2D(uB, cover(uv, uAsp.y, uFocB, uTb)).rgb);
+          float rev = uDir > 0. ? step(1. - uClip, q.x) : step(q.x, uClip);
+          float g = mix(gA, gB, rev);
+          g = clamp((g - .5) * uCon + .5, 0., 1.) * uBri;
+
+          float tick = floor(uTime * uShim * 14.);
+          vec2 cp = floor(pc) + tick * vec2(3., 7.);
+          float T;
+          if (uPat < .5)       T = b4(cp) + .5/16.;
+          else if (uPat < 1.5) T = b8(cp) + .5/64.;
+          else if (uPat < 2.5) T = hash(cp);
+          else if (uPat < 3.5) {                              // halftone dots, 45deg
+            vec2 f = fract(vec2(pc.x + pc.y, pc.x - pc.y) * .7071 / 4.) - .5;
+            T = 1. - clamp(length(f) * 1.4142, 0., 1.);
+          } else {                                            // diagonal lines
+            T = abs(fract((pc.x + pc.y) * .7071 / 4.) * 2. - 1.);
+          }
+          float L = uLev - 1.;
+          float d = clamp(floor(g * L + mix(.5, T, uAmt)) / L, 0., 1.);
+          float o = mix(g, d, uMix);
+          vec3 col = mix(vec3(o), mix(uDark, uLight, o), uDuo);
+          gl_FragColor = vec4(col, 1.);
+        }`));
+      gl.linkProgram(prog); gl.useProgram(prog);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, 'a');
+      gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      const U = {};
+      ['uA', 'uB', 'uRes', 'uAsp', 'uFocA', 'uFocB', 'uTa', 'uTb', 'uDark', 'uLight', 'uClip', 'uDir', 'uCon', 'uBri', 'uMix',
+        'uPat', 'uCell', 'uLev', 'uAmt', 'uDuo', 'uPix', 'uTime', 'uShim'].forEach((n) => { U[n] = gl.getUniformLocation(prog, n); });
+
+      projects.forEach((p, i) => {
+        const t = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([20, 20, 20, 255]));
+        photoTex.push(t);
+        const img = new Image();
+        photoReady.push(new Promise((res) => {
+          img.onload = () => {
+            gl.bindTexture(gl.TEXTURE_2D, t);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+            photoAsp[i] = img.naturalWidth / img.naturalHeight;
+            renderPhoto();
+            res();
+          };
+          img.onerror = res;
+        }));
+        img.src = srcOf(p);
+      });
+
+      const t0 = performance.now();
+      let cw = 0, ch = 0;
+      renderPhoto = () => {
+        const dprP = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.max(2, Math.round(frame.clientWidth * dprP)), h = Math.max(2, Math.round(frame.clientHeight * dprP));
+        if (w !== cw || h !== ch) { cw = w; ch = h; photoCv.width = w; photoCv.height = h; gl.viewport(0, 0, w, h); }
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, photoTex[P.cur]);
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, photoTex[P.next]);
+        gl.uniform1i(U.uA, 0); gl.uniform1i(U.uB, 1);
+        gl.uniform2f(U.uRes, w, h);
+        gl.uniform2f(U.uAsp, photoAsp[P.cur], photoAsp[P.next]);
+        gl.uniform2fv(U.uFocA, projects[P.cur].focus || [.5, .5]);
+        gl.uniform2fv(U.uFocB, projects[P.next].focus || [.5, .5]);
+        gl.uniform3f(U.uTa, P.aS, P.aX, 0); gl.uniform3f(U.uTb, P.bS, P.bX, 0);
+        gl.uniform1f(U.uClip, P.clip); gl.uniform1f(U.uDir, P.dir);
+        gl.uniform1f(U.uCon, T.photoContrast); gl.uniform1f(U.uBri, T.photoBright);
+        const on = T.ditherOn ? 1 : 0;
+        gl.uniform1f(U.uMix, on * T.ditherMix * (1 - (T.ditherHoverClean ? P.hover : 0)));
+        gl.uniform1f(U.uPat, PATTERNS[T.ditherPattern] ?? 1);
+        gl.uniform1f(U.uCell, Math.max(1, T.ditherSize * dprP));
+        gl.uniform1f(U.uLev, Math.max(2, T.ditherLevels));
+        gl.uniform1f(U.uAmt, T.ditherAmount);
+        gl.uniform1f(U.uDuo, T.ditherMode === 'duo' ? 1 : 0);
+        gl.uniform1f(U.uPix, on && T.ditherPixelate ? 1 : 0);
+        gl.uniform1f(U.uTime, (performance.now() - t0) / 1000);
+        gl.uniform1f(U.uShim, T.ditherShimmer);
+        gl.uniform3fv(U.uDark, hex3(T.ditherDark)); gl.uniform3fv(U.uLight, hex3(T.ditherLight));
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+      new ResizeObserver(() => renderPhoto()).observe(frame);
+      frame.addEventListener('pointerenter', () => gsap.to(P, { hover: 1, duration: 0.5, ease: 'power2.out' }));
+      frame.addEventListener('pointerleave', () => gsap.to(P, { hover: 0, duration: 0.6, ease: 'power2.inOut' }));
+    }
 
     /* ---------- Swirl: two instances, background + depth-split front layer ----------
        One packed clip (chrome | matte, 1920 each), drawn up to twice (A and
@@ -402,12 +535,17 @@
       depthAngle: 180, depthPos: 0.8, depthCut: 0.31, depthSoft: 0.37, depthLuma: 0.12, depthDrift: 4.5
     };
     const FRAME_DEFAULTS = { frameW: 61, frameAspect: 1.44, frameX: 0, frameY: -2, photoContrast: 0.99, photoBright: 1 };
+    // Ordered dither on the WORK photos (see the Photos block above).
+    const DITHER_DEFAULTS = {
+      ditherOn: true, ditherPattern: 'bayer8', ditherSize: 2, ditherLevels: 7, ditherAmount: 0.8, ditherMix: 0.4,
+      ditherMode: 'gray', ditherDark: '#0a0a0a', ditherLight: '#f4f4f2', ditherPixelate: false, ditherShimmer: 0, ditherHoverClean: true
+    };
     // "Re-mirror B from A" in the panel: B = A flipped left-to-right.
     const mirrorOf = (A) => ({
       ...A, on: true, mirror: !A.mirror, x: -A.x, rot: -A.rot, spin: -A.spin,
       depthAngle: (((180 - A.depthAngle) % 360) + 360) % 360, depthDrift: -A.depthDrift
     });
-    const T = { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, speed: 1, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS };
+    const T = { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, speed: 1, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS, ...DITHER_DEFAULTS };
     try {
       const saved = JSON.parse(localStorage.getItem(TUNE_KEY) || '{}');
       if (saved.A) {
@@ -427,8 +565,6 @@
       frame.style.setProperty('--far', T.frameAspect);
       frame.style.setProperty('--fx', T.frameX);
       frame.style.setProperty('--fy', T.frameY);
-      frame.style.setProperty('--pc', T.photoContrast);
-      frame.style.setProperty('--pb', T.photoBright);
     };
     applyLook();
 
@@ -604,11 +740,11 @@
 
     // Only burn decode while the section is on screen.
     let visible = false, raf = 0;
-    const loop = () => { if (!visible) return; render(); raf = requestAnimationFrame(loop); };
+    const loop = () => { if (!visible) return; renderPhoto(); render(); raf = requestAnimationFrame(loop); };
     new IntersectionObserver(([e]) => {
       visible = e.isIntersecting;
       cancelAnimationFrame(raf);
-      if (visible) { if (REDUCED) { render(); video.addEventListener('loadeddata', render, { once: true }); } else loop(); }
+      if (visible) { if (REDUCED) { renderPhoto(); render(); video.addEventListener('loadeddata', render, { once: true }); } else loop(); }
       else video.pause();
     }, { threshold: 0.01 }).observe(root);
     video.addEventListener('pause', () => { if (visible && wantsVideo()) video.play().catch(() => {}); });
@@ -644,6 +780,20 @@
         ['debugDepth', 'Show depth map', 'check']
       ], extra: `<label class="tune__row"><span>Heightmap file</span><input type="file" accept="image/*" data-t="file"></label>
         <p class="tune__note">Or drop a PNG at assets/work-deco/heightmap.png — white = front, black = back.</p>` },
+      { title: 'Photo dither', open: true, rows: [
+        ['ditherOn', 'Dither on', 'check'],
+        ['ditherPattern', 'Pattern', 'select', [['bayer4', 'Bayer 4×4'], ['bayer8', 'Bayer 8×8'], ['noise', 'Noise'], ['dots', 'Halftone dots'], ['lines', 'Lines']]],
+        ['ditherSize', 'Cell size (px)', 1, 12, 0.5],
+        ['ditherLevels', 'Levels', 2, 12, 1],
+        ['ditherAmount', 'Pattern strength', 0, 1, 0.01],
+        ['ditherMix', 'Mix with clean photo', 0, 1, 0.01],
+        ['ditherMode', 'Colour', 'select', [['gray', 'greyscale'], ['duo', 'duotone']]],
+        ['ditherDark', 'Duotone dark', 'color'],
+        ['ditherLight', 'Duotone light', 'color'],
+        ['ditherPixelate', 'Pixelate photo to cells', 'check'],
+        ['ditherShimmer', 'Shimmer speed', 0, 1, 0.01],
+        ['ditherHoverClean', 'Clean on hover', 'check']
+      ] },
       { title: 'Photo', open: false, rows: [
         ['frameW', 'Width %', 25, 95, 1],
         ['frameAspect', 'Aspect (w / h)', 0.7, 2.6, 0.01],
@@ -685,6 +835,7 @@
           row.className = 'tune__row';
           if (a === 'select') row.innerHTML = `<span>${label}</span><select>${b.map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>`;
           else if (a === 'check') row.innerHTML = `<span>${label}</span><input type="checkbox">`;
+        else if (a === 'color') row.innerHTML = `<span>${label}</span><input type="color">`;
           else row.innerHTML = `<span>${label}</span><input type="range" min="${a}" max="${b}" step="${c}"><output></output>`;
           det.appendChild(row);
           inputs[key] = row;
@@ -702,15 +853,15 @@
       const onEdit = (key) => {
         const el = $('input,select', inputs[key]);
         setV(key, el.type === 'checkbox' ? el.checked : el.type === 'range' ? +el.value : el.value);
-        applyLook(); setRate(rate.v); saveTune(); syncPanel();
+        applyLook(); setRate(rate.v); renderPhoto(); saveTune(); syncPanel();
       };
       Object.keys(inputs).forEach((key) => $('input,select', inputs[key]).addEventListener('input', () => onEdit(key)));
       panel.addEventListener('click', (e) => {
         const act = e.target.dataset?.t;
         if (act === 'close') panel.hidden = true;
         if (act === 'reset') {
-          Object.assign(T, { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, speed: 1, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS });
-          applyLook(); setRate(rate.v); saveTune(); syncPanel();
+          Object.assign(T, { A: { ...A_DEFAULTS }, B: { ...B_DEFAULTS }, speed: 1, depthSource: 'gradient', debugDepth: false, ...FRAME_DEFAULTS, ...DITHER_DEFAULTS });
+          applyLook(); setRate(rate.v); renderPhoto(); saveTune(); syncPanel();
         }
         if (act === 'mirror') { T.B = mirrorOf(T.A); saveTune(); syncPanel(); }
         if (act === 'copy') {
@@ -767,45 +918,39 @@
 
     /* ---------- The change ---------- */
     let cur = 0, busy = false;
-    // Two stacked <img>: `front` is what's showing, the other takes the next photo.
-    let front = 'a';
-    const other = () => (front === 'a' ? 'b' : 'a');
 
     async function change(to, dir) {
       if (busy || to === cur) return;
       busy = true;
       setInfo(to, true);
 
-      const inK = other(), outK = front;
-      const inL = layers[inK], outL = layers[outK];
-      const inImg = imgOf(inK), outImg = imgOf(outK);
-      setImg(inImg, to);
-      try { await inImg.decode(); } catch { /* falls through, shows when ready */ }
-
-      if (REDUCED) {
-        gsap.set(inL, { clipPath: 'inset(0% 0% 0% 0%)', zIndex: 2 });
-        gsap.set(outL, { zIndex: 1 });
-        front = inK; cur = to; busy = false;
+      if (!photoGl) {                     // no WebGL: plain swap
+        fbImg.src = srcOf(projects[to]);
+        cur = to; busy = false;
         setTitle(projects[to].title);
         return;
       }
 
-      // The wipe edge lives on the layer, the zoom/drift on the <img> inside
-      // it, so the edge stays a straight line while the picture settles.
-      // Next comes in from the right, previous from the left.
-      const from = dir > 0 ? 'inset(0% 0% 0% 100%)' : 'inset(0% 100% 0% 0%)';
-      gsap.set(inL, { zIndex: 2, clipPath: from });
-      gsap.set(inImg, { scale: 1.22, xPercent: dir * 7 });
-      gsap.set(outL, { zIndex: 1 });
+      P.next = to; P.dir = dir;
+      await photoReady[to];
 
+      if (REDUCED) {
+        P.cur = to; P.clip = 0; cur = to; busy = false;
+        setTitle(projects[to].title); renderPhoto();
+        return;
+      }
+
+      // Wipe travels the way the user is going: next comes in from the right.
+      // The edge lives in the shader, zoom/drift are separate, so it stays straight.
+      P.clip = 0; P.aS = 1; P.aX = 0; P.bS = 1.22; P.bX = dir * 0.07;
       gsap.timeline({ onComplete() {
-        front = inK; cur = to; busy = false;
-        gsap.set(outImg, { scale: 1, xPercent: 0 });
+        P.cur = to; P.clip = 0; P.aS = 1; P.aX = 0; P.bS = 1; P.bX = 0;
+        cur = to; busy = false;
       } })
         .add(charsOut(), 0)
-        .to(inL, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.0, ease: 'power3.inOut' }, 0)
-        .to(inImg, { scale: 1, xPercent: 0, duration: 1.6, ease: 'power3.out' }, 0.1)
-        .to(outImg, { scale: 1.08, xPercent: -dir * 5, duration: 1.0, ease: 'power3.inOut' }, 0)
+        .to(P, { clip: 1, duration: 1.0, ease: 'power3.inOut' }, 0)
+        .to(P, { bS: 1, bX: 0, duration: 1.6, ease: 'power3.out' }, 0.1)
+        .to(P, { aS: 1.08, aX: -dir * 0.05, duration: 1.0, ease: 'power3.inOut' }, 0)
         .to(rate, { v: 1.8, duration: 0.5, ease: 'power2.out', onUpdate: () => setRate(rate.v) }, 0)
         .to(rate, { v: 1, duration: 1.2, ease: 'power2.inOut', onUpdate: () => setRate(rate.v) }, 0.5)
         .add(() => { setTitle(projects[to].title); gsap.set(chars, { yPercent: 110 }); charsIn(); }, 0.55);
@@ -851,8 +996,6 @@
     });
 
     /* ---------- First look ---------- */
-    setImg(imgOf('a'), 0);
-    gsap.set(layers.a, { zIndex: 2 });
     setInfo(0, false);
     setTitle(projects[0].title);
     if (REDUCED) return;
@@ -860,14 +1003,14 @@
     busy = true;
     gsap.set(chars, { yPercent: 110 });
     gsap.set(frame, { clipPath: 'inset(100% 0% 0% 0%)' });
-    gsap.set(imgOf('a'), { scale: 1.2 });
+    P.aS = 1.2;
     ScrollTrigger.create({
       trigger: root, start: 'top 65%', once: true,
       onEnter: () => {
         window.VRGD.scramble(metaEl, projects[0].meta, 0.6);
         gsap.timeline({ onComplete() { busy = false; } })
           .to(frame, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.3, ease: 'expo.inOut' }, 0)
-          .to(imgOf('a'), { scale: 1, duration: 1.8, ease: 'expo.out' }, 0.1)
+          .to(P, { aS: 1, duration: 1.8, ease: 'expo.out' }, 0.1)
           .add(() => charsIn(), 0.5);
       }
     });

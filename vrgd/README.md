@@ -62,9 +62,9 @@ Dvě věci se s tématem musí přepnout zvlášť:
 - **Dither canvas** v `initDither()` kreslí pixely v JS, takže si čte
   `data-theme` a na událost `vrgd:theme` se překreslí.
 
-> Výjimka: **kurzor má barvu natvrdo** (`#f4f4f2`). Jede na
-> `mix-blend-mode: difference`, kde se světlá značka invertuje proti
-> jakémukoli podkladu — takže je vidět v obou režimech a token by to rozbil.
+> Výjimka: **kurzor má barvu natvrdo** (`#fff`) a `.cursor` má `mix-blend-mode:
+> difference` — značka i popisek se invertují proti čemukoli pod myší (světlé téma,
+> tmavé sekce, fotky), takže jsou vidět všude a token by to rozbil.
 
 `.is-invert` bloky jsou invertované *vůči stránce*, takže na světlém tématu
 jsou tmavé a na tmavém světlé. Třída `.on-invert` na navigaci (dřív `.on-dark`)
@@ -215,6 +215,16 @@ výchozí pro všechny (teď tam je ručně vyladěný vzhled ze 29. 9. 2026). H
 `assets/work-deco/heightmap.png` (načte se sám; 404 v konzoli bez něj je jen
 zkouška existence). Panel jde smazat: blok `TUNE panel` v `initSpotlight`,
 `.tune` / `.spotlight__tune` v CSS.
+
+**Dither na fotkách:** fotky se nekreslí jako `<img>`, ale jedním WebGL canvasem
+(`.spotlight__photo`, blok *Photos* v `initSpotlight`). V shaderu se děje wipe,
+zoom/drift i **ordered dither** (Bayer 4×4 / 8×8, šum, půltónové tečky, čáry):
+šeď se kvantizuje na N úrovní proti vzoru, `Mix` ji míchá s čistou fotkou a na
+hover se dither rozpustí (`Clean on hover`). Vše je v TUNE v sekci *Photo dither*
+(velikost buňky, úrovně, síla vzoru, mix, greyscale/duotone + barvy, pixelate,
+shimmer). Výchozí hodnoty jsou `DITHER_DEFAULTS` — jemné (Bayer 8×8, buňka 2 px,
+7 úrovní, mix .4); po ladění stačí **Copy JSON** a hodnoty přepsat tam. Bez WebGL
+se ukáže obyčejný `<img>` (`.spotlight__fallback`) bez dithru a wipe.
 
 **Přechod:** jeden pohyb. Další fotka se přes aktuální odkryje wipem
 (`clip-path` na vrstvě, zoom/drift na `<img>` uvnitř; směr podle prev/next), její obraz se zároveň usadí z lehkého

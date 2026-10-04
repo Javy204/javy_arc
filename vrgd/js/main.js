@@ -558,7 +558,25 @@
     new ResizeObserver(resize).observe(root);
 
     let flyOn = false;
+    // The 12 MB clip is only fetched / decoded while a swirl is switched on.
+    const wantsVideo = () => SWS.some((k) => T[k].on);
+    let drawn = false;
     const render = () => {
+      const live = SWS.map((k) => T[k]).filter((S) => S.on);
+      const dark = live.length > 0;
+      if (dark !== root.classList.contains('has-swirl')) root.classList.toggle('has-swirl', dark);
+      if (!dark) {
+        if (!video.paused) video.pause();
+        if (drawn || flyOn) {
+          bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+          bgCtx.clearRect(0, 0, bgCv.width, bgCv.height);
+          if (glDraw) glDraw(frameRect(), 0, []);
+          drawn = false; flyOn = false;
+        }
+        return;
+      }
+      if (!video.getAttribute('src')) { video.src = video.dataset.src; video.load(); }
+      if (video.paused) video.play().catch(() => {});
       if (video.readyState < 2) return;
       const t = (performance.now() - tStart) / 1000;
       const vw = video.videoWidth / 2;
@@ -566,9 +584,7 @@
       bgCtx.globalCompositeOperation = 'source-over';
       bgCtx.globalAlpha = 1;
       bgCtx.clearRect(0, 0, bgCv.width, bgCv.height);
-      const live = SWS.map((k) => T[k]).filter((S) => S.on);
-      const dark = live.length > 0;
-      if (dark !== root.classList.contains('has-swirl')) root.classList.toggle('has-swirl', dark);
+      drawn = true;
       live.forEach((S, i) => {
         const size = Math.max(W, H) * S.scale * dpr;
         bgCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -592,10 +608,10 @@
     new IntersectionObserver(([e]) => {
       visible = e.isIntersecting;
       cancelAnimationFrame(raf);
-      if (visible) { video.play().catch(() => {}); if (REDUCED) video.addEventListener('loadeddata', render, { once: true }); else loop(); }
+      if (visible) { if (REDUCED) { render(); video.addEventListener('loadeddata', render, { once: true }); } else loop(); }
       else video.pause();
     }, { threshold: 0.01 }).observe(root);
-    video.addEventListener('pause', () => { if (visible) video.play().catch(() => {}); });
+    video.addEventListener('pause', () => { if (visible && wantsVideo()) video.play().catch(() => {}); });
     // `speed` is the user's setting; the project change briefly multiplies it.
     const setRate = (v) => { video.playbackRate = Math.max(0.0625, v * T.speed); };
 

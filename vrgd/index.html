@@ -223,7 +223,7 @@ document.documentElement.classList.add('js');
     <div class="spotlight" data-spotlight>
       <!-- Ambient background: the chrome render, looping, never
            reacts to anything. See initSpotlight in main.js. -->
-      <video class="spotlight__source" data-blob-video src="assets/work-deco/blob-packed.mp4" muted playsinline loop autoplay preload="auto" aria-hidden="true"></video>
+      <video class="spotlight__source" data-blob-video data-src="assets/work-deco/blob-packed.mp4" muted playsinline loop preload="none" aria-hidden="true"></video>
       <canvas class="spotlight__bg" data-bg aria-hidden="true"></canvas>
 
       <div class="spotlight__frame" data-spotlight-frame data-cursor-hover data-cursor-text="VIEW" role="img" aria-label="Selected project">
@@ -387,6 +387,6 @@ document.documentElement.classList.add('js');
 <script src="js/vendor/Observer.min.js"></script>
 <script src="js/vendor/lenis.min.js"></script>
 <script src="js/shared.js?v=4"></script>
-<script src="js/main.js?v=60"></script>
+<script src="js/main.js?v=61"></script>
 </body>
 </html>

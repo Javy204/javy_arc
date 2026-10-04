@@ -172,6 +172,9 @@ s fotkou (`.spotlight__frame`, vždy kontrastně černobílá, zdroj `preview` =
 landscape) → **fly vrstva** (WebGL canvas přes rámeček) → HUD. Blok je tmavý
 v obou tématech (`registerDarkSurface`).
 
+**Video se načítá líně:** `blob-packed.mp4` (12 MB) se stáhne a dekóduje až ve chvíli, kdy je zapnutá aspoň
+jedna smyčka (`data-src`, `preload="none"`); ve výchozím stavu bez swirlů se nestahuje vůbec.
+
 **Dvě smyčky (A, B) + vrstvení podle hloubky + TUNE panel:** stejný klip se
 kreslí až dvakrát; každá instance má vlastní velikost / pozici / rotaci / spin /
 zrcadlení / jas a **vlastní vrstvení** (`behind | in front | split by depth`).

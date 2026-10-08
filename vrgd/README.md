@@ -362,19 +362,22 @@ Pod 768 px se všechny tři skrývají a nastupuje hamburger s fullscreen menu.
 
 ## Struktura — co je kde
 
-**Index** nese jen `hero`, `about`, `work`, `assets`, `contacts`. Trvalé
-navigace (side nav / topnav / jumpbar) proto mají **čtyři položky**: ABOUT,
-WORK, CONTACTS, GALLERY.
+**Index** nese jen `hero`, `about`, `work`, `assets` (skrytá), `contacts`. Trvalé navigace
+(side nav / topnav / jumpbar) mají **tři položky**: ABOUT, WORK, CONTACTS.
 
-**EVENTS a SHOP jsou samostatné stránky** — `events.html` a `shop.html`.
-Dostaneš se na ně:
+**EVENTS, SHOP a GALLERY jsou zaparkované** (říjen 2026, vrátíme se k nim později): z webu nevede
+žádný odkaz (nav, menu, patička, lišta ELSEWHERE na detailu projektu) a `events.html`,
+`shop.html` a `gallery.html` posílají návštěvníka na index (`meta refresh` + `location.replace`
++ `noindex`, blok `PARKED` na začátku `<head>`). Obsah, `gallery.json` i skripty zůstaly.
+**Zapnutí zpět:** smazat tři tagy v bloku `PARKED` a vrátit odkazy do `index.html` (sidenav,
+topnav, jumpbar, menu, sloupec MORE v patičce; `.contacts__grid` je teď na 3 sloupce) a do
+`project.html` (menu, lišta `.pagefoot`).
 
-- ze patičky indexu, sloupec **MORE**
-- z fullscreen menu (má plný index, tyhle o stupeň tišeji přes `data-tier="2"`)
-- z lišty **ELSEWHERE** na dně každé podstránky
+**Kontakty:** e-mail `hello@vrgd.studio` je živý (`mailto:`). Ze sociálních sítí je zapnutý jen
+Instagram `https://www.instagram.com/_vrgd_/` (nový panel, `rel="noopener"`); Vimeo a Behance
+jsou vypnuté (odkaz doplnit až budou).
 
-Číslování je stabilní a nezávislé na tom, kde sekce leží:
-`01 ABOUT · 02 WORK · 03 ASSETS · 04 CONTACTS · 05 EVENTS · 06 SHOP · 07 GALLERY`
+Číslování v menu: `01 ABOUT · 02 WORK · 03 ASSETS · 04 CONTACTS`.
 
 ### Podstránky
 

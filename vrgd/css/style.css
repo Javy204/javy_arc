@@ -1652,7 +1652,7 @@ body[data-page="shop"] main { padding-top: var(--nav-h); }
   .about__grid { grid-template-columns: 1.05fr 1fr; align-items: start; }
   .assets__grid { grid-template-columns: repeat(2, 1fr); }
   .asset--wide { grid-column: 1 / -1; }
-  .contacts__grid { grid-template-columns: repeat(4, 1fr); }
+  .contacts__grid { grid-template-columns: repeat(3, 1fr); }
   .project__intro { grid-template-columns: 1.05fr 1fr; }
   .project__headline { position: sticky; top: calc(var(--nav-h) + 2rem); }
   .project__media { grid-template-columns: repeat(2, 1fr); }

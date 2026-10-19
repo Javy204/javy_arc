@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="cs">
+<html lang="en">
 <head>
   <!-- base href: fotomat.js si tahá photos/manifest.json a fotky relativně
        vůči URL stránky — bez base by to z /fotomat/ mířilo do neexistujícího
@@ -8,8 +8,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — FOTOMAT</title>
-  <meta name="description" content="Fotobudka JAVY. Udělej si černobílou fotku rovnou v prohlížeči — nic se nikam neukládá." />
-  <link rel="stylesheet" href="film.css?v=128" />
+  <meta name="description" content="JAVY photo booth. Take a black-and-white photo right in the browser — nothing is stored anywhere." />
+  <link rel="stylesheet" href="film.css?v=129" />
   <link rel="stylesheet" href="fotomat/standalone.css?v=2" />
 </head>
 <body class="film">
@@ -26,8 +26,8 @@
         <!-- 1) FOTOBUDKA -->
         <div class="fm-mode m-strip">
           <div class="fm-say" id="fmSayStrip">
-            <b>Udělej si fotku.</b>
-            <span>zatáhni za šňůru · hoď ℗ do štěrbiny · tvoje kamera, nic se nikam neukládá</span>
+            <b>Take a photo.</b>
+            <span>pull the cord · drop a ℗ in the slot · your camera, nothing is stored anywhere</span>
           </div>
           <!-- hledáček: ukazuje přesně ten výřez, co skončí na fotce -->
           <div class="vf" id="fmVfr" hidden>
@@ -61,18 +61,18 @@
           <!-- šňůra od závěsu: zatáhnout dolů a pustit -->
           <div class="pcord" id="fmCord">
             <span class="line" id="fmCordLine"></span>
-            <button class="knob" id="fmCordKnob" type="button" aria-label="Šňůra — zatáhni dolů a zavře se závěs">↓</button>
-            <span class="pcord-lbl" id="fmBoothHint">ZATÁHNI ZA ŠŇŮRU</span>
+            <button class="knob" id="fmCordKnob" type="button" aria-label="Cord — pull down to close the curtain">↓</button>
+            <span class="pcord-lbl" id="fmBoothHint">PULL THE CORD</span>
           </div>
 
           <div class="cpanel" id="fmCpanel" hidden>
             <div class="cplate">
               <span class="cslot" id="fmCslot"><i></i></span>
-              <span class="cplate-lbl">VHOĎ MINCI</span>
-              <span class="cplate-sub">JAVY · FOTOMAT · 1 PROUŽEK · 4 SNÍMKY</span>
+              <span class="cplate-lbl">DROP A COIN</span>
+              <span class="cplate-sub">JAVY · FOTOMAT · 1 STRIP · 4 FRAMES</span>
             </div>
             <span class="dguide" id="fmDGuide" hidden></span>
-            <button class="coin" id="fmCoin" type="button" aria-label="Mince — zvedni ji nad štěrbinu a pusť">
+            <button class="coin" id="fmCoin" type="button" aria-label="Coin — lift it over the slot and let go">
               <span class="coin-face">℗</span>
             </button>
           </div>
@@ -89,7 +89,7 @@
 
           <!-- termotiskárna: proužek se do ní podá a ona ho vytiskne -->
           <div class="pslot" id="fmPslot">
-            <span class="lbl">TISKÁRNA ▾</span>
+            <span class="lbl">PRINTER ▾</span>
             <span class="pbody">
               <span class="phead">
                 <i class="led"></i>
@@ -103,35 +103,35 @@
           </div>
 
           <div class="fm-view-bar">
-            <span id="fmViewHint">chyť proužek a táhni · do strany = utrhnout fotku · dolů = podat ho do tiskárny</span>
-            <a id="fmViewSave" hidden download="javy-fotomat-prouzek.jpg">ULOŽIT ↓</a>
-            <button type="button" id="fmViewClose">ZAVŘÍT ✕</button>
+            <span id="fmViewHint">grab the strip and drag · sideways = tear off a photo · down = feed it to the printer</span>
+            <a id="fmViewSave" hidden download="javy-fotomat-prouzek.jpg">SAVE ↓</a>
+            <button type="button" id="fmViewClose">CLOSE ✕</button>
           </div>
         </div>
       </div>
 
       <!-- obří typografie: pokyn nese stejná roztažená verzálka jako názvy alb -->
-      <div class="fm-big"><span class="fm-big-i" id="fmBig">ZATÁHNI ZA ŠŇŮRU</span></div>
+      <div class="fm-big"><span class="fm-big-i" id="fmBig">PULL THE CORD</span></div>
 
       <div class="fm-bar">
-        <span id="fmNote">zatáhni za šňůru a hoď minci</span>
+        <span id="fmNote">pull the cord and drop a coin</span>
       </div>
 
       <!-- podoby fotomatu: klávesa F -->
       <div class="skins" id="fmSkins" hidden>
-        <div class="grade-head"><span>PODOBA FOTOMATU</span><span class="r"><button type="button" id="skinsAll">VŠE</button><button type="button" id="skinsNone">NIC</button><button type="button" id="skinsClose">✕</button></span></div>
+        <div class="grade-head"><span>BOOTH LOOK</span><span class="r"><button type="button" id="skinsAll">ALL</button><button type="button" id="skinsNone">NONE</button><button type="button" id="skinsClose">✕</button></span></div>
         <div class="skins-body">
-          <button type="button" data-skin="flat"><b>PLOCHÝ TISK</b><span>bez přechodů a rozostřených stínů</span></button>
-          <button type="button" data-skin="typo"><b>OBŘÍ TYPOGRAFIE</b><span>pokyn přes celou šířku jako názvy alb</span></button>
-          <button type="button" data-skin="dark"><b>ČERNÁ SCÉNA</b><span>invertovaná scéna jako KONTAKT</span></button>
-          <button type="button" data-skin="film"><b>FILMOVÝ SLOVNÍK</b><span>perforace, počítadlo, kód</span></button>
+          <button type="button" data-skin="flat"><b>FLAT PRINT</b><span>no gradients or blurred shadows</span></button>
+          <button type="button" data-skin="typo"><b>GIANT TYPE</b><span>the prompt across the full width like album titles</span></button>
+          <button type="button" data-skin="dark"><b>BLACK SCENE</b><span>inverted scene like CONTACT</span></button>
+          <button type="button" data-skin="film"><b>FILM VOCABULARY</b><span>sprockets, counter, edge code</span></button>
         </div>
-        <div class="skins-foot">klávesa F · dá se kombinovat</div>
+        <div class="skins-foot">key F · can be combined</div>
       </div>
 
       <!-- tajný panel: klávesa G nebo trojklik na "JAVY · FOTOMAT" -->
       <div class="grade" id="grade" hidden>
-        <div class="grade-head"><span>GRADING · JEN ADMIN</span><span class="r"><button type="button" id="gradeTest">TEST</button><button type="button" id="gradeCopy">KOPÍROVAT</button><button type="button" id="gradeReset">RESET</button><button type="button" id="gradeClose">✕</button></span></div>
+        <div class="grade-head"><span>GRADING · ADMIN ONLY</span><span class="r"><button type="button" id="gradeTest">TEST</button><button type="button" id="gradeCopy">COPY</button><button type="button" id="gradeReset">RESET</button><button type="button" id="gradeClose">✕</button></span></div>
         <div class="grade-main">
           <div class="grade-preview"><canvas id="gradePrevCv" width="270" height="360"></canvas></div>
           <div class="grade-controls">
@@ -144,11 +144,11 @@
   </section>
 
   <!-- překvapení navíc: objeví se, až si člověk aspoň jednou vytiskne proužek -->
-  <a id="fmReveal" class="link fm-reveal" href="/" hidden>OTEVŘÍT PORTFOLIO ↗</a>
+  <a id="fmReveal" class="link fm-reveal" href="/" hidden>OPEN PORTFOLIO ↗</a>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=55" defer></script>
-  <script src="fotomat/standalone.js?v=2" defer></script>
+  <script src="lab/fotomat.js?v=56" defer></script>
+  <script src="fotomat/standalone.js?v=3" defer></script>
 </body>
 </html>

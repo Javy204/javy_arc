@@ -62,12 +62,12 @@
   modal.innerHTML = `
     <div class="arc-card" role="dialog" aria-modal="true" aria-label="Project Archive">
       <div class="arc-head"><span class="arc-mark">P</span><span class="arc-title">Project Archive</span></div>
-      <div class="arc-sub">Soukromý přístup. Zadej heslo.</div>
-      <input class="arc-input" id="arcPass" type="password" autocomplete="off" spellcheck="false" aria-label="heslo" />
+      <div class="arc-sub">Private access. Enter the password.</div>
+      <input class="arc-input" id="arcPass" type="password" autocomplete="off" spellcheck="false" aria-label="password" />
       <div class="arc-err" id="arcErr"></div>
       <div class="arc-row">
-        <button class="arc-btn ghost" id="arcCancel">Zavřít</button>
-        <button class="arc-btn" id="arcGo">Vstoupit</button>
+        <button class="arc-btn ghost" id="arcCancel">Close</button>
+        <button class="arc-btn" id="arcGo">Enter</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -93,8 +93,8 @@
 
   /* ---- odemčení: dešifruj URL heslem ---- */
   async function unlock(password) {
-    if (!ARC_CFG) { deny("Heslo zatím není nastavené (arc-heslo.html)."); return; }
-    if (!window.crypto || !crypto.subtle) { deny("Prohlížeč nepodporuje bezpečné dešifrování."); return; }
+    if (!ARC_CFG) { deny("Password not set yet (arc-heslo.html)."); return; }
+    if (!window.crypto || !crypto.subtle) { deny("Your browser doesn't support secure decryption."); return; }
     try {
       const enc = new TextEncoder();
       const salt = fromB64(ARC_CFG.salt), iv = fromB64(ARC_CFG.iv), ct = fromB64(ARC_CFG.ct);
@@ -104,12 +104,12 @@
         keyMat, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
       const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct);  // špatné heslo → vyhodí chybu
       const url = new TextDecoder().decode(pt);
-      if (!/^https?:\/\//.test(url)) { deny("Nesprávné heslo."); return; }
+      if (!/^https?:\/\//.test(url)) { deny("Incorrect password."); return; }
       closeModal();
       // otevři v téže záložce = spolehlivé i na mobilu (window.open po await bývá blokované)
       window.location.href = ARC_URL || url;
     } catch (e) {
-      deny("Nesprávné heslo.");
+      deny("Incorrect password.");
     }
   }
 

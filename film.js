@@ -109,7 +109,7 @@ async function loadData() {
       }
       return { ...s, images: s.images || [], count: (s.images || []).length };
     });
-  } catch (e) { console.warn("manifest se nenačetl", e); SETS = []; }
+  } catch (e) { console.warn("manifest failed to load", e); SETS = []; }
 }
 
 /* ---- přednačtení fotek ----
@@ -199,7 +199,7 @@ const LAYOUTS = {
     name: "SLOUPEC", kind: "column", pics: { phone: 2, desk: 5 },
   },
   K: {                       // koláž: fotky bloudí do stran a nesymetricky se překrývají
-    name: "KOLÁŽ", kind: "collage", pics: { phone: 4, desk: 5 },
+    name: "COLLAGE", kind: "collage", pics: { phone: 4, desk: 5 },
     ph: (rnd, k, phone) => ({
       w:    (phone ? 0.62 : 0.34) + rnd(0) * (phone ? 0.26 : 0.20),
       maxH: phone ? 0.60 : 0.86,
@@ -237,7 +237,7 @@ const LAYOUTS = {
      naležato dostane o 2 sloupce víc, nastojato o 1 míň — logika z obsahu.
      Pohyb: fotka se odkrývá setřením (clip-path) + sloupce jedou různě rychle. */
   G: {
-    name: "MŘÍŽKA", kind: "grid", pics: { phone: 5, desk: 7 },
+    name: "GRID", kind: "grid", pics: { phone: 5, desk: 7 },
     slots: [
       { c: 1,  n: 7, ov:  0.00, sp: -16 },
       { c: 8,  n: 5, ov: -0.10, sp:  26 },   // ov < 0 = odsazení dolů (vzduch)
@@ -274,14 +274,14 @@ const LAYOUT_ORDER = ["B", "S", "K"];   // G a C zůstávají v kódu, ale mimo 
    Nic se nemaže: staré návrhy zůstávají dostupné pro srovnání.
    ============================================================ */
 const VERSIONS = [
-  { id: "v1", name: "INDEX",  mode: "A", layout: "B", note: "tmavá galerie, jméno přes fotku" },
-  { id: "v2", name: "ARCHIV", mode: "A", layout: "R", note: "číslovaný index + živý náhled" },
-  { id: "v3", name: "MAKRO",  mode: "A", layout: "M", note: "černá, makro odzoom, pásy textu" },
-  { id: "v4", name: "FILM",   mode: "A", layout: "S", note: "původní svislý film" },
-  { id: "v5", name: "KOLÁŽ",  mode: "A", layout: "K", note: "překryvová koláž" },
-  { id: "v6", name: "MŘÍŽKA", mode: "A", layout: "G", note: "12sloupcová osnova" },
-  { id: "v7", name: "KONTAKT",mode: "A", layout: "C", note: "kontaktní kopie s lupou" },
-  { id: "v8", name: "PÁS",    mode: "C", layout: "S", note: "vodorovný pás alb (nejstarší)" },
+  { id: "v1", name: "INDEX",  mode: "A", layout: "B", note: "dark gallery, name over the photo" },
+  { id: "v2", name: "ARCHIV", mode: "A", layout: "R", note: "numbered index + live preview" },
+  { id: "v3", name: "MAKRO",  mode: "A", layout: "M", note: "black, macro zoom-out, text bands" },
+  { id: "v4", name: "FILM",   mode: "A", layout: "S", note: "original vertical film" },
+  { id: "v5", name: "COLLAGE",  mode: "A", layout: "K", note: "overlapping collage" },
+  { id: "v6", name: "GRID", mode: "A", layout: "G", note: "12-column grid" },
+  { id: "v7", name: "KONTAKT",mode: "A", layout: "C", note: "contact sheet with loupe" },
+  { id: "v8", name: "STRIP",    mode: "C", layout: "S", note: "horizontal album strip (oldest)" },
 ];
 function versionOf(mode, layout) {
   const v = VERSIONS.find((x) => x.mode === mode && x.layout === layout);
@@ -332,7 +332,7 @@ function renderWorkH() {
     it.innerHTML =
       `<div class="wh-frame"><img class="wh-ph" alt="" decoding="async" src="${coverOf(set) || imgs[0] || ""}"></div>` +
       `<div class="wh-name"><span class="wh-name-i">${set.title}</span></div>` +
-      `<div class="wh-meta"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""}</span></div>`;
+      `<div class="wh-meta"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SHOTS${set.isGroup ? " · GROUP" : ""}</span></div>`;
     it.addEventListener("click", () => openShoot(i));
     it.addEventListener("pointerenter", () => warmSet(set), { once: true });
     whTrack.appendChild(it); whEls.push(it);
@@ -560,7 +560,7 @@ function renderWorkFilm() {
             (r[2] ? `<div class="wf-ph ix-sub ix-sub-b"><img alt="" decoding="async" loading="lazy" src="${r[2]}"></div>` : "") +
             `<div class="ix-name"><span class="ix-name-i">${set.title}</span></div>` +
           `</div>` +
-          `<div class="ix-meta-line"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SNÍMKŮ</span><span>OTEVŘÍT ↗</span></div>` +
+          `<div class="ix-meta-line"><span>${pad2(i + 1)} / ${pad2(SETS.length)}</span><span>${shots} SHOTS</span><span>OPEN ↗</span></div>` +
         `</div>`;
     } else {
       if (r[0]) run += `<div class="wf-ph wf-solo reveal"><img alt="" decoding="async" src="${r[0]}"></div>`;
@@ -577,7 +577,7 @@ function renderWorkFilm() {
       (bare ? "" : `<figure class="wf-hero reveal"><img alt="" decoding="async" src="${hero}"><figcaption class="wf-name"><span class="wf-name-i">${set.title}</span></figcaption></figure>`) +
       `<div class="wf-run${runCls}">${run}</div>` +
       (L.kind === "macro" || L.kind === "index" ? "" :
-        `<div class="wf-meta${bare ? "" : " reveal"}">${pad2(i + 1)} / ${pad2(SETS.length)} · ${shots} SHOTS${set.isGroup ? " · SKUPINA" : ""} · OTEVŘÍT ↗</div>`);
+        `<div class="wf-meta${bare ? "" : " reveal"}">${pad2(i + 1)} / ${pad2(SETS.length)} · ${shots} SHOTS${set.isGroup ? " · GROUP" : ""} · OPEN ↗</div>`);
     act.querySelectorAll(".wf-hero, .wf-ph, .wf-meta").forEach((el) => el.addEventListener("click", () => openShoot(i)));
     workFilm.appendChild(act); wfActs.push(act);
 
@@ -905,11 +905,11 @@ function buildBetaMenu() {
   el.innerHTML =
     `<button class="beta-tag" id="betaTag" aria-expanded="false">BETA <span class="beta-cur" id="betaCur"></span></button>` +
     `<div class="beta-panel" id="betaPanel" hidden>` +
-      `<div class="beta-head">VERZE PORTFOLIA</div>` +
-      `<a class="beta-item beta-link" href="studio/"><b>STUDIO ↗</b><span>nová podstránka — kompletní redesign</span></a>` +
-      `<div class="beta-head">STARŠÍ VERZE TÉHLE STRÁNKY</div>` +
+      `<div class="beta-head">PORTFOLIO VERSIONS</div>` +
+      `<a class="beta-item beta-link" href="studio/"><b>STUDIO ↗</b><span>new subpage — complete redesign</span></a>` +
+      `<div class="beta-head">OLDER VERSIONS OF THIS PAGE</div>` +
       VERSIONS.map((v) => `<button class="beta-item" data-v="${v.id}"><b>${v.name}</b><span>${v.note}</span></button>`).join("") +
-      `<div class="beta-foot">L = další layout · V = režim WORKu</div>` +
+      `<div class="beta-foot">L = next layout · V = WORK mode</div>` +
     `</div>`;
   document.body.appendChild(el);
   const tag = el.querySelector("#betaTag"), panel = el.querySelector("#betaPanel");
@@ -1201,7 +1201,7 @@ function buildStrip(set) {
   stripBg.textContent = set.title;   // parallax název za fotkami
   // pevně, ne z step()'s "nejbližší fotka" — v mřížce se totiž step() vůbec nespouští
   crumb.textContent = set.title.toUpperCase();
-  counter.textContent = `${pad2(set.count)} FOTEK`;
+  counter.textContent = `${pad2(set.count)} PHOTOS`;
   for (let i = 0; i < set.count; i++) {
     const f = document.createElement("div");
     f.className = "frame"; f.style.minWidth = "26vh";
@@ -1242,7 +1242,7 @@ function applyBrowseMode() {
     // v pásu si "· SCROLL →" a "NN/NN" dopočítá step() sám podle polohy;
     // v mřížce step() vůbec neběží, takže hlášku vrátíme na klidový stav
     crumb.textContent = currentSet.title.toUpperCase();
-    counter.textContent = `${pad2(currentSet.count)} FOTEK`;
+    counter.textContent = `${pad2(currentSet.count)} PHOTOS`;
   }
   if (!grid) setTimeout(measure, 0);   // pás si po návratu musí přeměřit středy fotek
 }

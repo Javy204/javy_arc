@@ -18,25 +18,25 @@
 
   /* ---- parametry gradingu: jeden seznam pro shader, panel i presety ---- */
   const PARAMS = [
-    { k: "exposure", t: "EXPOZICE", min: -3, max: 3, step: .01, v: .25 },
-    { k: "contrast", t: "KONTRAST", min: 0, max: 2.5, step: .01, v: 1.45 },
-    { k: "gamma", t: "GAMA", min: .4, max: 2.2, step: .01, v: 1 },
-    { k: "lift", t: "ZDVIH STÍNŮ", min: -.2, max: .3, step: .005, v: -.02 },
-    { k: "gain", t: "ZISK SVĚTEL", min: .5, max: 1.8, step: .01, v: 1.06 },
-    { k: "scurve", t: "S-KŘIVKA", min: 0, max: 1, step: .01, v: .35 },
-    { k: "black", t: "ČERNÝ BOD", min: 0, max: .3, step: .005, v: .03 },
-    { k: "white", t: "BÍLÝ BOD", min: .7, max: 1.1, step: .005, v: .97 },
-    { k: "temp", t: "TEPLOTA (JAKO FILTR PŘED ČB)", min: -.3, max: .3, step: .005, v: 0 },
-    { k: "tint", t: "ODSTÍN", min: -.3, max: .3, step: .005, v: 0 },
-    { k: "grain", t: "ZRNO", min: 0, max: .6, step: .005, v: .16 },
-    { k: "grainSize", t: "VELIKOST ZRNA", min: .5, max: 4, step: .1, v: 1.4 },
-    { k: "halation", t: "HALACE", min: 0, max: 1.2, step: .01, v: .35 },
-    { k: "sharp", t: "DOOSTŘENÍ", min: 0, max: 1.5, step: .01, v: .35 },
-    { k: "vignette", t: "VINĚTACE", min: 0, max: 1.6, step: .01, v: .75 },
-    { k: "vigSoft", t: "MĚKKOST VINĚTY", min: .2, max: 1.2, step: .01, v: .6 },
-    { k: "barrel", t: "SOUDKOVITOST", min: -.4, max: .6, step: .005, v: .12 },
-    { k: "dither", t: "DITHER (TERMOTISK)", min: 0, max: 1, step: .01, v: .9 },
-    { k: "ditherSize", t: "VELIKOST BODU", min: 1, max: 6, step: .1, v: 2 },
+    { k: "exposure", t: "EXPOSURE", min: -3, max: 3, step: .01, v: .25 },
+    { k: "contrast", t: "CONTRAST", min: 0, max: 2.5, step: .01, v: 1.45 },
+    { k: "gamma", t: "GAMMA", min: .4, max: 2.2, step: .01, v: 1 },
+    { k: "lift", t: "SHADOW LIFT", min: -.2, max: .3, step: .005, v: -.02 },
+    { k: "gain", t: "HIGHLIGHT GAIN", min: .5, max: 1.8, step: .01, v: 1.06 },
+    { k: "scurve", t: "S-CURVE", min: 0, max: 1, step: .01, v: .35 },
+    { k: "black", t: "BLACK POINT", min: 0, max: .3, step: .005, v: .03 },
+    { k: "white", t: "WHITE POINT", min: .7, max: 1.1, step: .005, v: .97 },
+    { k: "temp", t: "TEMPERATURE (AS A FILTER BEFORE B&W)", min: -.3, max: .3, step: .005, v: 0 },
+    { k: "tint", t: "TINT", min: -.3, max: .3, step: .005, v: 0 },
+    { k: "grain", t: "GRAIN", min: 0, max: .6, step: .005, v: .16 },
+    { k: "grainSize", t: "GRAIN SIZE", min: .5, max: 4, step: .1, v: 1.4 },
+    { k: "halation", t: "HALATION", min: 0, max: 1.2, step: .01, v: .35 },
+    { k: "sharp", t: "SHARPEN", min: 0, max: 1.5, step: .01, v: .35 },
+    { k: "vignette", t: "VIGNETTE", min: 0, max: 1.6, step: .01, v: .75 },
+    { k: "vigSoft", t: "VIGNETTE SOFTNESS", min: .2, max: 1.2, step: .01, v: .6 },
+    { k: "barrel", t: "BARREL DISTORTION", min: -.4, max: .6, step: .005, v: .12 },
+    { k: "dither", t: "DITHER (THERMAL PRINT)", min: 0, max: 1, step: .01, v: .9 },
+    { k: "ditherSize", t: "DOT SIZE", min: 1, max: 6, step: .1, v: 2 },
   ];
   const DEFAULTS = Object.fromEntries(PARAMS.map((p) => [p.k, p.v]));
   // Efekty (jen pro admina — žádný veřejný přepínač). Návštěvník vždycky
@@ -46,8 +46,8 @@
   const LOOKS = {
     TERMO: { dither: 1, ditherSize: 2, exposure: .3, contrast: 1.5, sat: 0, grain: .05, halation: .15, vignette: .5 },
     FILM: { dither: 0, exposure: .15, contrast: 1.2, sat: 0, grain: .3, grainSize: 1.8, halation: .35, vignette: .7, scurve: .25 },
-    TVRDÝ: { dither: 0, exposure: .1, contrast: 2, sat: 0, grain: .12, halation: .2, vignette: .9, scurve: .55, black: .05 },
-    JEMNÝ: { dither: 0, exposure: .35, contrast: .9, sat: 0, grain: .08, halation: .1, vignette: .25, scurve: .1, white: 1.02 },
+    HARD: { dither: 0, exposure: .1, contrast: 2, sat: 0, grain: .12, halation: .2, vignette: .9, scurve: .55, black: .05 },
+    SOFT: { dither: 0, exposure: .35, contrast: .9, sat: 0, grain: .08, halation: .1, vignette: .25, scurve: .1, white: 1.02 },
   };
 
   const VERT = `attribute vec2 p; varying vec2 vUv;
@@ -153,7 +153,7 @@
   } catch (e) {}
   let video = null, stream = null, live = false, busy = false, shots = [];
   let testImg = null, visible = false;
-  const HINT = "zatáhni za šňůru a hoď minci";
+  const HINT = "pull the cord and drop a coin";
 
   const host = $("#fm"), count = $("#fmCount"), flash = $("#fmFlash"), note = $("#fmNote");
   const pile = $("#fmPile"), slot = $("#fmSlot"), prog = $("#fmProg"), vfr = $("#fmVfr");
@@ -168,7 +168,7 @@
     if (live) return true;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 } }, audio: false });
-    } catch (e) { note.textContent = "kameru se nepodařilo spustit — povol přístup v prohlížeči"; return false; }
+    } catch (e) { note.textContent = "couldn't start the camera — allow access in your browser"; return false; }
     video = document.createElement("video");
     video.playsInline = true; video.muted = true; video.srcObject = stream;
     await video.play().catch(() => {});
@@ -353,21 +353,21 @@
     if (busy || live) return; busy = true;
     if (!(await openCam())) { busy = false; return; }
     [...prog.children].forEach((i) => i.classList.remove("on"));
-    note.textContent = "dívej se do kamery";
+    note.textContent = "look at the camera";
     await countdown(3);
     shots = [];
     for (let i = 0; i < 4; i++) {
       shots.push(grab());
       prog.children[i].classList.add("on");
       if (frameNo) frameNo.textContent = `0${i + 1} / 04`;
-      if (i < 3) { note.textContent = `snímek ${i + 1} / 4`; await wait(1400); }
+      if (i < 3) { note.textContent = `frame ${i + 1} / 4`; await wait(1400); }
     }
-    note.textContent = "proužek jede ven…";
+    note.textContent = "strip coming out…";
     const made = await composeStrip(shots);
     closeCam(); vfr.hidden = true;
     await ejectStrip(made, { url: made.url, shots: shots.slice() });
-    note.textContent = "chyť ho, nebo na něj klikni · další focení zase šňůrou";
-    bigText("HOTOVO");
+    note.textContent = "grab it or click it · pull the cord for another shoot";
+    bigText("DONE");
     busy = false;
   }
   /* ============================================================
@@ -487,7 +487,7 @@
     cslot.classList.remove("hot", "in");
     curtSet(OPEN, true);
     cordReset();
-    bigText("ZATÁHNI ZA ŠŇŮRU");
+    bigText("PULL THE CORD");
     if (frameNo) frameNo.textContent = "00 / 04";
   }
 
@@ -508,7 +508,7 @@
   function cordReset() {
     cord.classList.remove("pull");
     cordLine.style.height = "";
-    bHint.textContent = "ZATÁHNI ZA ŠŇŮRU";
+    bHint.textContent = "PULL THE CORD";
     cordIdle();
   }
   cordKnob.addEventListener("pointerdown", (e) => {
@@ -517,7 +517,7 @@
     cord.classList.add("pull");
     if (sway) { sway.kill(); sway = null; }
     if (g()) g().set(cord, { rotation: 0 });
-    bHint.textContent = "TÁHNI DOLŮ ↓";
+    bHint.textContent = "PULL DOWN ↓";
     try { cordKnob.setPointerCapture(e.pointerId); } catch (x) {}
   });
   cordKnob.addEventListener("pointermove", (e) => {
@@ -535,8 +535,8 @@
     if (g()) g().fromTo(cord, { rotation: -5.5 }, { rotation: 0, duration: 1.3, ease: "elastic.out(1, .22)", onComplete: cordIdle });
     if (tazeno >= PULL * .82) { closeCurtain(); return; }
     curtSet(OPEN, true);
-    bHint.textContent = "AŽ NA DORAZ ↓";
-    setTimeout(() => { if (!cordDrag && booth.dataset.step === "curtain") bHint.textContent = "ZATÁHNI ZA ŠŇŮRU"; }, 1500);
+    bHint.textContent = "ALL THE WAY ↓";
+    setTimeout(() => { if (!cordDrag && booth.dataset.step === "curtain") bHint.textContent = "PULL THE CORD"; }, 1500);
   };
   cordKnob.addEventListener("pointerup", cordUp);
   cordKnob.addEventListener("pointercancel", cordUp);
@@ -554,8 +554,8 @@
         onUpdate: () => { curX = st.v; curt.style.transition = "none"; curt.style.transform = `translateX(${st.v.toFixed(2)}%)`; } });
     } else curtSet(0, true);
     booth.dataset.step = "coin";
-    note.textContent = "zvedni minci nad štěrbinu a pusť ji";
-    bigText("VHOĎ MINCI");
+    note.textContent = "lift the coin over the slot and let go";
+    bigText("DROP A COIN");
     setTimeout(() => {
       cpanel.hidden = false;
       if (g()) {
@@ -614,7 +614,7 @@
     coinLT = performance.now(); coinLX = e.clientX; coinLY = e.clientY;
     cBase = coinBase();
     booth.classList.add("drag");
-    note.textContent = "zamiř nad štěrbinu a pusť";
+    note.textContent = "aim over the slot and let go";
     try { coin.setPointerCapture(e.pointerId); } catch (x) {}
   });
   coin.addEventListener("pointermove", (e) => {
@@ -639,7 +639,7 @@
     // setrvačnost z ruky se jen naznačí — hlavní je, že mince padá odtud, kde jsi ji pustil
     coinVX = Math.max(-520, Math.min(520, coinVX * .4));
     coinVY = Math.max(-520, Math.min(520, coinVY * .3));
-    note.textContent = "letí…";
+    note.textContent = "flying…";
   };
   coin.addEventListener("pointerup", coinUp);
   coin.addEventListener("pointercancel", coinUp);
@@ -694,7 +694,7 @@
     if (boothBusy) return;
     boothBusy = true;
     cslot.classList.remove("hot"); guide.hidden = true;
-    note.textContent = "mince mizí ve štěrbině…";
+    note.textContent = "coin vanishes into the slot…";
     // klesá do štěrbiny a co je pod její hranou, to se ořízne — mizí postupně,
     // jako by ji automat polykal, ne že by se rozplynula
     const h = coin.offsetHeight, line = slotLine(), od = coinDY, kam = coinDY + h + 12;
@@ -719,8 +719,8 @@
         .to(plate, { x: -2, duration: .05 }).to(plate, { x: 0, duration: .16, ease: "elastic.out(1,.4)" })
         .then();
     }
-    note.textContent = "budka se probouzí…";
-    bigText("ÚSMĚV");
+    note.textContent = "booth is waking up…";
+    bigText("SMILE");
     await wait(220);
     booth.dataset.step = "shoot";
     if (g()) g().to(cpanel, { opacity: 0, duration: .25, onComplete: () => { cpanel.hidden = true; cpanel.style.opacity = ""; } });
@@ -753,11 +753,11 @@
     tapeIn.innerHTML = vShots.map((src, i) =>
         (i ? `<div class="seam"></div>` : "") + `<figure class="tf"><img alt="" src="${src}"></figure>`).join("") +
       `<div class="tape-foot"><span>JAVY · FOTOMAT</span><span>${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}</span></div>` +
-      `<div class="tape-lead">↓ DO TISKÁRNY</div>`;
+      `<div class="tape-lead">↓ TO PRINTER</div>`;
     scrollY = 0; vel = 0; applyScroll();
     viewHint.textContent = vShots.length > 1
-      ? "chyť proužek a táhni · do strany = utrhnout fotku · dolů = do tiskárny"
-      : "poslední fotka — chyť proužek a zatáhni dolů do tiskárny";
+      ? "grab the strip and drag · sideways = tear off a photo · down = to the printer"
+      : "last photo — grab the strip and pull it down to the printer";
   }
   function maxScroll() { return Math.max(0, tapeIn.offsetHeight - tape.clientHeight); }
   let feeding = false, dragging = false;          // vtahování do tiskárny / prst na pásce
@@ -788,8 +788,8 @@
   const FEED = 62;                                  // o kolik musíš podat, než to tiskárna chytne
   function feedHot(on) {
     pslot.classList.toggle("hot", on);
-    slotLbl.textContent = on ? "PUSŤ ↓" : "TISKÁRNA ▾";
-    if (!pslot.classList.contains("feed")) slotSt.textContent = on ? "VLOŽ" : "READY";
+    slotLbl.textContent = on ? "RELEASE ↓" : "PRINTER ▾";
+    if (!pslot.classList.contains("feed")) slotSt.textContent = on ? "INSERT" : "READY";
   }
   /* lístek vyjede z tiskárny ven — ať je vidět, že fakt tiskne */
   function paperOut() {
@@ -855,7 +855,7 @@
     const filename = list.length > 1 ? "javy-fotomat-prouzek.jpg" : "javy-fotomat.jpg";
     const saved = saveImage(made.url, filename);       // spustit hned, neblokovat animací
     pslot.classList.add("feed"); pslot.classList.remove("hot");
-    slotSt.textContent = "TISKNE…";
+    slotSt.textContent = "PRINTING…";
     if (g() && fromEl) {
       const r = slotRect();
       await g().timeline()
@@ -870,10 +870,10 @@
     }
     pslot.classList.remove("feed");
     if (g()) g().fromTo(pslot, { y: 6 }, { y: 0, duration: .35, ease: "elastic.out(1, .4)" });
-    paperOut(); slotSt.textContent = "HOTOVO";
+    paperOut(); slotSt.textContent = "DONE";
     setTimeout(() => { if (!pslot.classList.contains("feed")) slotSt.textContent = "READY"; }, 1600);
     await saved;
-    note.textContent = list.length > 1 ? "proužek vytištěn" : "snímek vytištěn";
+    note.textContent = list.length > 1 ? "strip printed" : "photo printed";
   }
 
   /* ---- vtažení celého proužku: válečky ho po krocích spolknou ---- */
@@ -884,8 +884,8 @@
     const made = await composeStrip(list);
     const saved = saveImage(made.url, "javy-fotomat-prouzek.jpg");   // spustit hned, neblokovat animací
     feedHot(false); pslot.classList.add("feed");
-    slotSt.textContent = "TISKNE…";
-    note.textContent = "podávám do tiskárny…";
+    slotSt.textContent = "PRINTING…";
+    note.textContent = "feeding the printer…";
     const konec = -(tapeIn.offsetHeight + 80);
     const tween = (to, dur, ease) => new Promise((res) => {
       if (!g()) { scrollY = to; applyScroll(); return res(); }
@@ -896,10 +896,10 @@
     await tween(konec, .95, "steps(14)");            // trhaně, jak jedou válečky
     pslot.classList.remove("feed");
     if (g()) g().fromTo(pslot, { y: 8 }, { y: 0, duration: .4, ease: "elastic.out(1, .4)" });
-    paperOut(); slotSt.textContent = "HOTOVO";
+    paperOut(); slotSt.textContent = "DONE";
     setTimeout(() => { if (!pslot.classList.contains("feed")) slotSt.textContent = "READY"; }, 1600);
     await saved;
-    note.textContent = "proužek vytištěn";
+    note.textContent = "strip printed";
     await tween(0, .75, "power3.out");               // a páska se vrátí nahoru
     feeding = false;
   }
@@ -974,7 +974,7 @@
       handShot = src;
       vShots = rest;
       buildTape();
-      note.textContent = "utrženo — hoď to do štěrbiny, nebo pusť dolů";
+      note.textContent = "torn off — drop it in the slot, or let go downward";
       mode = "hand";
       cutting = false;
     }
@@ -1005,11 +1005,11 @@
           dropPiece(made, [shot],
             Math.max(40, Math.min(pile.clientWidth - 40, e.clientX - host.left)),
             Math.max(30, e.clientY - host.top));
-          note.textContent = "spadlo dolů";
+          note.textContent = "fell down";
         }
         hand.hidden = true; hand.style.clipPath = ""; feedHot(false);
         if (vItem && vShots.length) refreshItem(vItem, await composeStrip(vShots), vShots);
-        if (!vShots.length) { closeView(); note.textContent = "proužek je rozebraný"; }
+        if (!vShots.length) { closeView(); note.textContent = "strip is used up"; }
         return;
       }
 
@@ -1123,7 +1123,7 @@
     try { localStorage.removeItem(GRADE_KEY); } catch (e) {}
   });
   $("#gradeCopy").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(JSON.stringify(G, null, 2)); $("#gradeCopy").textContent = "ZKOPÍROVÁNO"; setTimeout(() => ($("#gradeCopy").textContent = "KOPÍROVAT"), 1400); }
+    try { await navigator.clipboard.writeText(JSON.stringify(G, null, 2)); $("#gradeCopy").textContent = "COPIED"; setTimeout(() => ($("#gradeCopy").textContent = "COPY"), 1400); }
     catch (e) { console.log(JSON.stringify(G, null, 2)); }
   });
   // otevření panelu ať rovnou nabídne náhled — nečekat, až si admin sám vzpomene na TEST

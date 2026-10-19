@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="cs">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>JAVY — STUDIO</title>
-  <link rel="stylesheet" href="film.css?v=128" />
+  <link rel="stylesheet" href="film.css?v=129" />
 </head>
 <body class="film">
   <!-- ============ LOADER: ultra minimal ============ -->
@@ -24,13 +24,13 @@
     <span class="dim crumb" id="crumb">STUDIO</span>
     <span class="spacer"></span>
     <span class="browse-toggle" id="browseToggle" hidden>
-      <button type="button" data-mode="strip">PÁS</button>
-      <button type="button" data-mode="grid">MŘÍŽKA</button>
+      <button type="button" data-mode="strip">STRIP</button>
+      <button type="button" data-mode="grid">GRID</button>
     </span>
     <span class="counter" id="counter"></span>
   </header>
 
-  <nav class="dots" id="dots" aria-label="scény"></nav>
+  <nav class="dots" id="dots" aria-label="scenes"></nav>
 
   <!-- ============ JOURNEY ============ -->
   <main class="journey" id="journey">
@@ -40,7 +40,7 @@
         <div class="p-row par" data-rise="18" data-exit="50"><span class="mark big">P</span><span>STUDIO · ARCHIVE</span><span class="r">EST. 2026</span></div>
         <div class="line par" data-rise="40" data-exit="130"><span class="fit">JAVY</span></div>
         <div class="line par" data-rise="56" data-exit="160"><span class="fit">PORTFOLIO</span></div>
-        <div class="p-row par" data-rise="72" data-exit="180"><span>FOTOGRAFIE &amp; PROJEKTY</span><span class="r scrollhint">↓ SCROLL</span></div>
+        <div class="p-row par" data-rise="72" data-exit="180"><span>PHOTOGRAPHY &amp; PROJECTS</span><span class="r scrollhint">↓ SCROLL</span></div>
       </div>
     </section>
 
@@ -61,8 +61,8 @@
         <div class="p-row par" data-rise="16" data-exit="40"><span>02 — PROJEKT</span></div>
         <div class="line par" data-rise="34" data-exit="120"><span class="fit">JAVY.ARC</span></div>
         <div class="info-block par" data-rise="60" data-exit="160">
-          <p>OSOBNÍ ARCHIV</p>
-          <a class="link" href="arc/" target="_blank" rel="noopener">OTEVŘÍT JAVY.ARC ↗</a>
+          <p>PERSONAL ARCHIVE</p>
+          <a class="link" href="arc/" target="_blank" rel="noopener">OPEN JAVY.ARC ↗</a>
         </div>
       </div>
     </section>
@@ -80,8 +80,8 @@
           <!-- 1) FOTOBUDKA -->
           <div class="fm-mode m-strip">
             <div class="fm-say" id="fmSayStrip">
-              <b>Udělej si fotku.</b>
-              <span>zatáhni za šňůru · hoď ℗ do štěrbiny · tvoje kamera, nic se nikam neukládá</span>
+              <b>Take a photo.</b>
+              <span>pull the cord · drop a ℗ in the slot · your camera, nothing is stored anywhere</span>
             </div>
             <!-- hledáček: ukazuje přesně ten výřez, co skončí na fotce -->
             <div class="vf" id="fmVfr" hidden>
@@ -115,18 +115,18 @@
             <!-- šňůra od závěsu: zatáhnout dolů a pustit -->
             <div class="pcord" id="fmCord">
               <span class="line" id="fmCordLine"></span>
-              <button class="knob" id="fmCordKnob" type="button" aria-label="Šňůra — zatáhni dolů a zavře se závěs">↓</button>
-              <span class="pcord-lbl" id="fmBoothHint">ZATÁHNI ZA ŠŇŮRU</span>
+              <button class="knob" id="fmCordKnob" type="button" aria-label="Cord — pull down to close the curtain">↓</button>
+              <span class="pcord-lbl" id="fmBoothHint">PULL THE CORD</span>
             </div>
 
             <div class="cpanel" id="fmCpanel" hidden>
               <div class="cplate">
                 <span class="cslot" id="fmCslot"><i></i></span>
-                <span class="cplate-lbl">VHOĎ MINCI</span>
-                <span class="cplate-sub">JAVY · FOTOMAT · 1 PROUŽEK · 4 SNÍMKY</span>
+                <span class="cplate-lbl">DROP A COIN</span>
+                <span class="cplate-sub">JAVY · FOTOMAT · 1 STRIP · 4 FRAMES</span>
               </div>
               <span class="dguide" id="fmDGuide" hidden></span>
-              <button class="coin" id="fmCoin" type="button" aria-label="Mince — zvedni ji nad štěrbinu a pusť">
+              <button class="coin" id="fmCoin" type="button" aria-label="Coin — lift it over the slot and let go">
                 <span class="coin-face">℗</span>
               </button>
             </div>
@@ -143,7 +143,7 @@
 
             <!-- termotiskárna: proužek se do ní podá a ona ho vytiskne -->
             <div class="pslot" id="fmPslot">
-              <span class="lbl">TISKÁRNA ▾</span>
+              <span class="lbl">PRINTER ▾</span>
               <span class="pbody">
                 <span class="phead">
                   <i class="led"></i>
@@ -157,35 +157,35 @@
             </div>
 
             <div class="fm-view-bar">
-              <span id="fmViewHint">chyť proužek a táhni · do strany = utrhnout fotku · dolů = podat ho do tiskárny</span>
-              <a id="fmViewSave" hidden download="javy-fotomat-prouzek.jpg">ULOŽIT ↓</a>
-              <button type="button" id="fmViewClose">ZAVŘÍT ✕</button>
+              <span id="fmViewHint">grab the strip and drag · sideways = tear off a photo · down = feed it to the printer</span>
+              <a id="fmViewSave" hidden download="javy-fotomat-prouzek.jpg">SAVE ↓</a>
+              <button type="button" id="fmViewClose">CLOSE ✕</button>
             </div>
           </div>
         </div>
 
         <!-- obří typografie: pokyn nese stejná roztažená verzálka jako názvy alb -->
-        <div class="fm-big"><span class="fm-big-i" id="fmBig">ZATÁHNI ZA ŠŇŮRU</span></div>
+        <div class="fm-big"><span class="fm-big-i" id="fmBig">PULL THE CORD</span></div>
 
         <div class="fm-bar">
-          <span id="fmNote">zatáhni za šňůru a hoď minci</span>
+          <span id="fmNote">pull the cord and drop a coin</span>
         </div>
 
         <!-- podoby fotomatu: klávesa F -->
         <div class="skins" id="fmSkins" hidden>
-          <div class="grade-head"><span>PODOBA FOTOMATU</span><span class="r"><button type="button" id="skinsAll">VŠE</button><button type="button" id="skinsNone">NIC</button><button type="button" id="skinsClose">✕</button></span></div>
+          <div class="grade-head"><span>BOOTH LOOK</span><span class="r"><button type="button" id="skinsAll">ALL</button><button type="button" id="skinsNone">NONE</button><button type="button" id="skinsClose">✕</button></span></div>
           <div class="skins-body">
-            <button type="button" data-skin="flat"><b>PLOCHÝ TISK</b><span>bez přechodů a rozostřených stínů</span></button>
-            <button type="button" data-skin="typo"><b>OBŘÍ TYPOGRAFIE</b><span>pokyn přes celou šířku jako názvy alb</span></button>
-            <button type="button" data-skin="dark"><b>ČERNÁ SCÉNA</b><span>invertovaná scéna jako KONTAKT</span></button>
-            <button type="button" data-skin="film"><b>FILMOVÝ SLOVNÍK</b><span>perforace, počítadlo, kód</span></button>
+            <button type="button" data-skin="flat"><b>FLAT PRINT</b><span>no gradients or blurred shadows</span></button>
+            <button type="button" data-skin="typo"><b>GIANT TYPE</b><span>the prompt across the full width like album titles</span></button>
+            <button type="button" data-skin="dark"><b>BLACK SCENE</b><span>inverted scene like CONTACT</span></button>
+            <button type="button" data-skin="film"><b>FILM VOCABULARY</b><span>sprockets, counter, edge code</span></button>
           </div>
-          <div class="skins-foot">klávesa F · dá se kombinovat</div>
+          <div class="skins-foot">key F · can be combined</div>
         </div>
 
         <!-- tajný panel: klávesa G nebo trojklik na "03 — FOTOMAT" -->
         <div class="grade" id="grade" hidden>
-          <div class="grade-head"><span>GRADING · JEN ADMIN</span><span class="r"><button type="button" id="gradeTest">TEST</button><button type="button" id="gradeCopy">KOPÍROVAT</button><button type="button" id="gradeReset">RESET</button><button type="button" id="gradeClose">✕</button></span></div>
+          <div class="grade-head"><span>GRADING · ADMIN ONLY</span><span class="r"><button type="button" id="gradeTest">TEST</button><button type="button" id="gradeCopy">COPY</button><button type="button" id="gradeReset">RESET</button><button type="button" id="gradeClose">✕</button></span></div>
           <div class="grade-main">
             <div class="grade-preview"><canvas id="gradePrevCv" width="270" height="360"></canvas></div>
             <div class="grade-controls">
@@ -202,10 +202,10 @@
         <div class="p-row par" data-rise="16" data-exit="40"><span>04 — ABOUT</span></div>
         <div class="line par" data-rise="34" data-exit="110"><span class="fit">JAVY</span></div>
         <div class="info-block par" data-rise="60" data-exit="150">
-          <p>FOTOGRAF Z PRAHY. HUDEBNÍCI, MÓDA, PORTRÉT, EVENT.</p>
+          <p>PHOTOGRAPHER FROM PRAGUE. MUSICIANS, FASHION, PORTRAIT, EVENT.</p>
           <dl class="specs">
-            <dt>BASED</dt><dd>PRAHA</dd>
-            <dt>SHOOTS</dt><dd>HUDBA · MÓDA · PORTRÉT · EVENT</dd>
+            <dt>BASED</dt><dd>PRAGUE</dd>
+            <dt>SHOOTS</dt><dd>MUSIC · FASHION · PORTRAIT · EVENT</dd>
             <dt>SINCE</dt><dd>2021</dd>
           </dl>
         </div>
@@ -259,10 +259,10 @@
     </div>
   </section>
 
-  <script src="film.js?v=87"></script>
+  <script src="film.js?v=88"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js" defer></script>
-  <script src="lab/fotomat.js?v=55" defer></script>
-  <script src="arc.js?v=3"></script>
+  <script src="lab/fotomat.js?v=56" defer></script>
+  <script src="arc.js?v=4"></script>
 </body>
 </html>

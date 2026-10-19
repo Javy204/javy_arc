@@ -99,7 +99,7 @@ function render() {
     li.addEventListener("mouseenter", () => setActive(+li.dataset.i, true));
     li.addEventListener("click", () => openShoot(+li.dataset.i));
   });
-  $("#ftCount").textContent = `${pad2(SETS.length)} SETŮ · ${SETS.reduce((n, s) => n + s.images.length, 0)} SNÍMKŮ`;
+  $("#ftCount").textContent = `${pad2(SETS.length)} SETS · ${SETS.reduce((n, s) => n + s.images.length, 0)} SHOTS`;
   onScroll();
 }
 function pick(arr, n) {
@@ -113,7 +113,7 @@ function setActive(i, fromLegend) {
   $$("#legend li").forEach((li, k) => li.classList.toggle("on", k === i));
   rows.forEach((r, k) => r.el.classList.toggle("on", k === i));
   const s = SETS[i]; if (!s) return;
-  descEl.innerHTML = `${s.title}<span>${pad2(i + 1)} / ${pad2(SETS.length)} · ${s.images.length} SNÍMKŮ</span>`;
+  descEl.innerHTML = `${s.title}<span>${pad2(i + 1)} / ${pad2(SETS.length)} · ${s.images.length} SHOTS</span>`;
   showPreview(s.cover || s.images[0]);
 }
 /* velký náhled: dvě vrstvy, ať se fotky prolnou a neblikne to */
@@ -133,9 +133,9 @@ function openShoot(i) {
     $("#shootTitle").textContent = s.title;
     $("#shootMeta").innerHTML =
       `<div><dt>shoot</dt><dd>${pad2(i + 1)} / ${pad2(SETS.length)}</dd></div>` +
-      `<div><dt>snímků</dt><dd>${s.images.length}</dd></div>` +
+      `<div><dt>shots</dt><dd>${s.images.length}</dd></div>` +
       `<div><dt>studio</dt><dd>javy</dd></div>` +
-      `<div><dt>místo</dt><dd>praha</dd></div>`;
+      `<div><dt>place</dt><dd>prague</dd></div>`;
     $("#shootPhotos").innerHTML = s.images.map((src, k) =>
       `<figure class="sp"><img alt="" loading="lazy" src="${src}">` +
       `<figcaption>${pad2(k + 1)} / ${pad2(s.images.length)}</figcaption></figure>`).join("");

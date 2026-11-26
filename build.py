@@ -9,7 +9,7 @@
 #
 # Manifest je AUTOGENEROVANÝ — needituj ho ručně.
 
-import os, re, json, shutil, subprocess, html
+import os, re, json, shutil, subprocess, html, hashlib
 from urllib.parse import quote, unquote
 
 PHOTOS = "photos"
@@ -207,6 +207,66 @@ def bake_site():
         print("texty webu zapsány do: " + ", ".join(changed))
 
 bake_site()
+
+
+# ═══════════════════════════════════════════════════════════════
+#  FOTOMAT: výchozí grading pro všechny návštěvníky (site.json → "fotomat")
+#  Zapíše se do lab/fotomat.js mezi /*site:grade*/ a /*/site:grade*/.
+#  Admin ho do site.json vloží z tlačítka KOPÍROVAT v tajném panelu (klávesa G).
+# ═══════════════════════════════════════════════════════════════
+def bake_grade():
+    fn = os.path.join("lab", "fotomat.js")
+    try:
+        with open("site.json", encoding="utf-8") as f:
+            grade = json.load(f).get("fotomat", {})
+        with open(fn, encoding="utf-8") as f:
+            src = f.read()
+    except Exception:
+        return
+    if not isinstance(grade, dict):
+        return
+    clean = {k: v for k, v in grade.items() if re.fullmatch(r"[A-Za-z]+", str(k)) and k != "sat"
+             and isinstance(v, (int, float)) and not isinstance(v, bool)}
+    blob = json.dumps(dict(sorted(clean.items())), separators=(", ", ": "))
+    out = re.sub(r"/\*site:grade\*/.*?/\*/site:grade\*/", lambda m: f"/*site:grade*/{blob}/*/site:grade*/", src, flags=re.S)
+    if out != src:
+        with open(fn, "w", encoding="utf-8") as f:
+            f.write(out)
+        print("výchozí grading FOTOMATU zapsán do lab/fotomat.js")
+
+bake_grade()
+
+# ═══════════════════════════════════════════════════════════════
+#  CACHE-BUSTING: ?v=… u skriptů a stylesheetů v HTML = otisk obsahu souboru.
+#  Změní se soubor → změní se otisk → prohlížeč si ho stáhne znovu.
+#  (Nikdo už nemusí ručně zvyšovat čísla verzí.)
+# ═══════════════════════════════════════════════════════════════
+def bump_assets():
+    pages = ["index.html", "fotomat/index.html", "arc/index.html", "studio/index.html"]
+    ref = re.compile(r'((?:src|href)=")([^"?#:]+\.(?:js|css))\?v=[^"]*(")')
+    changed = []
+    for fn in pages:
+        if not os.path.exists(fn):
+            continue
+        with open(fn, encoding="utf-8") as f:
+            src = f.read()
+        root = "" if '<base href="/"' in src else os.path.dirname(fn)
+        def fix(m):
+            path = os.path.normpath(os.path.join(root, m.group(2)))
+            if not os.path.isfile(path):
+                return m.group(0)
+            with open(path, "rb") as f:
+                h = hashlib.md5(f.read()).hexdigest()[:8]
+            return f"{m.group(1)}{m.group(2)}?v={h}{m.group(3)}"
+        out = ref.sub(fix, src)
+        if out != src:
+            with open(fn, "w", encoding="utf-8") as f:
+                f.write(out)
+            changed.append(fn)
+    if changed:
+        print("verze souborů (cache) aktualizovány v: " + ", ".join(changed))
+
+bump_assets()
 
 sets = []
 skipped = []      # prázdné složky (bez fotek) — nahlásíme je na konci

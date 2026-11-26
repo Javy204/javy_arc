@@ -39,6 +39,8 @@
     { k: "ditherSize", t: "DOT SIZE", min: 1, max: 6, step: .1, v: 2 },
   ];
   const DEFAULTS = Object.fromEntries(PARAMS.map((p) => [p.k, p.v]));
+  // Výchozí grading pro všechny návštěvníky; zapisuje ho build.py ze site.json (klíč "fotomat").
+  const SITE_GRADE = /*site:grade*/{}/*/site:grade*/;
   // Efekty (jen pro admina — žádný veřejný přepínač). Návštěvník vždycky
   // vidí TERMO; ostatní jsou startovní body pro doladění v tajném panelu.
   // sat tu je jen pro čitelnost — o to, že výstup zůstane černobílý i při
@@ -145,7 +147,7 @@
   const GRADE_KEY = "javy-grade2", LOOK_KEY = "javy-look3";
   let lookName = "TERMO";
   try { const l = localStorage.getItem(LOOK_KEY); if (l && LOOKS[l]) lookName = l; } catch (e) {}
-  const baseLook = () => ({ ...DEFAULTS, ...LOOKS[lookName] });
+  const baseLook = () => ({ ...DEFAULTS, ...LOOKS[lookName], ...(lookName === "TERMO" ? SITE_GRADE : {}) });
   let G = baseLook();
   try {
     const saved = JSON.parse(localStorage.getItem(GRADE_KEY) || "{}");

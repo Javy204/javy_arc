@@ -11,13 +11,17 @@ a otevřít `http://localhost:3334`.
 
 ## Správa webu bez AI (klikací UI)
 Dvojklik na **`sprava-webu.command`** (macOS) nebo **`sprava-webu.bat`** (Windows) → otevře se
-správa v prohlížeči (`127.0.0.1:8765`, jen lokálně, bez hesla). Má tři záložky:
+správa v prohlížeči (`127.0.0.1:8765`, jen lokálně, bez hesla; ostatní weby na ni nemají přístup). Záložky:
 
 1. **Fotky** — nahrávání přetažením (automaticky se zmenší a vyrobí se náhledy), řazení složek,
    přejmenování, mazání do koše `_trash/`, výběr náhledové fotky.
 2. **Texty webu** — úvod, About, kontakty, patička (ukládá se do `site.json`).
-3. **Publikovat & nastavení** — kontrola prostředí (Python, Pillow/ImageMagick, Git, napojení na GitHub)
+3. **Pokročilé** — nové heslo do brány archivu (ARC; zapíše se do `arc.js`) a výchozí vzhled FOTOMATU
+   pro všechny návštěvníky (vložíš výstup tlačítka KOPÍROVAT z tajného panelu `G`).
+4. **Publikovat** — kontrola prostředí (Python, Pillow/ImageMagick, Git, napojení na GitHub)
    a tlačítko **Publikovat** (commit + push). Web se na GitHub Pages aktualizuje do ~1 minuty.
+
+Verze souborů v HTML (`?v=…`, cache) se přepisují automaticky podle obsahu souboru (`build.py`).
 
 ### Zdroje obsahu
 - `photos/NN název/` = jeden shoot, `photos/NN název/NN shoot/` = skupina (projekt s víc shooty). Číslo = pořadí.

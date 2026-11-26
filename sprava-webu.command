@@ -9,6 +9,6 @@
 
 cd "$(dirname "$0")" || exit 1
 echo "JAVY — spouštím správu webu…"
-echo "(Až budeš hotov/á, zavři tohle okno.)"
+echo "(Vypneš ji tlačítkem „Vypnout správu“ v prohlížeči. Zavřeš-li stránku, vypne se sama.)"
 echo
 python3 cover_admin.py

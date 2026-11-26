@@ -11,6 +11,8 @@ a otevřít `http://localhost:3334`.
 
 ## Správa webu bez AI (klikací UI)
 Dvojklik na **`sprava-webu.command`** (macOS) nebo **`sprava-webu.bat`** (Windows) → otevře se
+
+Správa se vypíná tlačítkem **Vypnout správu** vpravo nahoře. Když zavřeš stránku v prohlížeči, vypne se sama do tří minut. Když někde zůstala viset stará, nový start ji sám ukončí, takže žádné `Ctrl+C` ani hledání starých oken není potřeba.
 správa v prohlížeči (`127.0.0.1:8765`, jen lokálně, bez hesla; ostatní weby na ni nemají přístup). Záložky:
 
 1. **Fotky** — nahrávání přetažením (automaticky se zmenší a vyrobí se náhledy), řazení složek,

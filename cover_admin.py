@@ -489,7 +489,7 @@ PAGE = r"""<!doctype html><html lang="cs"><head><meta charset="utf-8">
     <button data-tab="Adv">Pokročilé</button>
     <button data-tab="Publish">Publikovat</button>
   </nav>
-  <span class="spacer"></span><span id="busy"></span>
+  <span class="spacer"></span><span id="busy"></span><button class="mini" id="quitBtn" title="Vypne správu webu — v Terminálu pak nic nemusíš zavírat">Vypnout správu</button>
 </header>
 
 <div id="viewPhotos" class="view on">
@@ -799,6 +799,11 @@ $('#pubBtn').onclick=async()=>{
 
 reload();
 const h0=(location.hash||'').slice(1); if(['Site','Adv','Publish'].includes(h0))showTab(h0);
+setInterval(()=>{fetch('/api/ping',{headers:HDR}).catch(()=>{});},5000);   // hlásí serveru, že je stránka otevřená
+$('#quitBtn').onclick=async()=>{
+  await fetch('/api/quit',{method:'POST',headers:HDR}).catch(()=>{});
+  document.body.innerHTML='<div style="max-width:520px;margin:18vh auto;padding:0 24px;font:16px/1.5 system-ui;color:#999;text-align:center"><b style="color:#fff;font-size:20px">Správa je vypnutá.</b><br>Tuhle záložku můžeš zavřít. Příště ji zapneš dvojklikem na <code>sprava-webu.command</code>.</div>';
+};
 </script></body></html>"""
 
 class Handler(SimpleHTTPRequestHandler):
@@ -837,6 +842,11 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        if path == "/api/ping":                      # stránka správy se hlásí; bez ní se správa po chvíli sama vypne
+            global LAST_PING
+            LAST_PING = time.time()
+            self._json({"ok": True})
+            return
         if path == "/api/data":
             self._json({"items": scan(), "covers": load_covers()})
             return
@@ -874,6 +884,10 @@ class Handler(SimpleHTTPRequestHandler):
                 self._json({"ok": True})
                 return
 
+            if path == "/api/quit":
+                self._json({"ok": True})
+                threading.Timer(0.3, lambda: HTTPD and HTTPD.shutdown()).start()
+                return
             data = json.loads(self._body().decode("utf-8") or "{}")
             if path == "/api/publish":
                 ok, log = act_publish(data.get("message"))
@@ -914,17 +928,68 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+LAST_PING = time.time()
+HTTPD = None
+IDLE_LIMIT = 180        # s bez signálu ze stránky správy → server se sám vypne (žádný zapomenutý proces)
+
+def free_port():
+    """Zůstala-li na portu stará správa (zapomenuté okno), ukonči ji; cizí program nech být."""
+    lsof = shutil.which("lsof")
+    if not lsof:
+        return False
+    r = subprocess.run([lsof, "-tiTCP:%d" % PORT, "-sTCP:LISTEN"], capture_output=True, text=True)
+    pids = [int(x) for x in r.stdout.split() if x.isdigit() and int(x) != os.getpid()]
+    ours = []
+    for pid in pids:
+        cmd = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True).stdout
+        if "cover_admin.py" in cmd:
+            ours.append(pid)
+    if not ours or len(ours) != len(pids):
+        return False
+    import signal
+    for pid in ours:
+        try: os.kill(pid, signal.SIGTERM)
+        except OSError: pass
+    time.sleep(1.2)
+    return True
+
+def watchdog():
+    global LAST_PING
+    last_tick = time.time()
+    while True:
+        time.sleep(5)
+        now = time.time()
+        if now - last_tick > 30:            # počítač spal → nepočítej to jako nečinnost
+            LAST_PING = now
+        last_tick = now
+        if now - LAST_PING > IDLE_LIMIT:
+            print("\nStránka správy je zavřená — správa se sama vypnula.")
+            HTTPD.shutdown()
+            return
+
 def main():
+    global HTTPD
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    httpd = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    try:
+        HTTPD = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    except OSError:
+        if free_port():
+            print("Našel jsem starou běžící správu a vypnul ji.")
+        try:
+            HTTPD = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+        except OSError:
+            print(f"Port {PORT} používá jiný program. Zavři okno, kde už správa běží, a zkus to znovu.")
+            return
     url = f"http://127.0.0.1:{PORT}/"
     print("JAVY — správa webu běží na", url)
-    print("Až budeš hotov/á, zavři tohle okno (Ctrl+C).")
+    print("Vypneš ji tlačítkem „Vypnout správu“ vpravo nahoře (nebo Ctrl+C). Zavřeš-li stránku, vypne se sama.")
     threading.Timer(0.7, lambda: webbrowser.open(url)).start()
+    threading.Thread(target=watchdog, daemon=True).start()
     try:
-        httpd.serve_forever()
+        HTTPD.serve_forever()
     except KeyboardInterrupt:
-        print("\nKonec.")
+        pass
+    print("Konec — správa je vypnutá, okno můžeš zavřít.")
 
 if __name__ == "__main__":
     main()

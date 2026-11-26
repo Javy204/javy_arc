@@ -291,9 +291,15 @@ def act_publish(message):
         log.append("Žádné nové změny k commitnutí.")
     rc, out = git("push", timeout=300)
     if rc != 0:
-        hint = ("\n\nPush se nepovedl. Nejčastěji chybí přihlášení k GitHubu — nejjednodušší je jednou "
-                "otevřít repozitář v GitHub Desktop a kliknout Push (přihlásí se tam), pak to tady funguje.")
-        return False, "\n".join(log) + "\n" + out[-600:] + hint
+        # Z téhle správy se na GitHub bez uložených údajů přihlásit nedá — odesílání zvládne GitHub Desktop.
+        opened = False
+        if sys.platform == "darwin" and os.path.isdir("/Applications/GitHub Desktop.app"):
+            opened = subprocess.run(["open", "-a", "GitHub Desktop", os.getcwd()]).returncode == 0
+        hint = ("\n\nZměny jsou uložené (commit), jen se ještě nedostaly na GitHub — odsud se přihlásit nedá.\n"
+                + ("Otevřel jsem ti GitHub Desktop: klikni nahoře na „Push origin“ a za chvíli je to na webu."
+                   if opened else
+                   "Otevři repozitář v GitHub Desktop a klikni nahoře na „Push origin“."))
+        return False, "\n".join(log) + hint
     log.append("Odesláno na GitHub — web se aktualizuje do ~1 minuty.")
     return True, "\n".join(log)
 

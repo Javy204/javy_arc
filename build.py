@@ -87,18 +87,34 @@ def images_in(folder):
 def has_images_direct(folder):
     return any(f.lower().endswith(IMG_EXT) and not f.startswith(".") for f in os.listdir(folder))
 
+# Shoot ve skupině se může jmenovat s datem: "2026-11-14 Název" (nebo "2026-11 Název").
+# Datované shooty se řadí od NEJNOVĚJŠÍHO, takže nový shoot stačí přidat a je první.
+# Starší bez data ("01 Název") jdou až za nimi, podle čísla.
+DATE_RE = re.compile(r"^\s*(\d{4})-(\d{2})(?:-(\d{2}))?\s*[-_.\s]\s*(.+?)\s*$")
+
+def parse_shoot_name(name):
+    m = DATE_RE.match(name)
+    if m:
+        return "-".join(g for g in m.groups()[:3] if g), m.group(4)
+    return None, parse_name(name)[1]
+
 def subshoots(folder, parent):
-    subs = []
+    dated, plain = [], []
     for name in sorted(os.listdir(folder)):
         sub = os.path.join(folder, name)
         if os.path.isdir(sub) and not name.startswith(".") and images_in(sub):
-            order, title = parse_name(name)
+            date, title = parse_shoot_name(name)
             imgs = images_in(sub)
             shoot = {"id": slug(title), "title": title, "images": imgs,
                      "cover": resolve_cover(f"{parent}/{name}", imgs)}
-            subs.append((order, shoot))
-    subs.sort(key=lambda x: (x[0], x[1]["title"]))
-    return [s for _, s in subs]
+            if date:
+                shoot["date"] = date
+                dated.append(shoot)
+            else:
+                plain.append((parse_name(name)[0], shoot))
+    dated.sort(key=lambda sh: (sh["date"], sh["title"]), reverse=True)
+    plain.sort(key=lambda x: (x[0], x[1]["title"]))
+    return dated + [sh for _, sh in plain]
 
 # ═══════════════════════════════════════════════════════════════
 #  NÁHLEDY (photos/_thumbs/…webp, delší strana 720 px)

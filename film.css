@@ -1356,3 +1356,47 @@ body.beta-on .beta { display: block; }
   .grade-main { flex-direction: column; }
   .grade-preview { position: static; width: 100%; max-width: 260px; margin: 0 auto; }
 }
+
+/* ============================================================
+   LIŠTA SHOOTŮ (skupina = víc fotících dnů): vždy viditelná dole,
+   nejnovější vlevo, vodorovně posuvná; ALL ↺ otevře přehled-buben.
+   ============================================================ */
+.shoot-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
+  display: flex; align-items: stretch; gap: 8px;
+  padding: 26px 20px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 62%, transparent);
+  pointer-events: none;
+}
+.shoot-bar[hidden] { display: none; }
+.shoot-bar > * { pointer-events: auto; }
+.shoot-bar button {
+  appearance: none; cursor: pointer; font: inherit; color: var(--ink);
+  background: var(--bg); border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
+  text-transform: uppercase; letter-spacing: .06em; text-align: left;
+  padding: 7px 12px; flex: 0 0 auto; transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.shoot-bar button:hover { border-color: var(--ink); }
+.shoot-bar button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.shoot-bar .sb-all { font-size: 11px; font-weight: 900; display: flex; align-items: center; }
+.sb-track {
+  display: flex; gap: 8px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none;
+  scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.sb-track::-webkit-scrollbar { display: none; }
+.sb-track button { display: flex; flex-direction: column; gap: 2px; scroll-snap-align: start; }
+.sb-track i { font-style: normal; font-size: 9px; font-weight: 700; opacity: .6; white-space: nowrap; }
+.sb-track b { font-size: 11px; font-weight: 900; white-space: nowrap; }
+.stage.has-shoots .gtiles { padding-bottom: calc(10vh + 76px); }
+@media (max-width: 720px) { .shoot-bar { padding: 22px 12px calc(12px + env(safe-area-inset-bottom)); gap: 6px; } }
+
+/* hláška po skrytém vstupu do správy */
+.admin-tip {
+  position: fixed; left: 50%; bottom: 22px; z-index: 300; transform: translate(-50%, 12px);
+  max-width: min(92vw, 560px); padding: 9px 14px; background: #0c0b09; color: #f3f1ea;
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase; opacity: 0; pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.admin-tip.on { opacity: 1; transform: translate(-50%, 0); }

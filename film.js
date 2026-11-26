@@ -1033,6 +1033,8 @@ function updateJourney() {
 
 /* ---- WORK -> pás ---- */
 let currentGroup = null;
+let viaDrum = false;      // přišel jsem do shootu z bubnu (ALL)? pak se zpět vrací do něj
+let shootIdx = 0;         // který shoot skupiny je právě otevřený
 let currentSet = null;   // aktuálně otevřený shoot — ať to ví i applyBrowseMode() při přepnutí
 let coverEls = [], gFocus = -1, zoomOutAccum = 0;
 let drum = null, itemEls = [], gTargetAngle = 0, gCurrentAngle = 0, gSnapT = 0;
@@ -1040,8 +1042,12 @@ const STEP = 52, DRUMR = "42vh";
 
 function openShoot(idx) {
   const set = SETS[idx];
-  if (set.isGroup) { openGroup(set); return; }
-  currentGroup = null;
+  if (set.isGroup) {          // skupina: rovnou nejnovější shoot, ostatní jsou v liště dole
+    currentGroup = set; viaDrum = false; shootIdx = 0;
+    buildStrip(set.shoots[0]); enterStrip();
+    return;
+  }
+  currentGroup = null; viaDrum = false;
   buildStrip(set); enterStrip();
 }
 function enterStrip() {
@@ -1055,11 +1061,55 @@ function enterStrip() {
   magnetPending = false; if (snapTimer) { clearTimeout(snapTimer); snapTimer = null; }
   reel.classList.remove("unrolling"); void reel.offsetWidth; reel.classList.add("unrolling");
   setTimeout(() => { measure(); targetX = clamp(vw / 2 - (centers[0] || 0)); }, 140);
+  renderShootBar();
 }
+
+/* ---- LIŠTA SHOOTŮ: všechny shooty skupiny pořád na očích (nejnovější vlevo) ---- */
+const shootBar = document.createElement("nav");
+shootBar.className = "shoot-bar"; shootBar.hidden = true; shootBar.setAttribute("aria-label", "Shoots");
+stage.appendChild(shootBar);
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+function fmtDate(d) {
+  if (!d) return "";
+  const [y, m, day] = d.split("-");
+  return (day ? `${+day} ` : "") + (MONTHS[+m - 1] || m) + " " + y;
+}
+function renderShootBar() {
+  const shoots = currentGroup && currentGroup.shoots;
+  if (!shoots || shoots.length < 2) { shootBar.hidden = true; stage.classList.remove("has-shoots"); return; }
+  shootBar.innerHTML = "";
+  const all = document.createElement("button");
+  all.type = "button"; all.className = "sb-all"; all.textContent = "ALL ↺"; all.title = "Overview of all shoots";
+  all.addEventListener("click", () => { viaDrum = true; backFromStrip(); });
+  const track = document.createElement("div");
+  track.className = "sb-track";
+  shoots.forEach((sh, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = i === shootIdx ? "on" : "";
+    const d = document.createElement("i");
+    d.textContent = (i === 0 && sh.date ? "LATEST · " : "") + (fmtDate(sh.date) || pad2(i + 1));
+    const t = document.createElement("b");
+    t.textContent = sh.title;
+    b.append(d, t);
+    b.addEventListener("click", () => switchShoot(i));
+    track.appendChild(b);
+  });
+  shootBar.append(all, track);
+  shootBar.hidden = false; stage.classList.add("has-shoots");
+  const on = track.querySelector(".on");
+  if (on) track.scrollLeft = on.offsetLeft - (track.clientWidth - on.offsetWidth) / 2;
+}
+function switchShoot(i) {
+  if (!currentGroup || i === shootIdx || !currentGroup.shoots[i]) return;
+  shootIdx = i;
+  buildStrip(currentGroup.shoots[i]); enterStrip();
+  gridBrowse.scrollTop = 0;
+}
+const crumbOf = (set) => (currentGroup && currentGroup.shoots.includes(set) ? `${currentGroup.title} / ${set.title}` : set.title).toUpperCase();
 function backFromStrip() {
-  stage.hidden = true; browseToggle.hidden = true;
-  if (currentGroup) openGroup(currentGroup);
-  else { journey.hidden = false; dotsNav.hidden = false; back.hidden = true; updateJourney(); }
+  stage.hidden = true; browseToggle.hidden = true; shootBar.hidden = true;
+  if (currentGroup && viaDrum) openGroup(currentGroup);
+  else { currentGroup = null; viaDrum = false; journey.hidden = false; dotsNav.hidden = false; back.hidden = true; updateJourney(); }
 }
 
 /* ---- GROUP: výběr shootů = velká slova + reveal (jako WORK) ---- */
@@ -1135,6 +1185,7 @@ function stepDrum(dt) {
 }
 function coverZoom(i) {
   if (i < 0 || !currentGroup) return;
+  viaDrum = true; shootIdx = i;
   buildStrip(currentGroup.shoots[i]);
   enterStrip();
 }
@@ -1200,7 +1251,7 @@ function buildStrip(set) {
   strip.innerHTML = ""; ITEMS = []; FRAMES = [];
   stripBg.textContent = set.title;   // parallax název za fotkami
   // pevně, ne z step()'s "nejbližší fotka" — v mřížce se totiž step() vůbec nespouští
-  crumb.textContent = set.title.toUpperCase();
+  crumb.textContent = crumbOf(set);
   counter.textContent = `${pad2(set.count)} PHOTOS`;
   for (let i = 0; i < set.count; i++) {
     const f = document.createElement("div");
@@ -1244,7 +1295,7 @@ function applyBrowseMode() {
   if (currentSet) {
     // v pásu si "· SCROLL →" a "NN/NN" dopočítá step() sám podle polohy;
     // v mřížce step() vůbec neběží, takže hlášku vrátíme na klidový stav
-    crumb.textContent = currentSet.title.toUpperCase();
+    crumb.textContent = crumbOf(currentSet);
     counter.textContent = `${pad2(currentSet.count)} PHOTOS`;
   }
   if (!grid) setTimeout(measure, 0);   // pás si po návratu musí přeměřit středy fotek
@@ -1294,7 +1345,7 @@ viewport.addEventListener("wheel", (e) => {
   let d = e.deltaY, dx = e.deltaX;
   if (e.deltaMode === 1) { d *= 16; dx *= 16; } else if (e.deltaMode === 2) { d *= window.innerHeight; }
   // ve skupině: scroll nahoru na začátku pásu = zoom zpět na přehled
-  if (currentGroup && targetX >= maxX - 1 && d < 0) {
+  if (currentGroup && viaDrum && targetX >= maxX - 1 && d < 0) {
     zoomOutAccum += -d;
     if (zoomOutAccum > 140) { zoomOutAccum = 0; backFromStrip(); }
     return;
@@ -1440,7 +1491,7 @@ function step(dt) {
     ITEMS.forEach((it) => it.el.classList.remove("focus"));
     const it = ITEMS[nearest];
     it.el.classList.add("focus");
-    crumb.textContent = `${it.set.title.toUpperCase()} · SCROLL →`;
+    crumb.textContent = `${crumbOf(it.set)} · SCROLL →`;
     counter.textContent = it.type === "frame" ? `${pad2(it.global)} / ${pad2(it.total)}` : `— ${it.set.type} —`;
   }
 }
@@ -1627,4 +1678,28 @@ window.addEventListener("resize", () => { if (wfPhone !== null && wfPhone !== is
   // pak celé minuty dekódoval obrázky, které nikdo neviděl, a web se u toho sekal.
   // Teď se fotky shootu natáhnou až při otevření (buildStrip + loading="lazy")
   // a při najetí na panel se v tichosti přichystá jen jeho začátek.
+})();
+
+/* ---- SKRYTÝ VSTUP DO SPRÁVY: napiš "admin" (nebo trojklik na patičku) ----
+   Správa běží jen lokálně na počítači, kde je spuštěná (sprava-webu.command),
+   takže tohle jen otevře http://127.0.0.1:8765/. Návštěvníkům nic neukáže —
+   když správa neběží, zobrazí se jim prohlížečová chyba spojení. */
+(function () {
+  const ADMIN_URL = "http://127.0.0.1:8765/";
+  let buf = "", tip = null, tipT = 0;
+  function openAdmin() {
+    if (!tip) { tip = document.createElement("div"); tip.className = "admin-tip"; document.body.appendChild(tip); }
+    tip.textContent = "OPENING ADMIN · runs only on the computer where sprava-webu.command is started";
+    tip.classList.add("on"); clearTimeout(tipT); tipT = setTimeout(() => tip.classList.remove("on"), 4200);
+    window.open(ADMIN_URL, "_blank", "noopener");
+  }
+  document.addEventListener("keydown", (e) => {
+    const t = e.target;
+    if (e.metaKey || e.ctrlKey || e.altKey || (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) || (t && t.isContentEditable)) return;
+    if (e.key.length !== 1) return;
+    buf = (buf + e.key.toLowerCase()).slice(-5);
+    if (buf === "admin") { buf = ""; openAdmin(); }
+  });
+  const foot = document.querySelector("[data-site='footer']");
+  if (foot) foot.addEventListener("click", (e) => { if (e.detail === 3) openAdmin(); });
 })();

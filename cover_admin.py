@@ -32,6 +32,15 @@ def parse_name(name):
     m = re.match(r"^\s*(\d+)\s*[-_.\s]*\s*(.+?)\s*$", name)
     return (int(m.group(1)), m.group(2).strip()) if m else (9999, name.strip())
 
+DATE_RE = re.compile(r"^\s*(\d{4})-(\d{2})(?:-(\d{2}))?\s*[-_.\s]\s*(.+?)\s*$")
+
+def parse_shoot_name(name):
+    """('2026-11-14', 'Název') pro datovaný shoot, jinak (None, 'Název')."""
+    m = DATE_RE.match(name)
+    if m:
+        return "-".join(g for g in m.groups()[:3] if g), m.group(4)
+    return None, parse_name(name)[1]
+
 def imgs_direct(folder):
     fs = [f for f in os.listdir(folder) if f.lower().endswith(IMG_EXT) and not f.startswith(".")]
     fs.sort(key=natkey)
@@ -66,9 +75,13 @@ def scan():
                 subp = os.path.join(folder, sub)
                 if os.path.isdir(subp) and not sub.startswith(".") and has_direct(subp):
                     files = imgs_direct(subp)
-                    shoots.append({"key": f"{name}/{sub}", "title": parse_name(sub)[1],
+                    date, stitle = parse_shoot_name(sub)
+                    shoots.append({"key": f"{name}/{sub}", "title": stitle, "date": date or "",
                                    "count": len(files),
                                    "images": [{"file": f, "url": f"photos/{name}/{sub}/{f}"} for f in files]})
+            # stejné pořadí jako na webu: datované od nejnovějšího, pak ostatní podle čísla
+            shoots.sort(key=lambda sh: (0, "".join(chr(255 - ord(c)) for c in sh["date"])) if sh["date"]
+                        else (1, parse_name(os.path.basename(sh["key"]))[0]))
             if shoots:
                 items.append({"key": name, "title": parse_name(name)[1], "type": "group", "shoots": shoots})
             else:
@@ -305,8 +318,13 @@ def act_reorder(order):
 def act_rename(key, title):
     old = safe_rel(key)
     parent = os.path.dirname(old)
-    order = parse_name(os.path.basename(old))[0]
-    num = f"{order:02d} " if order != 9999 else ""
+    base = os.path.basename(old)
+    date = parse_shoot_name(base)[0]
+    if date:
+        num = f"{date} "
+    else:
+        order = parse_name(base)[0]
+        num = f"{order:02d} " if order != 9999 else ""
     newbase = f"{num}{title.strip()}"
     new = os.path.join(parent, newbase)
     if os.path.abspath(new) == os.path.abspath(old):
@@ -318,13 +336,34 @@ def act_rename(key, title):
     newkey = os.path.relpath(new, PHOTOS).replace("\\", "/")
     save_covers(remap_covers(load_covers(), oldkey, newkey))
 
-def act_new_folder(title, parent=None):
+def act_new_folder(title, parent=None, date=None):
     base = safe_rel(parent) if parent else PHOTOS
     if not os.path.isdir(base):
         raise ValueError("nadřazená složka neexistuje")
-    order = next_order(base)
-    name = f"{order:02d} {title.strip()}"
+    title = re.sub(r"[\\/:*?\"<>|]+", " ", title).strip()
+    if not title:
+        raise ValueError("chybí název")
+    if date:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+            raise ValueError("datum musí být ve tvaru RRRR-MM-DD")
+        name = f"{date} {title}"
+    else:
+        name = f"{next_order(base):02d} {title}"
     os.makedirs(os.path.join(base, name), exist_ok=False)
+
+def act_to_group(key, title, date=None):
+    """Plochou složku s fotkami změní na skupinu: fotky přesune do jednoho shootu uvnitř."""
+    folder = safe_rel(key)
+    files = imgs_direct(folder)
+    if not files:
+        raise ValueError("ve složce nejsou žádné fotky")
+    title = re.sub(r"[\\/:*?\"<>|]+", " ", title).strip() or "Shoot"
+    if date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+        raise ValueError("datum musí být ve tvaru RRRR-MM-DD")
+    sub = os.path.join(folder, f"{date} {title}" if date else f"01 {title}")
+    os.makedirs(sub, exist_ok=False)
+    for f in files:
+        shutil.move(os.path.join(folder, f), os.path.join(sub, f))
 
 def act_trash_folder(key):
     save_covers({k: v for k, v in load_covers().items()
@@ -372,6 +411,10 @@ PAGE = r"""<!doctype html><html lang="cs"><head><meta charset="utf-8">
   button.primary{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
   button.primary:hover{opacity:.88}
   button.mini{font-size:12px;padding:5px 10px;border-radius:8px}
+  .addshoot{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 12px}
+  .addshoot input.txt{width:auto;min-width:0}
+  .addshoot input[data-sname]{flex:1;min-width:160px}
+  .hint{color:var(--mut);font-size:12px;margin:0 0 8px}
   button.danger{color:var(--bad)}
   button.danger:hover{border-color:var(--bad)}
   button:disabled{opacity:.4;cursor:default;pointer-events:none}
@@ -543,6 +586,12 @@ function grid(key,images){
     '<button class="del" data-delfolder="'+esc(key)+'" data-delfile="'+esc(im.file)+'">smazat</button></div>').join('')+'</div>';
 }
 function dropzone(k){return '<div class="drop" data-drop="'+esc(k)+'">+ Přetáhni sem fotky (nebo klikni pro výběr)</div>';}
+const today=()=>new Date().toISOString().slice(0,10);
+function shootForm(key,note){
+  return '<div class="hint">'+note+'</div><div class="addshoot"><input class="txt" type="date" data-sdate value="'+today()+'">'+
+    '<input class="txt" data-sname placeholder="název shootu, např. Rebrand">'+
+    '<button class="mini" data-addshoot="'+esc(key)+'">Přidat shoot</button></div>';
+}
 function render(){
   const y=window.scrollY;
   if(!DATA.length){$('#list').innerHTML='<li class="folder"><div class="row"><div class="empty-note">Zatím tu nejsou žádné složky. Vytvoř první tlačítkem „Nová složka“.</div></div></li>';return;}
@@ -553,13 +602,13 @@ function render(){
       const cur=it.count?curCover(it.key,it.images):null;
       head=(cur?imgTag(cur.url,'class="curthumb"'):'<div class="curthumb">—</div>')+
            '<div><div class="fname">'+esc(it.title)+'</div><div class="fmeta">'+it.count+' fotek</div></div>';
-      if(isOpen) body=dropzone(it.key)+grid(it.key,it.images);
+      if(isOpen) body='<div class="addshoot"><button class="mini" data-togroup="'+esc(it.key)+'">Rozdělit na shooty…</button><span class="hint" style="margin:0">Z téhle složky udělá skupinu a dosavadní fotky dá do prvního shootu.</span></div>'+dropzone(it.key)+grid(it.key,it.images);
     }else if(it.type==='group'){
       head='<div class="curthumb">SKUP.</div><div><div class="fname">'+esc(it.title)+'</div><div class="fmeta">skupina · '+it.shoots.length+' shootů</div></div>';
-      if(isOpen) body=it.shoots.map(sh=>'<div class="shoot-title">'+esc(sh.title)+' · '+sh.count+' fotek</div>'+dropzone(sh.key)+grid(sh.key,sh.images)).join('');
+      if(isOpen) body=shootForm(it.key,'Nový shoot se na webu řadí podle data — nejnovější je první a starší jsou v liště pod ním.')+it.shoots.map(sh=>'<div class="shoot-title">'+(sh.date?esc(sh.date)+' · ':'')+esc(sh.title)+' · '+sh.count+' fotek <button class="mini" data-rename="'+esc(sh.key)+'" data-title="'+esc(sh.title)+'">Přejmenovat</button> <button class="mini danger" data-trash="'+esc(sh.key)+'">Smazat</button></div>'+dropzone(sh.key)+grid(sh.key,sh.images)).join('');
     }else{
       head='<div class="curthumb">—</div><div><div class="fname">'+esc(it.title)+'</div><div class="fmeta">prázdná složka</div></div>';
-      if(isOpen) body='<div class="empty-note">Zatím žádné fotky.</div>'+dropzone(it.key);
+      if(isOpen) body='<div class="empty-note">Zatím žádné fotky.</div>'+dropzone(it.key)+shootForm(it.key,'…nebo z ní udělej skupinu shootů (třeba pro fotky jedné kapely z různých dní):');
     }
     return '<li class="folder'+opened+'" draggable="true" data-idx="'+i+'" data-key="'+esc(it.key)+'">'+
       '<div class="row"><span class="grip" title="Přetáhni pro změnu pořadí">⠿</span><span class="num">'+String(i+1).padStart(2,'0')+'</span>'+head+
@@ -582,6 +631,18 @@ function bind(){
     e.stopPropagation();
     if(!confirm('Přesunout fotku do koše? (jde obnovit ze složky _trash)'))return;
     await post('/api/trash-photo',{folder:b.dataset.delfolder,name:b.dataset.delfile}); reload();
+  });
+  document.querySelectorAll('[data-addshoot]').forEach(b=>b.onclick=async()=>{
+    const box=b.parentElement, t=box.querySelector('[data-sname]').value.trim(), dt=box.querySelector('[data-sdate]').value;
+    if(!t){toast('Napiš název shootu.','bad');return;}
+    const d=await post('/api/new-folder',{title:t,parent:b.dataset.addshoot,date:dt||null});
+    if(d.ok)toast('Shoot vytvořen — nahraj do něj fotky.','ok'); reload();
+  });
+  document.querySelectorAll('[data-togroup]').forEach(b=>b.onclick=async()=>{
+    const t=prompt('Jak se jmenuje shoot, ve kterém jsou dosavadní fotky?','Shoot 1'); if(t==null||!t.trim())return;
+    const dt=prompt('Datum toho shootu (RRRR-MM-DD). Nech prázdné, když ho nevíš:','');
+    if(dt==null)return;
+    const d=await post('/api/to-group',{key:b.dataset.togroup,title:t.trim(),date:dt.trim()||null}); if(d.ok)toast('Hotovo — složka je teď skupina shootů.','ok'); reload();
   });
   document.querySelectorAll('[data-rename]').forEach(b=>b.onclick=async()=>{
     const t=prompt('Nový název složky:',b.dataset.title); if(t==null||!t.trim())return;
@@ -833,8 +894,10 @@ class Handler(SimpleHTTPRequestHandler):
                 act_reorder(data.get("order", []))
             elif path == "/api/rename":
                 act_rename(data["key"], data["title"])
+            elif path == "/api/to-group":
+                act_to_group(data["key"], data["title"], data.get("date"))
             elif path == "/api/new-folder":
-                act_new_folder(data["title"], data.get("parent"))
+                act_new_folder(data["title"], data.get("parent"), data.get("date"))
             elif path == "/api/trash":
                 act_trash_folder(data["key"])
             elif path == "/api/trash-photo":

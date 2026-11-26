@@ -1064,50 +1064,131 @@ function enterStrip() {
   renderShootBar();
 }
 
-/* ---- LIŠTA SHOOTŮ: všechny shooty skupiny pořád na očích (nejnovější vlevo) ---- */
-const shootBar = document.createElement("nav");
-shootBar.className = "shoot-bar"; shootBar.hidden = true; shootBar.setAttribute("aria-label", "Shoots");
-stage.appendChild(shootBar);
+/* ---- VÝSUVNÝ PANEL SHOOTŮ ----
+   Dole je vidět úchyt a řada shootů (nejnovější vlevo). Úchyt (nebo řadu) chytneš
+   a potáhneš nahoru — panel jde plynule za prstem přes obrazovku a odkryje seznam
+   všech shootů s náhledy. Pustíš-li ho, doletí do nejbližší polohy podle rychlosti
+   švihnutí. Zavírá se tažením dolů, klepnutím mimo, Esc nebo výběrem shootu. */
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 function fmtDate(d) {
   if (!d) return "";
   const [y, m, day] = d.split("-");
   return (day ? `${+day} ` : "") + (MONTHS[+m - 1] || m) + " " + y;
 }
+const ssDim = document.createElement("div"); ssDim.className = "ss-dim";
+const sheet = document.createElement("div"); sheet.className = "ss"; sheet.hidden = true;
+sheet.setAttribute("role", "region"); sheet.setAttribute("aria-label", "Shoots");
+stage.append(ssDim, sheet);
+let ssMax = 0, ssY = 0, ssOpen = false, ssDrag = null;
+function ssMeasure() { const h = sheet.querySelector(".ss-head"); ssMax = Math.max(0, sheet.offsetHeight - (h ? h.offsetHeight : 90)); }
+function ssApply(animate) {
+  sheet.style.transition = animate ? "transform .55s cubic-bezier(.16,1,.3,1)" : "none";
+  sheet.style.transform = `translate3d(0,${ssY.toFixed(1)}px,0)`;
+  const p = ssMax ? 1 - Math.min(1, Math.max(0, ssY / ssMax)) : 0;
+  ssDim.style.transition = animate ? "opacity .45s ease" : "none";
+  ssDim.style.opacity = p.toFixed(3);
+  ssDim.style.pointerEvents = p > 0.02 ? "auto" : "none";
+  sheet.classList.toggle("open", ssOpen);
+}
+function ssGo(open, animate = true) { ssOpen = open; ssMeasure(); ssY = open ? 0 : ssMax; ssApply(animate); }
+ssDim.addEventListener("click", () => ssGo(false));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && ssOpen && !sheet.hidden) { e.stopPropagation(); ssGo(false); }
+}, true);
+window.addEventListener("resize", () => { if (!sheet.hidden) ssGo(ssOpen, false); });
+
 function renderShootBar() {
   const shoots = currentGroup && currentGroup.shoots;
-  if (!shoots || shoots.length < 2) { shootBar.hidden = true; stage.classList.remove("has-shoots"); return; }
-  shootBar.innerHTML = "";
-  const all = document.createElement("button");
-  all.type = "button"; all.className = "sb-all"; all.textContent = "ALL ↺"; all.title = "Overview of all shoots";
-  all.addEventListener("click", () => { viaDrum = true; backFromStrip(); });
-  const track = document.createElement("div");
-  track.className = "sb-track";
+  if (!shoots || shoots.length < 2) { sheet.hidden = true; ssDim.style.opacity = 0; ssDim.style.pointerEvents = "none"; stage.classList.remove("has-shoots"); return; }
+  sheet.innerHTML = "";
+  const head = document.createElement("div"); head.className = "ss-head";
+  const grip = document.createElement("button");
+  grip.type = "button"; grip.className = "ss-grip"; grip.setAttribute("aria-label", "All shoots — pull up");
+  grip.addEventListener("click", () => ssGo(!ssOpen));
+  const track = document.createElement("div"); track.className = "ss-track";
+  const body = document.createElement("div"); body.className = "ss-body";
+  const ttl = document.createElement("div"); ttl.className = "ss-title";
+  ttl.textContent = `${currentGroup.title} · ${shoots.length} shoots`;
+  const list = document.createElement("div"); list.className = "ss-list";
   shoots.forEach((sh, i) => {
-    const b = document.createElement("button");
-    b.type = "button"; b.className = i === shootIdx ? "on" : "";
-    const d = document.createElement("i");
-    d.textContent = (i === 0 && sh.date ? "LATEST · " : "") + (fmtDate(sh.date) || pad2(i + 1));
-    const t = document.createElement("b");
-    t.textContent = sh.title;
-    b.append(d, t);
-    b.addEventListener("click", () => switchShoot(i));
-    track.appendChild(b);
+    const label = (i === 0 && sh.date ? "LATEST · " : "") + (fmtDate(sh.date) || "UNDATED");
+    const chip = document.createElement("button");
+    chip.type = "button"; chip.className = i === shootIdx ? "on" : "";
+    const d = document.createElement("i"); d.textContent = label;
+    const t = document.createElement("b"); t.textContent = sh.title;
+    chip.append(d, t);
+    chip.addEventListener("click", () => switchShoot(i));
+    track.appendChild(chip);
+
+    const it = document.createElement("button");
+    it.type = "button"; it.className = "ss-item" + (i === shootIdx ? " on" : "");
+    const img = document.createElement("img");
+    img.alt = ""; img.loading = "lazy"; img.decoding = "async";
+    const cv = coverOf(sh) || (sh.images || [])[0] || "";
+    img.src = cv ? thumbOf(cv) : "";
+    img.addEventListener("error", function onErr() { img.removeEventListener("error", onErr); if (cv) img.src = cv; });
+    const m = document.createElement("span"); m.className = "m";
+    const mi = document.createElement("i"); mi.textContent = (i === shootIdx ? "● OPEN · " : "") + label;
+    const mb = document.createElement("b"); mb.textContent = sh.title;
+    const ms = document.createElement("small"); ms.textContent = `${pad2(sh.count)} PHOTOS`;
+    m.append(mi, mb, ms);
+    it.append(img, m);
+    it.addEventListener("click", () => switchShoot(i));
+    list.appendChild(it);
   });
-  shootBar.append(all, track);
-  shootBar.hidden = false; stage.classList.add("has-shoots");
+  head.append(grip, track);
+  body.append(ttl, list);
+  sheet.append(head, body);
+  sheet.hidden = false; stage.classList.add("has-shoots");
+  ssMeasure(); ssY = ssOpen ? 0 : ssMax; ssApply(false);
   const on = track.querySelector(".on");
   if (on) track.scrollLeft = on.offsetLeft - (track.clientWidth - on.offsetWidth) / 2;
+
+  // tažení: svislý pohyb bere panel, vodorovný nechá řadě shootů (posun do stran)
+  head.addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    ssDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, startY: ssY, active: false, pts: [{ t: performance.now(), y: e.clientY }] };
+  });
+  head.addEventListener("pointermove", (e) => {
+    const d = ssDrag; if (!d || e.pointerId !== d.id) return;
+    const dy = e.clientY - d.y, dx = e.clientX - d.x;
+    if (!d.active) {
+      if (Math.abs(dy) < 6 || Math.abs(dy) < Math.abs(dx)) return;
+      d.active = true; try { head.setPointerCapture(e.pointerId); } catch (er) {} ssMeasure(); sheet.classList.add("drag");
+    }
+    let y = d.startY + dy;
+    if (y < 0) y *= 0.25;                                   // za horním krajem povoluje (rubberband)
+    if (y > ssMax) y = ssMax + (y - ssMax) * 0.25;
+    ssY = y; ssApply(false);
+    const now = performance.now();
+    d.pts.push({ t: now, y: e.clientY });
+    while (d.pts.length > 2 && d.pts[0].t < now - 120) d.pts.shift();
+  });
+  const end = (e) => {
+    const d = ssDrag; if (!d || e.pointerId !== d.id) return;
+    ssDrag = null; if (!d.active) return;
+    sheet.classList.remove("drag");
+    // rychlost jen z posledních ~120 ms PŘED puštěním — když prst chvíli stál, je 0 (žádný falešný švih)
+    const now = performance.now();
+    const rec = d.pts.filter((q) => now - q.t <= 120);
+    const v = rec.length > 1 ? (rec[rec.length - 1].y - rec[0].y) / Math.max(1, rec[rec.length - 1].t - rec[0].t) : 0;   // px/ms, záporné = nahoru
+    ssGo(Math.abs(v) > 0.35 ? v < 0 : ssY < ssMax / 2, true);
+  };
+  head.addEventListener("pointerup", end);
+  head.addEventListener("pointercancel", end);
 }
 function switchShoot(i) {
-  if (!currentGroup || i === shootIdx || !currentGroup.shoots[i]) return;
-  shootIdx = i;
-  buildStrip(currentGroup.shoots[i]); enterStrip();
-  gridBrowse.scrollTop = 0;
+  if (!currentGroup || !currentGroup.shoots[i]) return;
+  if (i !== shootIdx) {
+    shootIdx = i;
+    buildStrip(currentGroup.shoots[i]); enterStrip();
+    gridBrowse.scrollTop = 0;
+  }
+  ssGo(false, true);
 }
 const crumbOf = (set) => (currentGroup && currentGroup.shoots.includes(set) ? `${currentGroup.title} / ${set.title}` : set.title).toUpperCase();
 function backFromStrip() {
-  stage.hidden = true; browseToggle.hidden = true; shootBar.hidden = true;
+  stage.hidden = true; browseToggle.hidden = true; sheet.hidden = true; ssOpen = false; ssDim.style.opacity = 0; ssDim.style.pointerEvents = "none";
   if (currentGroup && viaDrum) openGroup(currentGroup);
   else { currentGroup = null; viaDrum = false; journey.hidden = false; dotsNav.hidden = false; back.hidden = true; updateJourney(); }
 }

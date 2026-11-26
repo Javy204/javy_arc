@@ -1358,39 +1358,57 @@ body.beta-on .beta { display: block; }
 }
 
 /* ============================================================
-   LIŠTA SHOOTŮ (skupina = víc fotících dnů): vždy viditelná dole,
-   nejnovější vlevo, vodorovně posuvná; ALL ↺ otevře přehled-buben.
+   VÝSUVNÝ PANEL SHOOTŮ (skupina = víc fotících dnů): dole úchyt + řada
+   shootů, potažením nahoru se přes obrazovku vysune seznam všech.
    ============================================================ */
-.shoot-bar {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 6;
-  display: flex; align-items: stretch; gap: 8px;
-  padding: 26px 20px calc(14px + env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg) 62%, transparent);
-  pointer-events: none;
+.ss-dim { position: absolute; inset: 0; z-index: 6; background: rgba(12, 11, 9, .55); opacity: 0; pointer-events: none; }
+.ss {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
+  height: calc(100% - 64px); display: flex; flex-direction: column;
+  background: var(--ink); color: var(--bg); border-radius: 18px 18px 0 0;
+  box-shadow: 0 -12px 44px rgba(0, 0, 0, .28);
+  transform: translate3d(0, calc(100% - 90px), 0); will-change: transform;
 }
-.shoot-bar[hidden] { display: none; }
-.shoot-bar > * { pointer-events: auto; }
-.shoot-bar button {
-  appearance: none; cursor: pointer; font: inherit; color: var(--ink);
-  background: var(--bg); border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent);
-  text-transform: uppercase; letter-spacing: .06em; text-align: left;
-  padding: 7px 12px; flex: 0 0 auto; transition: background .15s ease, color .15s ease, border-color .15s ease;
-}
-.shoot-bar button:hover { border-color: var(--ink); }
-.shoot-bar button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.shoot-bar .sb-all { font-size: 11px; font-weight: 900; display: flex; align-items: center; }
-.sb-track {
-  display: flex; gap: 8px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none;
-  scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch;
+.ss[hidden] { display: none; }
+.ss-head { flex: none; padding: 4px 16px calc(12px + env(safe-area-inset-bottom)); cursor: grab; user-select: none; -webkit-user-select: none; touch-action: pan-x; }
+.ss.drag .ss-head { cursor: grabbing; }
+.ss-grip { display: block; position: relative; width: 100%; height: 22px; padding: 0; border: 0; background: none; cursor: inherit; }
+.ss-grip::after { content: ""; position: absolute; left: 50%; top: 9px; width: 44px; height: 4px; margin-left: -22px; border-radius: 2px; background: color-mix(in srgb, var(--bg) 45%, transparent); transition: background .15s ease, width .2s ease, margin-left .2s ease; }
+.ss-grip:hover::after, .ss.drag .ss-grip::after { background: var(--bg); width: 56px; margin-left: -28px; }
+.ss-track {
+  display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity; touch-action: pan-x;
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
           mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
-.sb-track::-webkit-scrollbar { display: none; }
-.sb-track button { display: flex; flex-direction: column; gap: 2px; scroll-snap-align: start; }
-.sb-track i { font-style: normal; font-size: 9px; font-weight: 700; opacity: .6; white-space: nowrap; }
-.sb-track b { font-size: 11px; font-weight: 900; white-space: nowrap; }
-.stage.has-shoots .gtiles { padding-bottom: calc(10vh + 76px); }
-@media (max-width: 720px) { .shoot-bar { padding: 22px 12px calc(12px + env(safe-area-inset-bottom)); gap: 6px; } }
+.ss-track::-webkit-scrollbar { display: none; }
+.ss-track button {
+  appearance: none; cursor: pointer; font: inherit; color: var(--bg); text-align: left; text-transform: uppercase; letter-spacing: .06em;
+  flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; scroll-snap-align: start;
+  background: transparent; border: 1px solid color-mix(in srgb, var(--bg) 32%, transparent); padding: 7px 12px;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.ss-track button:hover { border-color: var(--bg); }
+.ss-track button.on { background: var(--bg); color: var(--ink); border-color: var(--bg); }
+.ss-track i { font-style: normal; font-size: 9px; font-weight: 700; opacity: .65; white-space: nowrap; }
+.ss-track b { font-size: 11px; font-weight: 900; white-space: nowrap; }
+.ss-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 6px 16px calc(28px + env(safe-area-inset-bottom)); }
+.ss-title { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .6; padding: 10px 0 14px; }
+.ss-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.ss-item {
+  appearance: none; cursor: pointer; font: inherit; color: inherit; text-align: left; text-transform: uppercase;
+  display: flex; gap: 14px; align-items: center; padding: 10px; background: transparent;
+  border: 1px solid color-mix(in srgb, var(--bg) 22%, transparent); transition: border-color .15s ease, background .15s ease;
+}
+.ss-item:hover { border-color: var(--bg); background: color-mix(in srgb, var(--bg) 7%, transparent); }
+.ss-item.on { border-color: var(--bg); }
+.ss-item img { flex: none; width: 72px; height: 96px; object-fit: cover; background: #1a1916; filter: saturate(.6) contrast(1.05); }
+.ss-item .m { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.ss-item i { font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .1em; opacity: .65; }
+.ss-item b { font-size: clamp(18px, 4.4vw, 26px); font-weight: 900; letter-spacing: -.01em; line-height: 1; overflow-wrap: anywhere; }
+.ss-item small { font-size: 10px; font-weight: 700; letter-spacing: .08em; opacity: .55; }
+.stage.has-shoots .gtiles { padding-bottom: calc(10vh + 100px); }
+@media (max-width: 720px) { .ss-head { padding-left: 12px; padding-right: 12px; } .ss-body { padding-left: 12px; padding-right: 12px; } }
 
 /* hláška po skrytém vstupu do správy */
 .admin-tip {

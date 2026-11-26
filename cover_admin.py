@@ -73,8 +73,8 @@ def scan():
             shoots = []
             for sub in sorted(os.listdir(folder)):
                 subp = os.path.join(folder, sub)
-                if os.path.isdir(subp) and not sub.startswith(".") and has_direct(subp):
-                    files = imgs_direct(subp)
+                if os.path.isdir(subp) and not sub.startswith((".", "_")):
+                    files = imgs_direct(subp)       # prázdný shoot se taky ukáže, ať se do něj dá nahrát
                     date, stitle = parse_shoot_name(sub)
                     shoots.append({"key": f"{name}/{sub}", "title": stitle, "date": date or "",
                                    "count": len(files),

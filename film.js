@@ -1082,6 +1082,7 @@ const sheet = document.createElement("div"); sheet.className = "ss"; sheet.hidde
 sheet.setAttribute("role", "region"); sheet.setAttribute("aria-label", "Older shoots");
 stage.append(ssDim, sheet);
 let ssMax = 0, ssY = 0, ssOpen = false, ssDrag = null, ssSwitchT = 0;
+let ssFit = () => {}, ssFitAfter = () => {};
 function ssMeasure() { const h = sheet.querySelector(".ss-head"); ssMax = Math.max(0, sheet.offsetHeight - (h ? h.offsetHeight : 46)); }
 function ssApply(animate) {
   sheet.style.transition = animate ? "transform .6s cubic-bezier(.16,1,.3,1)" : "none";
@@ -1093,12 +1094,12 @@ function ssApply(animate) {
   ssDim.style.pointerEvents = p > 0.02 ? "auto" : "none";
   sheet.classList.toggle("open", ssOpen);
 }
-function ssGo(open, animate = true) { ssOpen = open; ssMeasure(); ssY = open ? 0 : ssMax; ssApply(animate); }
+function ssGo(open, animate = true) { ssOpen = open; ssMeasure(); ssY = open ? 0 : ssMax; ssApply(animate); if (open) ssFitAfter(); }
 ssDim.addEventListener("click", () => ssGo(false));
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && ssOpen && !sheet.hidden) { e.stopPropagation(); ssGo(false); }
 }, true);
-window.addEventListener("resize", () => { if (!sheet.hidden) ssGo(ssOpen, false); });
+window.addEventListener("resize", () => { if (!sheet.hidden) { ssGo(ssOpen, false); ssFitAfter(); } });
 
 /* tažení — společné pro úchyt (pointer) i seznam na začátku (touch) */
 function ssStart(x, y) { ssDrag = { x, y0: y, startY: ssY, active: false, pts: [{ t: performance.now(), y }] }; }
@@ -1154,36 +1155,60 @@ function renderShootBar() {
   grip.append(mkEl("span", "ss-pill"), peek);
   head.appendChild(grip);
 
-  // — obsah: mozaika dlaždic po letech, první v roce velká
+  // — obsah: mini WORK — obří natažená jména, ohnisková fotka se za nimi odkryje
+  const bgA = mkEl("div", "ss-bg"), bgB = mkEl("div", "ss-bg");
   const body = mkEl("div", "ss-body");
   body.appendChild(mkEl("div", "ss-top", `${currentGroup.title} — ${shoots.length} shoots`));
-  const years = [];
+  const items = [];
+  let lastYear = null, n = 0;
   others.forEach((o) => {
     const y = o.sh.date ? o.sh.date.slice(0, 4) : "EARLIER";
-    let g = years.find((q) => q.y === y);
-    if (!g) { g = { y, items: [] }; years.push(g); }
-    g.items.push(o);
+    if (y !== lastYear) { body.appendChild(mkEl("div", "ss-yr2", y)); lastYear = y; }
+    const w = mkEl("button", "ss-w"); w.type = "button";
+    w.style.setProperty("--i", Math.min(n++, 8));
+    const meta = mkEl("span", "ss-meta");
+    meta.append(mkEl("span", "", (o.i === 0 && o.sh.date ? "NEWEST · " : "") + (fmtDate(o.sh.date) || "UNDATED")), mkEl("span", "", `${pad2(o.sh.count)} PHOTOS`));
+    const name = mkEl("span", "ss-name", o.sh.title);
+    w.append(meta, name);
+    w.addEventListener("click", () => switchShoot(o.i));
+    w.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") ssFocus(items.indexOf(rec)); });
+    const rec = { el: w, name, sh: o.sh };
+    items.push(rec);
+    body.appendChild(w);
   });
-  let n = 0;
-  years.forEach((g) => {
-    const sec = mkEl("section", "ss-year");
-    sec.appendChild(mkEl("div", "ss-yr", g.y));
-    const grid = mkEl("div", "ss-tiles");
-    g.items.forEach((o, k) => {
-      const tile = mkEl("button", "ss-tile"); tile.type = "button";
-      tile.style.setProperty("--i", Math.min(n++, 10));
-      const cap = mkEl("span", "cap");
-      cap.append(mkEl("i", "", (o.i === 0 && o.sh.date ? "NEWEST · " : "") + (fmtDate(o.sh.date) || "UNDATED")), mkEl("b", "", o.sh.title));
-      tile.append(coverImg(o.sh, true), mkEl("span", "n", `${pad2(o.sh.count)} PHOTOS`), cap);
-      tile.addEventListener("click", () => switchShoot(o.i));
-      grid.appendChild(tile);
+  // fit-to-width jako ve WORKu: každé jméno se natáhne/stlačí na šířku obsahu
+  ssFit = () => {
+    const W = body.clientWidth - parseFloat(getComputedStyle(body).paddingLeft) - parseFloat(getComputedStyle(body).paddingRight);
+    items.forEach((it) => {
+      it.name.style.transform = "none";
+      const tw = it.name.offsetWidth;
+      if (tw > 0 && W > 0) it.name.style.transform = `scaleX(${Math.max(0.3, Math.min(2.4, W / tw)).toFixed(3)})`;
     });
-    sec.appendChild(grid);
-    body.appendChild(sec);
-  });
-  sheet.append(head, body);
+  };
+  let focusI = -1, layer = 0;
+  const bgs = [bgA, bgB];
+  function ssFocus(i) {
+    if (i < 0 || i === focusI || !items[i]) return;
+    focusI = i;
+    items.forEach((it, k) => it.el.classList.toggle("on", k === i));
+    layer = 1 - layer;
+    const sh = items[i].sh, cv = coverOf(sh) || (sh.images || [])[0] || "";
+    bgs[layer].style.backgroundImage = cv ? `url("${cv}")` : "";   // plné rozlišení, ať přes celou plochu není rozmazané
+    bgs[layer].classList.add("on"); bgs[1 - layer].classList.remove("on");
+  }
+  const onScroll = () => {
+    const mid = body.getBoundingClientRect().top + body.clientHeight * 0.45;
+    let best = 0, bd = Infinity;
+    items.forEach((it, k) => { const r = it.el.getBoundingClientRect(); const d = Math.abs(r.top + r.height / 2 - mid); if (d < bd) { bd = d; best = k; } });
+    ssFocus(best);
+  };
+  body.addEventListener("scroll", onScroll, { passive: true });
+  ssFitAfter = () => { ssFit(); onScroll(); };
+  sheet.append(bgA, bgB, head, body);
   sheet.hidden = false; stage.classList.add("has-shoots");
   ssMeasure(); ssY = ssOpen ? 0 : ssMax; ssApply(false);
+  ssFocus(0); ssFitAfter();
+  setTimeout(ssFitAfter, 400);                                 // po načtení písma
 
   // úchyt: svislý pohyb bere panel
   head.addEventListener("pointerdown", (e) => { if (e.button > 0) return; ssStart(e.clientX, e.clientY); ssDrag.x = e.clientX; ssDrag.id = e.pointerId; ssDrag.ox = e.clientX; ssDrag.oy = e.clientY; });

@@ -9,7 +9,7 @@
 #
 # Manifest je AUTOGENEROVANÝ — needituj ho ručně.
 
-import os, re, json
+import os, re, json, shutil, subprocess
 from urllib.parse import quote, unquote
 
 PHOTOS = "photos"
@@ -99,6 +99,61 @@ def subshoots(folder, parent):
             subs.append((order, shoot))
     subs.sort(key=lambda x: (x[0], x[1]["title"]))
     return [s for _, s in subs]
+
+# ═══════════════════════════════════════════════════════════════
+#  NÁHLEDY (photos/_thumbs/…webp, delší strana 720 px)
+#  Mřížka ve WORKu tahá tyhle malé WebP místo plných JPG. Generují se
+#  automaticky (jen chybějící/zastaralé); když chybí PIL i ImageMagick,
+#  přeskočí se a web si prostě vezme plnou fotku.
+# ═══════════════════════════════════════════════════════════════
+THUMBS = os.path.join(PHOTOS, "_thumbs")
+THUMB_MAX = 720
+
+def make_thumbs():
+    try:
+        from PIL import Image, ImageOps
+    except Exception:
+        Image = None
+    magick = shutil.which("magick") or shutil.which("convert")
+    if Image is None and not magick:
+        print("⚠️  náhledy přeskočeny (chybí Pillow i ImageMagick)")
+        return
+    made = 0
+    wanted = set()
+    for root, dirs, files in os.walk(PHOTOS):
+        dirs[:] = [d for d in dirs if not d.startswith((".", "_"))]
+        for f in files:
+            if not f.lower().endswith(IMG_EXT) or f.startswith("."):
+                continue
+            src = os.path.join(root, f)
+            rel = os.path.splitext(os.path.relpath(src, PHOTOS))[0] + ".webp"
+            dst = os.path.join(THUMBS, rel)
+            wanted.add(os.path.abspath(dst))
+            if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
+                continue
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            try:
+                if Image is not None:
+                    with Image.open(src) as im:
+                        im = ImageOps.exif_transpose(im).convert("RGB")
+                        im.thumbnail((THUMB_MAX, THUMB_MAX))
+                        im.save(dst, "WEBP", quality=72, method=4)
+                else:
+                    subprocess.run([magick, src, "-auto-orient", "-resize", f"{THUMB_MAX}x{THUMB_MAX}>",
+                                    "-strip", "-quality", "72", dst], check=True, capture_output=True)
+                made += 1
+            except Exception as e:
+                print(f"  ⚠️  náhled se nepovedl: {src} ({e})")
+    removed = 0                                    # smazané fotky → smazat i náhled
+    for root, _, files in os.walk(THUMBS):
+        for f in files:
+            p = os.path.abspath(os.path.join(root, f))
+            if p not in wanted:
+                os.remove(p); removed += 1
+    if made or removed:
+        print(f"náhledy: +{made} / -{removed}")
+
+make_thumbs()
 
 sets = []
 skipped = []      # prázdné složky (bez fotek) — nahlásíme je na konci

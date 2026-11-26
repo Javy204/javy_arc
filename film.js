@@ -1221,13 +1221,16 @@ function buildStrip(set) {
    pro každou fotku — přirozený svislý scroll místo vodorovné pásky,
    žádná fyzika navíc (to už prohlížeč umí sám, zadarmo).
    ============================================================ */
+/* malý WebP náhled (generuje build.py do photos/_thumbs/); když chybí, onerror vrátí plnou fotku */
+function thumbOf(url) { return url.replace(/^photos\//, "photos/_thumbs/").replace(/\.[a-z0-9]+$/i, ".webp"); }
 function buildGrid(set) {
   const inner = document.createElement("div");
   inner.className = "gtiles";
   FRAMES.forEach((item, fi) => {
     const t = document.createElement("figure");
     t.className = "gtile";
-    t.innerHTML = `<img decoding="async" loading="lazy" src="${item.full}" alt="${set.title} ${pad2(item.i + 1)}">`;
+    t.innerHTML = `<img decoding="async" loading="lazy" src="${thumbOf(item.full)}" alt="${set.title} ${pad2(item.i + 1)}">`;
+    t.firstChild.addEventListener("error", function onErr(e) { e.target.removeEventListener("error", onErr); e.target.src = item.full; });
     t.addEventListener("click", () => openLight(fi, t));
     inner.appendChild(t);
     item.gridEl = t;

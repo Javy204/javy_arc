@@ -19,7 +19,7 @@
   "use strict";
 
   // ⬇⬇⬇ SEM VLOŽ VÝSTUP Z arc-heslo.html (objekt {salt,iv,ct}). Dokud je null, brána je neaktivní.
-  const ARC_CFG = { salt: "lf0/JkaiZs6g6eHo/lUzkw==", iv: "w1nOMZJHS2fX8TyG", ct: "L/kkzsh0PALqUTl0A+C4MFG0w+TyShiHDlwYUrpOxcg8niNOjtWa+Tv+yJk=" };
+  const ARC_CFG = { salt: "jioiJl9bcZHjDn0jFQ3L4A==", iv: "7mNYioVuPBjEjIov", ct: "rGmouwu7B5bL+BKp8KTCpx08nUpX6s0/T701GhxjTw44rVwDspdoGHSGJkc=" };
   // ⬆⬆⬆
 
   // Kam brána míří po správném hesle.

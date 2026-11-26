@@ -1064,11 +1064,13 @@ function enterStrip() {
   renderShootBar();
 }
 
-/* ---- VÝSUVNÝ PANEL SHOOTŮ ----
-   Dole je vidět úchyt a řada shootů (nejnovější vlevo). Úchyt (nebo řadu) chytneš
-   a potáhneš nahoru — panel jde plynule za prstem přes obrazovku a odkryje seznam
-   všech shootů s náhledy. Pustíš-li ho, doletí do nejbližší polohy podle rychlosti
-   švihnutí. Zavírá se tažením dolů, klepnutím mimo, Esc nebo výběrem shootu. */
+/* ---- VÝSUVNÝ PANEL "OLDER SHOOTS" ----
+   Dole je jen úchyt, popisek a přehled náhledů starších shootů. Chytneš ho a potáhneš
+   nahoru — panel jde plynule za prstem přes obrazovku a odkryje mozaiku ostatních
+   shootů rozdělenou po letech (žádné rozklikávání, vše je hned vidět; dál se listuje
+   svislým scrollem). Pustíš-li ho, doletí do nejbližší polohy podle rychlosti švihnutí.
+   Zavře se tažením dolů (i scrollem nahoru na začátku seznamu), klepnutím mimo, Esc,
+   nebo výběrem shootu. Nic z toho se nedotýká scrollování pásu/mřížky/WORKu. */
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 function fmtDate(d) {
   if (!d) return "";
@@ -1077,15 +1079,16 @@ function fmtDate(d) {
 }
 const ssDim = document.createElement("div"); ssDim.className = "ss-dim";
 const sheet = document.createElement("div"); sheet.className = "ss"; sheet.hidden = true;
-sheet.setAttribute("role", "region"); sheet.setAttribute("aria-label", "Shoots");
+sheet.setAttribute("role", "region"); sheet.setAttribute("aria-label", "Older shoots");
 stage.append(ssDim, sheet);
-let ssMax = 0, ssY = 0, ssOpen = false, ssDrag = null;
+let ssMax = 0, ssY = 0, ssOpen = false, ssDrag = null, ssSwitchT = 0;
 function ssMeasure() { const h = sheet.querySelector(".ss-head"); ssMax = Math.max(0, sheet.offsetHeight - (h ? h.offsetHeight : 90)); }
 function ssApply(animate) {
-  sheet.style.transition = animate ? "transform .55s cubic-bezier(.16,1,.3,1)" : "none";
+  sheet.style.transition = animate ? "transform .6s cubic-bezier(.16,1,.3,1)" : "none";
   sheet.style.transform = `translate3d(0,${ssY.toFixed(1)}px,0)`;
   const p = ssMax ? 1 - Math.min(1, Math.max(0, ssY / ssMax)) : 0;
-  ssDim.style.transition = animate ? "opacity .45s ease" : "none";
+  sheet.style.setProperty("--p", p.toFixed(3));              // z toho si dlaždice berou vjezd (stagger)
+  ssDim.style.transition = animate ? "opacity .5s ease" : "none";
   ssDim.style.opacity = p.toFixed(3);
   ssDim.style.pointerEvents = p > 0.02 ? "auto" : "none";
   sheet.classList.toggle("open", ssOpen);
@@ -1097,94 +1100,130 @@ document.addEventListener("keydown", (e) => {
 }, true);
 window.addEventListener("resize", () => { if (!sheet.hidden) ssGo(ssOpen, false); });
 
+/* tažení — společné pro úchyt (pointer) i seznam na začátku (touch) */
+function ssStart(x, y) { ssDrag = { x, y0: y, startY: ssY, active: false, pts: [{ t: performance.now(), y }] }; }
+function ssActivate(y) { const d = ssDrag; d.active = true; d.y0 = y; d.startY = ssY; ssMeasure(); sheet.classList.add("drag"); }
+function ssPos(y) {
+  const d = ssDrag; let v = d.startY + (y - d.y0);
+  if (v < 0) v *= 0.25;                                      // za horním krajem povoluje (rubberband)
+  if (v > ssMax) v = ssMax + (v - ssMax) * 0.25;
+  ssY = v; ssApply(false);
+  const now = performance.now();
+  d.pts.push({ t: now, y });
+  while (d.pts.length > 2 && d.pts[0].t < now - 120) d.pts.shift();
+}
+function ssRelease() {
+  const d = ssDrag; ssDrag = null;
+  if (!d || !d.active) return;
+  sheet.classList.remove("drag");
+  // rychlost jen z posledních ~120 ms PŘED puštěním — když prst chvíli stál, je 0 (žádný falešný švih)
+  const now = performance.now();
+  const rec = d.pts.filter((q) => now - q.t <= 120);
+  const v = rec.length > 1 ? (rec[rec.length - 1].y - rec[0].y) / Math.max(1, rec[rec.length - 1].t - rec[0].t) : 0;   // px/ms, záporné = nahoru
+  ssGo(Math.abs(v) > 0.35 ? v < 0 : ssY < ssMax / 2, true);
+}
+
+function mkEl(tag, cls, text) { const el = document.createElement(tag); if (cls) el.className = cls; if (text != null) el.textContent = text; return el; }
+function coverImg(sh, cls) {
+  const img = document.createElement("img");
+  if (cls) img.className = cls;
+  img.alt = ""; img.loading = "lazy"; img.decoding = "async"; img.draggable = false;
+  const cv = coverOf(sh) || (sh.images || [])[0] || "";
+  img.src = cv ? thumbOf(cv) : "";
+  img.addEventListener("error", function onErr() { img.removeEventListener("error", onErr); if (cv) img.src = cv; });
+  return img;
+}
 function renderShootBar() {
   const shoots = currentGroup && currentGroup.shoots;
   if (!shoots || shoots.length < 2) { sheet.hidden = true; ssDim.style.opacity = 0; ssDim.style.pointerEvents = "none"; stage.classList.remove("has-shoots"); return; }
+  const others = shoots.map((sh, i) => ({ sh, i })).filter((o) => o.i !== shootIdx);
   sheet.innerHTML = "";
-  const head = document.createElement("div"); head.className = "ss-head";
-  const grip = document.createElement("button");
-  grip.type = "button"; grip.className = "ss-grip"; grip.setAttribute("aria-label", "All shoots — pull up");
-  grip.addEventListener("click", () => ssGo(!ssOpen));
-  const track = document.createElement("div"); track.className = "ss-track";
-  const body = document.createElement("div"); body.className = "ss-body";
-  const ttl = document.createElement("div"); ttl.className = "ss-title";
-  ttl.textContent = `${currentGroup.title} · ${shoots.length} shoots`;
-  const list = document.createElement("div"); list.className = "ss-list";
-  shoots.forEach((sh, i) => {
-    const label = (i === 0 && sh.date ? "LATEST · " : "") + (fmtDate(sh.date) || "UNDATED");
-    const chip = document.createElement("button");
-    chip.type = "button"; chip.className = i === shootIdx ? "on" : "";
-    const d = document.createElement("i"); d.textContent = label;
-    const t = document.createElement("b"); t.textContent = sh.title;
-    chip.append(d, t);
-    chip.addEventListener("click", () => switchShoot(i));
-    track.appendChild(chip);
 
-    const it = document.createElement("button");
-    it.type = "button"; it.className = "ss-item" + (i === shootIdx ? " on" : "");
-    const img = document.createElement("img");
-    img.alt = ""; img.loading = "lazy"; img.decoding = "async";
-    const cv = coverOf(sh) || (sh.images || [])[0] || "";
-    img.src = cv ? thumbOf(cv) : "";
-    img.addEventListener("error", function onErr() { img.removeEventListener("error", onErr); if (cv) img.src = cv; });
-    const m = document.createElement("span"); m.className = "m";
-    const mi = document.createElement("i"); mi.textContent = (i === shootIdx ? "● OPEN · " : "") + label;
-    const mb = document.createElement("b"); mb.textContent = sh.title;
-    const ms = document.createElement("small"); ms.textContent = `${pad2(sh.count)} PHOTOS`;
-    m.append(mi, mb, ms);
-    it.append(img, m);
-    it.addEventListener("click", () => switchShoot(i));
-    list.appendChild(it);
+  // — úchyt: pilulka + popisek + náhledy (vše na očích, i když je panel zavřený)
+  const head = mkEl("div", "ss-head");
+  const grip = mkEl("button", "ss-grip"); grip.type = "button";
+  grip.setAttribute("aria-label", "Older shoots — pull up");
+  grip.addEventListener("click", () => ssGo(!ssOpen));
+  const peek = mkEl("span", "ss-peek");
+  const stack = mkEl("span", "ss-stack");
+  others.slice(0, 4).forEach((o) => stack.appendChild(coverImg(o.sh)));
+  const lbl = mkEl("span", "ss-lbl");
+  lbl.append(mkEl("b", "", shootIdx === 0 ? "OLDER SHOOTS" : "OTHER SHOOTS"), mkEl("i", "", `${others.length} MORE · PULL UP`));
+  peek.append(stack, lbl, mkEl("span", "ss-arrow", "↑"));
+  grip.append(mkEl("span", "ss-pill"), peek);
+  head.appendChild(grip);
+
+  // — obsah: mozaika dlaždic po letech, první v roce velká
+  const body = mkEl("div", "ss-body");
+  body.appendChild(mkEl("div", "ss-top", `${currentGroup.title} — ${shoots.length} shoots`));
+  const years = [];
+  others.forEach((o) => {
+    const y = o.sh.date ? o.sh.date.slice(0, 4) : "EARLIER";
+    let g = years.find((q) => q.y === y);
+    if (!g) { g = { y, items: [] }; years.push(g); }
+    g.items.push(o);
   });
-  head.append(grip, track);
-  body.append(ttl, list);
+  let n = 0;
+  years.forEach((g) => {
+    const sec = mkEl("section", "ss-year");
+    sec.appendChild(mkEl("div", "ss-yr", g.y));
+    const grid = mkEl("div", "ss-tiles");
+    g.items.forEach((o, k) => {
+      const tile = mkEl("button", "ss-tile" + (k === 0 ? " hero" : "")); tile.type = "button";
+      tile.style.setProperty("--i", Math.min(n++, 10));
+      const cap = mkEl("span", "cap");
+      cap.append(mkEl("i", "", (o.i === 0 && o.sh.date ? "NEWEST · " : "") + (fmtDate(o.sh.date) || "UNDATED")), mkEl("b", "", o.sh.title));
+      tile.append(coverImg(o.sh), mkEl("span", "n", `${pad2(o.sh.count)} PHOTOS`), cap);
+      tile.addEventListener("click", () => switchShoot(o.i));
+      grid.appendChild(tile);
+    });
+    sec.appendChild(grid);
+    body.appendChild(sec);
+  });
   sheet.append(head, body);
   sheet.hidden = false; stage.classList.add("has-shoots");
   ssMeasure(); ssY = ssOpen ? 0 : ssMax; ssApply(false);
-  const on = track.querySelector(".on");
-  if (on) track.scrollLeft = on.offsetLeft - (track.clientWidth - on.offsetWidth) / 2;
 
-  // tažení: svislý pohyb bere panel, vodorovný nechá řadě shootů (posun do stran)
-  head.addEventListener("pointerdown", (e) => {
-    if (e.button > 0) return;
-    ssDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, startY: ssY, active: false, pts: [{ t: performance.now(), y: e.clientY }] };
-  });
+  // úchyt: svislý pohyb bere panel
+  head.addEventListener("pointerdown", (e) => { if (e.button > 0) return; ssStart(e.clientX, e.clientY); ssDrag.x = e.clientX; ssDrag.id = e.pointerId; ssDrag.ox = e.clientX; ssDrag.oy = e.clientY; });
   head.addEventListener("pointermove", (e) => {
     const d = ssDrag; if (!d || e.pointerId !== d.id) return;
-    const dy = e.clientY - d.y, dx = e.clientX - d.x;
     if (!d.active) {
+      const dy = e.clientY - d.oy, dx = e.clientX - d.ox;
       if (Math.abs(dy) < 6 || Math.abs(dy) < Math.abs(dx)) return;
-      d.active = true; try { head.setPointerCapture(e.pointerId); } catch (er) {} ssMeasure(); sheet.classList.add("drag");
+      ssActivate(e.clientY);
+      try { head.setPointerCapture(e.pointerId); } catch (er) {}
     }
-    let y = d.startY + dy;
-    if (y < 0) y *= 0.25;                                   // za horním krajem povoluje (rubberband)
-    if (y > ssMax) y = ssMax + (y - ssMax) * 0.25;
-    ssY = y; ssApply(false);
-    const now = performance.now();
-    d.pts.push({ t: now, y: e.clientY });
-    while (d.pts.length > 2 && d.pts[0].t < now - 120) d.pts.shift();
+    ssPos(e.clientY);
   });
-  const end = (e) => {
-    const d = ssDrag; if (!d || e.pointerId !== d.id) return;
-    ssDrag = null; if (!d.active) return;
-    sheet.classList.remove("drag");
-    // rychlost jen z posledních ~120 ms PŘED puštěním — když prst chvíli stál, je 0 (žádný falešný švih)
-    const now = performance.now();
-    const rec = d.pts.filter((q) => now - q.t <= 120);
-    const v = rec.length > 1 ? (rec[rec.length - 1].y - rec[0].y) / Math.max(1, rec[rec.length - 1].t - rec[0].t) : 0;   // px/ms, záporné = nahoru
-    ssGo(Math.abs(v) > 0.35 ? v < 0 : ssY < ssMax / 2, true);
-  };
-  head.addEventListener("pointerup", end);
-  head.addEventListener("pointercancel", end);
+  head.addEventListener("pointerup", ssRelease);
+  head.addEventListener("pointercancel", ssRelease);
+
+  // seznam: tah/scroll dolů na jeho začátku panel zavře (dalším gestem, bez tlačítka)
+  body.addEventListener("touchstart", (e) => { if (ssOpen && body.scrollTop <= 0 && e.touches.length === 1) ssStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  body.addEventListener("touchmove", (e) => {
+    const d = ssDrag; if (!d) return;
+    const y = e.touches[0].clientY;
+    if (!d.active) { if (body.scrollTop <= 0 && y - d.y0 > 8) ssActivate(y); else return; }
+    e.preventDefault(); ssPos(y);
+  }, { passive: false });
+  body.addEventListener("touchend", ssRelease);
+  body.addEventListener("touchcancel", ssRelease);
+  let wAcc = 0;
+  body.addEventListener("wheel", (e) => {
+    if (body.scrollTop <= 0 && e.deltaY < 0) { wAcc += -e.deltaY; if (wAcc > 140) { wAcc = 0; ssGo(false); } } else wAcc = 0;
+  }, { passive: true });
 }
 function switchShoot(i) {
   if (!currentGroup || !currentGroup.shoots[i]) return;
-  if (i !== shootIdx) {
+  ssGo(false, true);                                         // nejdřív se panel hezky zasune…
+  if (i === shootIdx) return;
+  clearTimeout(ssSwitchT);
+  ssSwitchT = setTimeout(() => {                             // …a až pak se pod ním vymění shoot
     shootIdx = i;
     buildStrip(currentGroup.shoots[i]); enterStrip();
     gridBrowse.scrollTop = 0;
-  }
-  ssGo(false, true);
+  }, 300);
 }
 const crumbOf = (set) => (currentGroup && currentGroup.shoots.includes(set) ? `${currentGroup.title} / ${set.title}` : set.title).toUpperCase();
 function backFromStrip() {

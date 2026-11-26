@@ -25,7 +25,7 @@ Verze souborů v HTML (`?v=…`, cache) se přepisují automaticky podle obsahu 
 
 ### Zdroje obsahu
 - `photos/NN název/` = jeden shoot, `photos/NN název/NN shoot/` = skupina (projekt s víc shooty). Číslo = pořadí.
-  - Skupina s víc shooty (např. The Creaks): podsložky pojmenuj `RRRR-MM-DD Název` (jde i `RRRR-MM Název`). Na webu se otevře **nejnovější** shoot a všechny starší jsou vidět v liště dole. Úchyt nad lištou chytneš a potáhneš nahoru: přes obrazovku se vysune seznam všech shootů s náhledy (zavře se tažením dolů, Esc nebo výběrem). Nový shoot přidáš v administraci (u skupiny „Přidat shoot“), stávající složku změníš na skupinu tlačítkem „Rozdělit na shooty…“.
+  - Skupina s víc shooty (např. The Creaks): podsložky pojmenuj `RRRR-MM-DD Název` (jde i `RRRR-MM Název`). Na webu se otevře **nejnovější** shoot a ostatní jsou v panelu dole. Dole je výsuvný panel „OLDER SHOOTS“: chytneš ho a potáhneš nahoru, přes obrazovku se plynule vysune mozaika ostatních shootů po letech (zavře se tažením dolů, Esc nebo výběrem shootu). Seznam WORK a vodorovné scrollování v shootu zůstávají beze změny. Nový shoot přidáš v administraci (u skupiny „Přidat shoot“), stávající složku změníš na skupinu tlačítkem „Rozdělit na shooty…“.
 - Skrytý vstup do administrace na webu: napiš na klávesnici `admin` (nebo třikrát klikni na patičku). Otevře `http://127.0.0.1:8765/`, takže to funguje jen na počítači, kde běží `sprava-webu.command`.
 - `site.json` = texty a kontakty. Do `index.html` se zapisují přes `build.py` (prvky `data-site="klíč"`
   a blok `<!--site:contacts-->`); web zůstává čistě statický.

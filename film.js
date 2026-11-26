@@ -1082,7 +1082,7 @@ const sheet = document.createElement("div"); sheet.className = "ss"; sheet.hidde
 sheet.setAttribute("role", "region"); sheet.setAttribute("aria-label", "Older shoots");
 stage.append(ssDim, sheet);
 let ssMax = 0, ssY = 0, ssOpen = false, ssDrag = null, ssSwitchT = 0;
-function ssMeasure() { const h = sheet.querySelector(".ss-head"); ssMax = Math.max(0, sheet.offsetHeight - (h ? h.offsetHeight : 90)); }
+function ssMeasure() { const h = sheet.querySelector(".ss-head"); ssMax = Math.max(0, sheet.offsetHeight - (h ? h.offsetHeight : 46)); }
 function ssApply(animate) {
   sheet.style.transition = animate ? "transform .6s cubic-bezier(.16,1,.3,1)" : "none";
   sheet.style.transform = `translate3d(0,${ssY.toFixed(1)}px,0)`;
@@ -1124,13 +1124,14 @@ function ssRelease() {
 }
 
 function mkEl(tag, cls, text) { const el = document.createElement(tag); if (cls) el.className = cls; if (text != null) el.textContent = text; return el; }
-function coverImg(sh, cls) {
+function coverImg(sh, full) {
   const img = document.createElement("img");
-  if (cls) img.className = cls;
   img.alt = ""; img.loading = "lazy"; img.decoding = "async"; img.draggable = false;
   const cv = coverOf(sh) || (sh.images || [])[0] || "";
-  img.src = cv ? thumbOf(cv) : "";
-  img.addEventListener("error", function onErr() { img.removeEventListener("error", onErr); if (cv) img.src = cv; });
+  // dlaždice v rozbaleném panelu = plné rozlišení (náhled 720 px by na větších dlaždicích byl rozmazaný);
+  // malé náhledy v úchytu stačí WebP. lazy = plné fotky se stáhnou až při rozbalení panelu.
+  img.src = cv ? (full ? cv : thumbOf(cv)) : "";
+  if (!full) img.addEventListener("error", function onErr() { img.removeEventListener("error", onErr); if (cv) img.src = cv; });
   return img;
 }
 function renderShootBar() {
@@ -1148,7 +1149,7 @@ function renderShootBar() {
   const stack = mkEl("span", "ss-stack");
   others.slice(0, 4).forEach((o) => stack.appendChild(coverImg(o.sh)));
   const lbl = mkEl("span", "ss-lbl");
-  lbl.append(mkEl("b", "", shootIdx === 0 ? "OLDER SHOOTS" : "OTHER SHOOTS"), mkEl("i", "", `${others.length} MORE · PULL UP`));
+  lbl.append(mkEl("b", "", shootIdx === 0 ? "OLDER SHOOTS" : "OTHER SHOOTS"), mkEl("i", "", String(others.length)));
   peek.append(stack, lbl, mkEl("span", "ss-arrow", "↑"));
   grip.append(mkEl("span", "ss-pill"), peek);
   head.appendChild(grip);
@@ -1169,11 +1170,11 @@ function renderShootBar() {
     sec.appendChild(mkEl("div", "ss-yr", g.y));
     const grid = mkEl("div", "ss-tiles");
     g.items.forEach((o, k) => {
-      const tile = mkEl("button", "ss-tile" + (k === 0 ? " hero" : "")); tile.type = "button";
+      const tile = mkEl("button", "ss-tile"); tile.type = "button";
       tile.style.setProperty("--i", Math.min(n++, 10));
       const cap = mkEl("span", "cap");
       cap.append(mkEl("i", "", (o.i === 0 && o.sh.date ? "NEWEST · " : "") + (fmtDate(o.sh.date) || "UNDATED")), mkEl("b", "", o.sh.title));
-      tile.append(coverImg(o.sh), mkEl("span", "n", `${pad2(o.sh.count)} PHOTOS`), cap);
+      tile.append(coverImg(o.sh, true), mkEl("span", "n", `${pad2(o.sh.count)} PHOTOS`), cap);
       tile.addEventListener("click", () => switchShoot(o.i));
       grid.appendChild(tile);
     });

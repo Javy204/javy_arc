@@ -1,0 +1,33 @@
+{
+  "name": "JAVY",
+  "kicker": "STUDIO · ARCHIVE",
+  "est": "EST. 2026",
+  "tagline": "PHOTOGRAPHY & PROJECTS",
+  "about": "PHOTOGRAPHER FROM PRAGUE. MUSICIANS, FASHION, PORTRAIT, EVENT.",
+  "based": "PRAGUE",
+  "shoots": "MUSIC · FASHION · PORTRAIT · EVENT",
+  "since": "2021",
+  "footer": "JAVY © 2026 · STUDIO",
+  "contacts": [
+    {
+      "label": "EMAIL",
+      "text": "stepan.jav036@gmail.com",
+      "href": "mailto:stepan.jav036@gmail.com"
+    },
+    {
+      "label": "INSTAGRAM",
+      "text": "@stepan.javy",
+      "href": "https://instagram.com/stepan.javy"
+    },
+    {
+      "label": "INSTAGRAM / ARC",
+      "text": "@javy.arc",
+      "href": "https://instagram.com/javy.arc"
+    },
+    {
+      "label": "TIKTOK",
+      "text": "@stepan.javy",
+      "href": "https://tiktok.com/@stepan.javy"
+    }
+  ]
+}

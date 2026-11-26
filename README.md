@@ -9,25 +9,32 @@ python3 -m http.server 3334
 ```
 a otevřít `http://localhost:3334`.
 
-## Jak se přidává a mění obsah
-Zdrojem pravdy jsou **složky ve `photos/`**, ne žádný JSON:
+## Správa webu bez AI (klikací UI)
+Dvojklik na **`sprava-webu.command`** (macOS) nebo **`sprava-webu.bat`** (Windows) → otevře se
+správa v prohlížeči (`127.0.0.1:8765`, jen lokálně, bez hesla). Má tři záložky:
 
-- `photos/NN název/` = jeden shoot (fotky přímo uvnitř). Číslo na začátku = pořadí, zbytek = titulek.
-- `photos/NN název/NN shoot/` = **skupina** (projekt s víc shooty, např. kapela).
+1. **Fotky** — nahrávání přetažením (automaticky se zmenší a vyrobí se náhledy), řazení složek,
+   přejmenování, mazání do koše `_trash/`, výběr náhledové fotky.
+2. **Texty webu** — úvod, About, kontakty, patička (ukládá se do `site.json`).
+3. **Publikovat & nastavení** — kontrola prostředí (Python, Pillow/ImageMagick, Git, napojení na GitHub)
+   a tlačítko **Publikovat** (commit + push). Web se na GitHub Pages aktualizuje do ~1 minuty.
+
+### Zdroje obsahu
+- `photos/NN název/` = jeden shoot, `photos/NN název/NN shoot/` = skupina (projekt s víc shooty). Číslo = pořadí.
+- `site.json` = texty a kontakty. Do `index.html` se zapisují přes `build.py` (prvky `data-site="klíč"`
+  a blok `<!--site:contacts-->`); web zůstává čistě statický.
 - `photos/manifest.json` a `photos/_thumbs/` jsou **generované** (`build.py`) — needitovat ručně.
 
-Nejjednodušší cesta: dvojklik na **`sprava-webu.command`** → otevře se klikací správa
-(nahrávání fotek přetažením, řazení, přejmenování, mazání do koše `_trash/`, výběr náhledu).
-Správa je jen lokální (`127.0.0.1:8765`), bez hesla a nic nepublikuje.
+Ručně (bez UI): nahraj fotky do složky a spusť `prep.command` (nebo `python3 build.py`).
 
-Ručně: nahraj fotky do složky a dvojklik na **`prep.command`** (zmenší na 1600 px, originály
-zazálohuje do `_masters/`, vygeneruje náhledy a manifest). Totéž dělá `python3 build.py`.
+## Předání jinému člověku / nové zařízení
+1. Nainstalovat **Python 3** (python.org) a **GitHub Desktop** (nebo Git); volitelně `pip3 install pillow`.
+2. V GitHub Desktop: přihlásit se (účet s právem zápisu do repa) → *Clone* repozitáře `Javy204/javy_arc`.
+3. Dvojklik na `sprava-webu.command` / `.bat` → záložka **Publikovat & nastavení** ukáže, co ještě chybí.
+4. Publikování nejde bez přihlášení k GitHubu: jednou v GitHub Desktop kliknout Push, pak funguje i z UI.
 
-Potřebuje: Python 3, ideálně Pillow (`pip3 install pillow`) nebo ImageMagick (zmenšování, náhledy).
-
-## Publikace
-Po úpravách: **Commit + Push** (GitHub Desktop nebo `git`). GitHub Pages web nasadí do ~1 minuty.
-Do repa patří `photos/` (zmenšené fotky + `_thumbs/`), nepatří tam `_masters/` ani `_trash/` (jsou v `.gitignore`).
+Domény a hosting: GitHub Pages z větve `main`, doména v `CNAME`. Brána archivu a FOTOMAT (viz níže)
+se nastavují v kódu — viz „Tajné vstupy".
 
 ## Struktura
 ```
@@ -40,8 +47,9 @@ arc-heslo.html       generátor nového hesla pro bránu (výstup vložit do arc
 studio/              starší redesign (odkazovaný z beta menu)
 vrgd/                kopie webu VRgD (kopíruje se z jiného projektu, neupravovat zde)
 photos/              fotky + manifest.json + _thumbs/
-build.py             manifest + náhledy ze složek ve photos/
-cover_admin.py       lokální klikací správa (spouští sprava-webu.command)
+build.py             manifest + náhledy + texty ze site.json
+cover_admin.py       lokální klikací správa (sprava-webu.command / .bat)
+site.json            texty a kontakty webu (edituje se v UI)
 ```
 
 ## Tajné vstupy (jen pro správce)

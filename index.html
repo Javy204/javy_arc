@@ -20,7 +20,7 @@
   <header class="hud">
     <button class="back" id="back" hidden>←</button>
     <span class="mark" aria-label="javy">P</span>
-    <span class="sys">JAVY</span>
+    <span class="sys" data-site="name">JAVY</span>
     <span class="dim crumb" id="crumb">STUDIO</span>
     <span class="spacer"></span>
     <span class="browse-toggle" id="browseToggle" hidden>
@@ -37,10 +37,10 @@
 
     <section class="scene s-intro" data-name="javy">
       <div class="scene-inner poster">
-        <div class="p-row par" data-rise="18" data-exit="50"><span class="mark big">P</span><span>STUDIO · ARCHIVE</span><span class="r">EST. 2026</span></div>
-        <div class="line par" data-rise="40" data-exit="130"><span class="fit">JAVY</span></div>
+        <div class="p-row par" data-rise="18" data-exit="50"><span class="mark big">P</span><span data-site="kicker">STUDIO · ARCHIVE</span><span class="r" data-site="est">EST. 2026</span></div>
+        <div class="line par" data-rise="40" data-exit="130"><span class="fit" data-site="name">JAVY</span></div>
         <div class="line par" data-rise="56" data-exit="160"><span class="fit">PORTFOLIO</span></div>
-        <div class="p-row par" data-rise="72" data-exit="180"><span>PHOTOGRAPHY &amp; PROJECTS</span><span class="r scrollhint">↓ SCROLL</span></div>
+        <div class="p-row par" data-rise="72" data-exit="180"><span data-site="tagline">PHOTOGRAPHY &amp; PROJECTS</span><span class="r scrollhint">↓ SCROLL</span></div>
       </div>
     </section>
 
@@ -200,13 +200,13 @@
     <section class="scene s-about" data-name="about">
       <div class="scene-inner poster">
         <div class="p-row par" data-rise="16" data-exit="40"><span>04 — ABOUT</span></div>
-        <div class="line par" data-rise="34" data-exit="110"><span class="fit">JAVY</span></div>
+        <div class="line par" data-rise="34" data-exit="110"><span class="fit" data-site="name">JAVY</span></div>
         <div class="info-block par" data-rise="60" data-exit="150">
-          <p>PHOTOGRAPHER FROM PRAGUE. MUSICIANS, FASHION, PORTRAIT, EVENT.</p>
+          <p data-site="about">PHOTOGRAPHER FROM PRAGUE. MUSICIANS, FASHION, PORTRAIT, EVENT.</p>
           <dl class="specs">
-            <dt>BASED</dt><dd>PRAGUE</dd>
-            <dt>SHOOTS</dt><dd>MUSIC · FASHION · PORTRAIT · EVENT</dd>
-            <dt>SINCE</dt><dd>2021</dd>
+            <dt>BASED</dt><dd data-site="based">PRAGUE</dd>
+            <dt>SHOOTS</dt><dd data-site="shoots">MUSIC · FASHION · PORTRAIT · EVENT</dd>
+            <dt>SINCE</dt><dd data-site="since">2021</dd>
           </dl>
         </div>
       </div>
@@ -217,12 +217,14 @@
         <div class="p-row par" data-rise="16" data-exit="40"><span>05 — CONTACT</span></div>
         <div class="line par" data-rise="34" data-exit="110"><span class="fit">GET IN TOUCH</span></div>
         <ul class="contact-list par" data-rise="60" data-exit="120">
+          <!--site:contacts-->
           <li><span>EMAIL</span><a href="mailto:stepan.jav036@gmail.com">stepan.jav036@gmail.com</a></li>
           <li><span>INSTAGRAM</span><a href="https://instagram.com/stepan.javy" target="_blank" rel="noopener">@stepan.javy</a></li>
           <li><span>INSTAGRAM / ARC</span><a href="https://instagram.com/javy.arc" target="_blank" rel="noopener">@javy.arc</a></li>
           <li><span>TIKTOK</span><a href="https://tiktok.com/@stepan.javy" target="_blank" rel="noopener">@stepan.javy</a></li>
+          <!--/site:contacts-->
         </ul>
-        <div class="foot par" data-rise="74" data-exit="90">JAVY © 2026 · STUDIO</div>
+        <div class="foot par" data-rise="74" data-exit="90" data-site="footer">JAVY © 2026 · STUDIO</div>
       </div>
     </section>
 

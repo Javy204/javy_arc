@@ -9,7 +9,7 @@
 #
 # Manifest je AUTOGENEROVANÝ — needituj ho ručně.
 
-import os, re, json, shutil, subprocess
+import os, re, json, shutil, subprocess, html
 from urllib.parse import quote, unquote
 
 PHOTOS = "photos"
@@ -154,6 +154,59 @@ def make_thumbs():
         print(f"náhledy: +{made} / -{removed}")
 
 make_thumbs()
+
+
+# ═══════════════════════════════════════════════════════════════
+#  TEXTY WEBU (site.json → HTML)
+#  Prvky s data-site="klíč" dostanou text ze site.json; seznam kontaktů
+#  se vygeneruje mezi <!--site:contacts--> a <!--/site:contacts-->.
+#  Do HTML se to zapisuje napevno (web zůstává statický, nic se
+#  nedoplňuje za běhu). Bez site.json se nic nemění.
+# ═══════════════════════════════════════════════════════════════
+SITE_FILES = ["index.html"]
+
+def bake_site():
+    try:
+        with open("site.json", encoding="utf-8") as f:
+            site = json.load(f)
+    except FileNotFoundError:
+        return
+    except Exception as e:
+        print(f"⚠️  site.json se nedá přečíst ({e}) — texty webu nechávám beze změny")
+        return
+    el = re.compile(r'(<(\w+)\b[^>]*\bdata-site="(\w+)"[^>]*>)(.*?)(</\2>)', re.S)
+    changed = []
+    for fn in SITE_FILES:
+        if not os.path.exists(fn):
+            continue
+        with open(fn, encoding="utf-8") as f:
+            src = f.read()
+        def put(m):
+            key = m.group(3)
+            val = site.get(key)
+            if not isinstance(val, str):
+                return m.group(0)
+            return m.group(1) + html.escape(val, quote=False) + m.group(5)
+        out = el.sub(put, src)
+        rows = []
+        for c in site.get("contacts", []):
+            label, text, href = (str(c.get(k, "")).strip() for k in ("label", "text", "href"))
+            if not (label and text):
+                continue
+            ext = ' target="_blank" rel="noopener"' if href.lower().startswith("http") else ""
+            link = (f'<a href="{html.escape(href, quote=True)}"{ext}>{html.escape(text, quote=False)}</a>'
+                    if href else html.escape(text, quote=False))
+            rows.append(f'          <li><span>{html.escape(label, quote=False)}</span>{link}</li>\n')
+        out = re.sub(r'(<!--site:contacts-->\n).*?(          <!--/site:contacts-->)',
+                     lambda m: m.group(1) + "".join(rows) + m.group(2), out, flags=re.S)
+        if out != src:
+            with open(fn, "w", encoding="utf-8") as f:
+                f.write(out)
+            changed.append(fn)
+    if changed:
+        print("texty webu zapsány do: " + ", ".join(changed))
+
+bake_site()
 
 sets = []
 skipped = []      # prázdné složky (bez fotek) — nahlásíme je na konci
